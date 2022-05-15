@@ -1,3 +1,10 @@
+const baseUrl = process.env.BASE_URL ||
+  // 'https://ideality.app/api/',
+  // uncomment ^^ for production
+  'http://localhost:3700/api/'
+  // uncomment ^^ for development
+
+
 export default {
   // Target: https://go.nuxtjs.dev/config-target
   target: 'static',
@@ -8,13 +15,11 @@ export default {
 
   env: {
     NOTION_API_URL: process.env.NOTION_API_URL || 
-      // uncomment below for production
-      // 'https://ideality.app/api/notion/',
-      // uncomment below for development
-      'http://localhost:3700/api/notion/',
-      // uncomment below to use public cors proxy
-      // 'https://cors-anywhere.herokuapp.com/https://ideality.app/api/notion/'
+      baseUrl + 'notion/',
   
+    MINDY_API_URL: process.env.MINDY_API_URL ||
+      baseUrl + 'mindy/',
+
     NOTION_DATABASE_ID: process.env.NOTION_DATABASE_ID ||
       'dec1a3932d774d97a1e549295b0dc302',
   },
@@ -33,7 +38,7 @@ export default {
       { name: 'format-detection', content: 'telephone=no' }
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.png' }
     ]
   },
 

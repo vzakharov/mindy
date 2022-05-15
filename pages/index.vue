@@ -15,13 +15,13 @@
             >
               <template v-if="message.special">
                 <em>
-                  <strong v-text="message.user"/> {{ message.special.name }}
+                  <strong v-text="message.user.name"/> {{ message.special }}
                 </em>
               </template>
               <template v-else>
                 <strong
-                  v-text="message.user"
-                  :class="{ 'text-primary': message.user === user }"
+                  v-text="message.user.name"
+                  :class="{ 'text-primary': message.user.name === user.name }"
                 />:&nbsp;
                 <span v-text="message.content" />
               </template>
@@ -63,14 +63,19 @@
 
 <script>
 
-  import Notion from '~/plugins/notion'
+  import axios from 'axios'
+  import _ from 'lodash'
+  
+  const mindy = axios.create({
+    baseURL: process.env.MINDY_API_URL,
+  })
 
   export default {
 
     data() {
 
       return {
-        // Some sample messages to start with
+
         messages: null,
         message: '',
         user: {}
@@ -81,14 +86,8 @@
 
     async mounted() {
 
-      this.messages = await Notion.anon.queryDatabase(process.env.NOTION_DATABASE_ID, {
-        sorts: [
-          {
-            property: 'Time',
-            direction: 'descending'
-          }
-        ],
-      })
+      let { data: messages } = await mindy.get('/messages')
+      _.assign(this, { messages })
 
     }
 
