@@ -29,7 +29,8 @@
             </div>
           </b-card-body>
           <b-card-footer>
-            <template v-if="!user.name">
+            <!-- Enter user name -->
+            <template v-if="!settings.mindy.token">
               <b-form-group
                 label="Name"
                 label-for="username"
@@ -38,7 +39,7 @@
                   id="username"
                   :value="enteredName"
                   @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-')"
-                  @change="checkName"
+                  @change="createUser"
                   placeholder="Enter your name to start chatting"
                 />
               </b-form-group>
@@ -51,17 +52,29 @@
               Name unavailable. Please choose another.
             </b-alert>
 
-            <b-form-group
-              :label="user.name"
-              label-for="message"
+            <!-- Enter message -->
+            <b-form
+              @submit.prevent="sendMessage"
+              class="mb-0"
             >
-              <b-form-input
-                id="message"
-                v-model="message"
-                lazy
-                placeholder="Enter your message"
-              />
-            </b-form-group>
+              <b-form-group
+                :label="user.name"
+                label-for="message"
+              >
+                <b-form-input
+                  id="message"
+                  v-model="message"
+                  placeholder="Enter your message"
+                />
+              </b-form-group>
+              <b-button
+                type="submit"
+                variant="primary"
+                :disabled="!message || !settings.mindy.token"
+              >
+                Send
+              </b-button>
+            </b-form>
           </b-card-footer>
         </b-card>
       </b-col>
@@ -73,6 +86,7 @@
 
   import axios from 'axios'
   import _ from 'lodash'
+  import syncLocal from '~/plugins/syncLocal'
   
   const mindy = axios.create({
     baseURL: process.env.MINDY_API_URL,
@@ -80,49 +94,112 @@
 
   export default {
 
+    mixins: [syncLocal],
+
     data() {
 
       return {
 
         messages: null,
         message: '',
-        user: {
-          name: ''
-        },
         enteredName: '',
         checkingName: false,
         nameUnavailable: false,
+        settings: {
+          mindy: {
+            user: {
+              name: null,
+            },
+            token: null,
+          },
+        }
 
       }
 
     },
 
-    async mounted() {
+    computed: {
 
-      let { data: messages } = await mindy.get('/messages')
-      _.assign(this, { messages })
+      user: {
+        get() {
+          return this.settings.mindy.user
+        },
+        set(value) {
+          this.settings.mindy.user = value
+        }
+      },
+
+    },
+
+    mounted() {
+
+      const checkMessages = async () => {
+
+        await this.checkMessages()
+        setTimeout(checkMessages, 5000)
+        
+      }
+
+      checkMessages()
 
     },
 
     methods: {
 
-      async checkName() {
+      async checkMessages() {
+
+        let { data: messages } = await mindy.get('/messages')
+        _.assign(this, { messages })
+        
+      },
+
+      async createUser() {
 
         let { enteredName } = this
         this.checkingName = true
         this.nameUnavailable = false
 
-        let { data: user } = await mindy.get(`/u/${enteredName}/check`)
-        if ( user.available ) {
+        try {
+
+          let { data: token } = await mindy.post('/users', { name: enteredName })
           this.user.name = enteredName
-          await mindy.post(`/u/${enteredName}/`)
-        } else {
-          this.nameUnavailable = true
+          _.assign(this.settings.mindy, { token })
+
+        } catch (error) {
+
+          if (error.response.status === 409) {
+
+            this.nameUnavailable = true
+
+          } else {
+            throw error
+          }
+
+        } finally {
+
+          this.checkingName = false
+
         }
 
-        this.checkingName = false
+      },
 
-      }
+      async sendMessage() {
+
+        let { message } = this
+        this.message = ''
+
+        await mindy.post('/messages', { content: message }, {
+          headers: {
+            Authorization: `Bearer ${this.settings.mindy.token}`,
+          },
+        })
+
+        this.messages.push({
+          user: this.user,
+          content: message,
+        })
+
+      },
 
     }
 
