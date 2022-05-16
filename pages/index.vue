@@ -2,8 +2,9 @@
   <b-container>
     <b-row>
       <b-col>
+        <b-spinner v-if="!messages"/>
         <!-- Chat box -->
-        <b-card>
+        <b-card v-else>
           <b-card-header>
             <b-card-title>Chat</b-card-title>
           </b-card-header>
