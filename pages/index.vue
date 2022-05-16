@@ -36,13 +36,21 @@
               >
                 <b-form-input
                   id="username"
-                  v-model="user.name"
-                  lazy
+                  :value="enteredName"
+                  @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-')"
+                  @change="checkName"
                   placeholder="Enter your name to start chatting"
-                  :state="user.name ? 'success' : 'danger'"
                 />
               </b-form-group>
             </template>
+            <b-spinner v-if="checkingName" label="Checking name..." small />
+            <b-alert :show="nameUnavailable"
+              variant="danger"
+              dismissible              
+            >
+              Name unavailable. Please choose another.
+            </b-alert>
+
             <b-form-group
               :label="user.name"
               label-for="message"
@@ -52,7 +60,6 @@
                 v-model="message"
                 lazy
                 placeholder="Enter your message"
-                :disabled="!user.name"
               />
             </b-form-group>
           </b-card-footer>
@@ -79,7 +86,12 @@
 
         messages: null,
         message: '',
-        user: {}
+        user: {
+          name: ''
+        },
+        enteredName: '',
+        checkingName: false,
+        nameUnavailable: false,
 
       }
 
@@ -89,6 +101,28 @@
 
       let { data: messages } = await mindy.get('/messages')
       _.assign(this, { messages })
+
+    },
+
+    methods: {
+
+      async checkName() {
+
+        let { enteredName } = this
+        this.checkingName = true
+        this.nameUnavailable = false
+
+        let { data: user } = await mindy.get(`/u/${enteredName}/check`)
+        if ( user.available ) {
+          this.user.name = enteredName
+          await mindy.post(`/u/${enteredName}/`)
+        } else {
+          this.nameUnavailable = true
+        }
+
+        this.checkingName = false
+
+      }
 
     }
 
