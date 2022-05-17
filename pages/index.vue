@@ -16,7 +16,7 @@
             >
               <template v-if="message.special">
                 <em>
-                  <strong v-text="message.user.name"/> {{ message.special }}
+                  <strong v-text="message.user.name"/> {{ message.content }}
                 </em>
               </template>
               <template v-else>
@@ -129,6 +129,13 @@
     },
 
     mounted() {
+
+      // Load token from query
+      let { token } = this.$route.query
+      if ( token ) {
+        console.log('token', token)
+        this.settings.mindy.token = token
+      }
 
       const checkMessages = async () => {
 
@@ -277,14 +284,6 @@
 
     watch: {
 
-      '$route.query.token': {
-        immediate: true,
-        async handler(token) {
-          if ( !token ) return
-          this.settings.mindy.token = token
-        },
-      },
-
       'settings.mindy.token': {
         immediate: true,
         async handler(token) {
@@ -310,6 +309,8 @@
                   solid: true
                 }
               )
+            } else {
+              throw error
             }
           }
         },
