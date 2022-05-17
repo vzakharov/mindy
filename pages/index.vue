@@ -1,18 +1,18 @@
 <template>
   <b-container>
     <b-row>
-      <b-col>
+      <b-col class="border p-0">
         <b-spinner v-if="!messages"/>
         <!-- Chat box -->
-        <b-card v-else>
-          <b-card-header>
-            <b-card-title>Chat</b-card-title>
-          </b-card-header>
-          <b-card-body>
+        <template v-else>
+          <div class="header p-3">
+            <h1>Chat</h1>
+          </div>
+          <div class="p-3">
             <div
               v-for="(message, index) in messages"
               :key="index"
-              class="d-flex justify-content-start mb-2"
+              class="mt-2"
             >
               <template v-if="message.special">
                 <em>
@@ -20,15 +20,22 @@
                 </em>
               </template>
               <template v-else>
-                <strong
+                <div
                   v-text="message.user.name"
                   :class="{ 'text-primary': user && message.user.name === user.name }"
-                />:&nbsp;
-                <span v-text="message.content" />
+                  :style="{
+                    fontWeight: 'bold'
+                  }"
+                />
+                <div 
+                  v-text="message.content"
+                />
               </template>
             </div>
-          </b-card-body>
-          <b-card-footer>
+          </div>
+          <div
+            class="footer p-3"
+          >
             <!-- Enter user name -->
             <template v-if="!settings.mindy.token">
               <b-form-group
@@ -79,8 +86,8 @@
                 Send
               </b-button>
             </b-form>
-          </b-card-footer>
-        </b-card>
+          </div>
+        </template>
       </b-col>
     </b-row>
   </b-container>
@@ -318,4 +325,21 @@
   label {
     font-weight: bold;
   }
+
+  .footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background-color: #f7f7f7;
+    border-top: 1px solid #e7e7e7;
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #e7e7e7;
+  }
+
 </style>
