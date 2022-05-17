@@ -187,7 +187,7 @@
                   <pre>${token}</pre>
                   <!-- Button to copy token -->
                   <button id="copy-token" class="btn btn-outline-secondary"
-                    onclick="navigator.clipboard.writeText('${token}'); Object.assign(document.querySelector('#copy-token'), { disabled: true, innerText: 'Copied!' });"
+                    onclick="navigator.clipboard.writeText('${token}'); Object.assign(document.querySelector('#copy-token'), { disabled: true, innerText: 'Copied!'}); setTimeout(() => Object.assign(document.querySelector('#copy-token'), { disabled: false, innerText: 'Copy token' }), 1000);"
                   >
                     Copy token
                   </button>
