@@ -138,8 +138,29 @@
 
       async checkMessages() {
 
-        let { data: messages } = await mindy.get('/messages')
-        _.assign(this, { messages })
+        let messages
+
+        while ( !messages ) {
+
+          try {
+
+            ( { data: messages } = await mindy.get('/messages') )
+            _.assign(this, { messages })
+
+          } catch (e) {
+
+            console.error(e)
+            // If it's a timeout, try again
+            if ( e.code === 'ETIMEDOUT' ) {
+              continue
+            } else {
+              // Otherwise, stop trying
+              break
+            }
+            
+          }
+
+        }
         
       },
 
