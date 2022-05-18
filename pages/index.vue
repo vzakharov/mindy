@@ -8,7 +8,7 @@
           <div class="header p-3">
             <h1>Chat</h1>
           </div>
-          <div class="p-3">
+          <div id="chat-box" class="p-3">
             <div
               v-for="(message, index) in messages"
               :key="index"
@@ -31,6 +31,12 @@
                   v-text="message.content"
                 />
               </template>
+            </div>
+            <!-- 'mindy is typing' if generatingReply is true -->
+            <div v-if="generatingReply" class="mt-2">
+              <em>
+                mindy is typing...
+              </em>
             </div>
           </div>
           <div
@@ -114,6 +120,7 @@
 
         messages: null,
         message: '',
+        generatingReply: false,
         enteredName: '',
         checkingName: false,
         nameUnavailable: false,
@@ -152,14 +159,23 @@
 
       async checkMessages() {
 
-        let messages
-
-        while ( !messages ) {
+        while ( true ) {
 
           try {
 
-            ( { data: messages } = await mindy.get('/messages') )
-            _.assign(this, { messages })
+            let { data: { messages, generatingReply }} = await mindy.get('/messages')
+            _.assign(this, { messages, generatingReply })
+
+            // If the chat-box element was scrolled to the bottom, scroll it again (in case there are new messages)
+            const chatBox = document.getElementById('chat-box')
+            if ( chatBox ) {
+              let { scrollHeight, scrollTop, clientHeight } = chatBox
+              if ( scrollHeight - scrollTop === clientHeight ) {
+                chatBox.scrollTop = scrollHeight
+              }
+            }
+
+            break
 
           } catch (e) {
 
@@ -267,7 +283,7 @@
         let { message } = this
         this.message = ''
 
-        await mindy.post('/messages', { content: message }, {
+        await mindy.post('/postMessage', { content: message }, {
           headers: {
             Authorization: `Bearer ${this.settings.mindy.token}`,
           },
