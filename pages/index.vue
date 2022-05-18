@@ -8,7 +8,7 @@
           <div class="header p-3">
             <h1>Chat</h1>
           </div>
-          <div id="chat-box" class="p-3">
+          <div class="p-3">
             <div
               v-for="(message, index) in messages"
               :key="index"
@@ -38,6 +38,8 @@
                 mindy is typing...
               </em>
             </div>
+            <!-- empty element to scroll to bottom of chat box -->
+            <div id="scroll-to-bottom" class="mt-2"/>
           </div>
           <div
             class="footer p-3"
@@ -86,10 +88,14 @@
               </b-form-group>
               <b-button
                 type="submit"
-                variant="primary"
-                :disabled="!message || !settings.mindy.token"
+                :variant="sending ? 'outline-secondary' : 'primary'"
+                :disabled="!message || !settings.mindy.token || sending"
               >
-                Send
+                {{ sending ? 'Sending...' : 'Send' }}
+                <b-spinner
+                  v-if="sending"
+                  small
+                />
               </b-button>
             </b-form>
           </div>
@@ -120,6 +126,8 @@
 
         messages: null,
         message: '',
+        lastMessageTime: null,
+        sending: false,
         generatingReply: false,
         enteredName: '',
         checkingName: false,
@@ -165,15 +173,6 @@
 
             let { data: { messages, generatingReply }} = await mindy.get('/messages')
             _.assign(this, { messages, generatingReply })
-
-            // If the chat-box element was scrolled to the bottom, scroll it again (in case there are new messages)
-            const chatBox = document.getElementById('chat-box')
-            if ( chatBox ) {
-              let { scrollHeight, scrollTop, clientHeight } = chatBox
-              if ( scrollHeight - scrollTop === clientHeight ) {
-                chatBox.scrollTop = scrollHeight
-              }
-            }
 
             break
 
@@ -283,16 +282,37 @@
         let { message } = this
         this.message = ''
 
-        await mindy.post('/postMessage', { content: message }, {
-          headers: {
-            Authorization: `Bearer ${this.settings.mindy.token}`,
-          },
-        })
+        this.sending = true
+        try {
+          
+          await mindy.post('/postMessage', { content: message }, {
+            headers: {
+              Authorization: `Bearer ${this.settings.mindy.token}`,
+            },
+          })
 
-        this.messages.push({
-          user: this.user,
-          content: message,
-        })
+          this.messages.push({
+            user: this.user,
+            content: message,
+          })
+
+        } catch (error) {
+
+          console.error(error)
+          this.$bvToast.toast('Something went wrong, please try again.', {
+            title: 'Error',
+            variant: 'danger',
+            solid: true,
+            autoHideDelay: 5000,
+          })
+
+        } finally {
+
+          this.sending = false
+
+        }
+
+
 
       },
 
@@ -330,6 +350,17 @@
             }
           }
         },
+      },
+
+      messages(messages) {
+        // If there are new messages, scroll to 'scroll-to-bottom'
+        let { time } = messages[messages.length - 1]
+        if ( this.lastMessageTime !== time ) {
+          this.$nextTick(() =>
+            document.getElementById('scroll-to-bottom')?.scrollIntoView()
+          )
+          this.lastMessageTime = time
+        }
       },
 
     }
