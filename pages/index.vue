@@ -1,108 +1,36 @@
-<template>
-  <b-container>
-    <b-row>
-      <b-col class="border p-0">
-        <b-spinner v-if="!messages"/>
-        <!-- Chat box -->
-        <template v-else>
-          <div class="header p-3">
-            <h1>Chat</h1>
-          </div>
-          <div class="p-3">
-            <div
-              v-for="(message, index) in messages"
-              :key="index"
-              class="mt-2"
-            >
-              <template v-if="message.special">
-                <em>
-                  <strong v-text="message.user.name"/> {{ message.content }}
-                </em>
-              </template>
-              <template v-else>
-                <div
-                  v-text="message.user.name"
-                  :class="{ 'text-primary': user && message.user.name === user.name }"
-                  :style="{
-                    fontWeight: 'bold'
-                  }"
-                />
-                <div 
-                  v-text="message.content"
-                />
-              </template>
-            </div>
-            <!-- 'mindy is typing' if generatingReply is true -->
-            <div v-if="generatingReply" class="mt-2">
-              <em>
-                mindy is typing...
-              </em>
-            </div>
-            <!-- empty element to scroll to bottom of chat box -->
-            <div id="scroll-to-bottom" class="mt-2"/>
-          </div>
-          <div
-            class="footer p-3"
-          >
-            <!-- Enter user name -->
-            <template v-if="!settings.mindy.token">
-              <b-form-group
-                label="Name"
-                label-for="username"
-              >
-                <b-form-input
-                  id="username"
-                  :value="enteredName"
-                  @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-')"
-                  @change="createUser"
-                  placeholder="Enter your name to start chatting"
-                />
-              </b-form-group>
-            </template>
-            <b-spinner v-if="checkingName" label="Checking name..." small />
-            <b-alert :show="nameUnavailable"
-              variant="danger"
-              dismissible              
-            >
-              This name is already taken. If that’s you, paste your token below:
-              <b-input
-                v-model="settings.mindy.token"
-                placeholder="mindy-..."
-              />
-            </b-alert>
-
-            <!-- Enter message -->
-            <b-form
-              @submit.prevent="sendMessage"
-              class="mb-0"
-            >
-              <b-form-group
-                :label="user && user.name"
-                label-for="message"
-              >
-                <b-form-input
-                  id="message"
-                  v-model="message"
-                  placeholder="Enter your message"
-                />
-              </b-form-group>
-              <b-button
-                type="submit"
-                :variant="sending ? 'outline-secondary' : 'primary'"
-                :disabled="!message || !settings.mindy.token || sending"
-              >
-                {{ sending ? 'Sending...' : 'Send' }}
-                <b-spinner
-                  v-if="sending"
-                  small
-                />
-              </b-button>
-            </b-form>
-          </div>
-        </template>
-      </b-col>
-    </b-row>
-  </b-container>
+<template lang="pug">
+  b-container
+    b-row
+      b-col(class="border p-0")
+        b-spinner(v-if="!messages")
+        template(v-else)
+          div(class="header p-3")
+            h1 Chat
+          div(class="p-3")
+            div(v-for="(message, index) in messages", :key="index", class="mt-2")
+              template(v-if="message.special")
+                em
+                  strong {{ message.user.name }} {{ message.content }}
+              template
+                div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
+                div(v-text="message.content")
+            div(v-if="generatingReply", class="mt-2 text-muted")
+              em mindy is typing{{ '.'.repeat(typingCount + 1) }}
+            div(id="scroll-to-bottom", class="mt-2")
+          div(class="footer p-3")
+            template(v-if="!settings.mindy.token")
+              b-form-group(label="Name", label-for="username")
+                b-form-input(id="username", :value="enteredName", @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-')", @change="createUser", placeholder="Enter your name to start chatting")
+            b-spinner(v-if="checkingName", label="Checking name...", small)
+            b-alert(:show="nameUnavailable", variant="danger", dismissible)
+              | This name is already taken. If that’s you, paste your token below:
+              b-input(v-model="settings.mindy.token", placeholder="mindy-...")
+            b-form(@submit.prevent="sendMessage", class="mb-0")
+              b-form-group(:label="user && user.name", label-for="message")
+                b-form-input(id="message", v-model="message", placeholder="Enter your message", :disabled="!user || sending")
+              b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!message || !settings.mindy.token || sending")
+                | {{ sending ? 'Sending...' : 'Send' }}
+                b-spinner(v-if="sending", small)
 </template>
 
 <script>
@@ -137,7 +65,9 @@
             token: null,
           },
         },
-        user: null
+        user: null,
+        typingCount: 0,
+        typingInterval: null,
 
       }
 
@@ -152,45 +82,37 @@
         this.settings.mindy.token = token
       }
 
-      const checkMessages = async () => {
-
-        await this.checkMessages()
-        setTimeout(checkMessages, 5000)
-        
-      }
-
-      checkMessages()
+      this.checkMessages()
 
     },
 
     methods: {
 
-      async checkMessages() {
+      async checkMessages(lastChecked) {
 
-        while ( true ) {
+        let checkedAt = new Date()
 
-          try {
+        try {
 
-            let { data: { messages, generatingReply }} = await mindy.get('/messages')
-            _.assign(this, { messages, generatingReply })
+          let { data: { messages }} = await mindy.post('/fetchMessages', {
+            lastChecked
+          })
 
-            break
+          this.messages = messages
+          this.generatingReply = false            
 
-          } catch (e) {
+        } catch (e) {
 
-            console.error(e)
-            // If it's a timeout, try again
-            if ( e.code === 'ETIMEDOUT' ) {
-              continue
-            } else {
-              // Otherwise, stop trying
-              break
-            }
-            
-          }
+          console.error(e)
+          
+        } finally {
+
+          this.$nextTick(() => {
+            this.checkMessages(checkedAt)
+          })
 
         }
-        
+
       },
 
       async createUser() {
@@ -279,21 +201,28 @@
 
       async sendMessage() {
 
-        let { message } = this
-        this.message = ''
-
         this.sending = true
         try {
           
-          await mindy.post('/postMessage', { content: message }, {
+          let {
+            data: { message, botWillStartReplyingIn }
+          } = await mindy.post('/postMessage', { content: this.message }, {
             headers: {
               Authorization: `Bearer ${this.settings.mindy.token}`,
             },
           })
 
-          this.messages.push({
-            user: this.user,
-            content: message,
+          setTimeout( () => {
+            this.generatingReply = true
+          }, botWillStartReplyingIn )
+
+          this.messages.push(message)
+
+          this.message = ''
+
+          // Focus on the message input
+          this.$nextTick(() => {
+            document.querySelector('#message').focus()
           })
 
         } catch (error) {
@@ -361,6 +290,23 @@
           )
           this.lastMessageTime = time
         }
+      },
+
+      generatingReply(generatingReply) {
+
+        clearInterval(this.typingInterval)
+        if ( generatingReply ) {
+
+          this.typingInterval = setInterval(() => {
+            this.typingCount = ( this.typingCount + 1 ) % 3
+          }, 500)
+
+        } else {
+          
+          this.typingCount = 0
+
+        }
+
       },
 
     }
