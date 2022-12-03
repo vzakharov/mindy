@@ -33,105 +33,77 @@
                 b-spinner(v-if="sending", small)
 </template>
 
-<script>
+<script lang="coffee">
 
   import axios from 'axios'
   import _ from 'lodash'
   import syncLocal from '~/plugins/syncLocal'
   import QRCode from 'qrcode'
-  
-  const mindy = axios.create({
-    baseURL: process.env.MINDY_API_URL,
-  })
 
-  export default {
+  mindy = axios.create
+    baseURL: process.env.MINDY_API_URL
 
-    mixins: [syncLocal],
+  export default
+    mixins: [syncLocal]
 
-    data() {
+    data: ->
+      messages: null
+      message: ''
+      lastMessageTime: null
+      sending: false
+      generatingReply: false
+      enteredName: ''
+      checkingName: false
+      nameUnavailable: false
+      settings:
+        mindy:
+          token: null
+      user: null
+      typingCount: 0
+      typingInterval: null
 
-      return {
-
-        messages: null,
-        message: '',
-        lastMessageTime: null,
-        sending: false,
-        generatingReply: false,
-        enteredName: '',
-        checkingName: false,
-        nameUnavailable: false,
-        settings: {
-          mindy: {
-            token: null,
-          },
-        },
-        user: null,
-        typingCount: 0,
-        typingInterval: null,
-
-      }
-
-    },
-
-    mounted() {
-
-      // Load token from query
-      let { token } = this.$route.query
-      if ( token ) {
-        console.log('token', token)
+    mounted: ->
+      # Load token from query
+      { token } = this.$route.query
+      if token
+        console.log 'token', token
         this.settings.mindy.token = token
-      }
 
       this.checkMessages()
+      
+    methods:
+    
+      checkMessages: (lastChecked) ->
+        checkedAt = new Date()
 
-    },
-
-    methods: {
-
-      async checkMessages(lastChecked) {
-
-        let checkedAt = new Date()
-
-        try {
-
-          let { data: { messages }} = await mindy.post('/fetchMessages', {
+        try
+          { data: { messages } } = await mindy.post '/fetchMessages',
             lastChecked
-          })
 
           this.messages = messages
-          this.generatingReply = false            
+          this.generatingReply = false
+        catch e
+          console.error e
+        finally
+          this.$nextTick =>
+            this.checkMessages checkedAt
 
-        } catch (e) {
-
-          console.error(e)
-          
-        } finally {
-
-          this.$nextTick(() => {
-            this.checkMessages(checkedAt)
-          })
-
-        }
-
-      },
-
-      async createUser() {
-
-        let { enteredName } = this
+      createUser: ->
+        { enteredName } = this
         this.checkingName = true
         this.nameUnavailable = false
 
-        try {
+        try
+          { data: token } = await mindy.post '/users',
+            name: enteredName
+          this.settings.mindy.token = token
 
-          let { data: token } = await mindy.post('/users', { name: enteredName })
-          this.settings.mindy.token = token          
-
-          // Download an html with login info
-          // Link is /mindy?token=<token>
-          let { origin } = window.location
-          let url = `${origin}/mindy?token=${token}`
-          // let text = `Use the below link if you want to login to Mindy as “${enteredName}” from another device:\n\n${url}\n\nNOTE THAT LOST LOGIN INFORMATION CANNOT BE RECOVERED AS WE DO NOT STORE IT.`
-          let html = String.raw`
+          # Download an html with login info
+          # Link is /mindy?token=<token>
+          { origin } = window.location
+          url = "#{origin}/mindy?token=#{token}"
+          # let text = `Use the below link if you want to login to Mindy as “${enteredName}” from another device:\n\n${url}\n\nNOTE THAT LOST LOGIN INFORMATION CANNOT BE RECOVERED AS WE DO NOT STORE IT.`
+          html = String.raw"""
             <!DOCTYPE html>
             <html lang="en">
               <head>
@@ -140,7 +112,7 @@
                 <!-- import bootstrap -->
                 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
                 <!-- link to favicon -->
-                <link rel="icon" type="image/png" href="${origin}/favicon.png">
+                <link rel="icon" type="image/png" href="#{origin}/favicon.png">
                 <!-- style, add margin to h2 -->
                 <style>
                   h2 {
@@ -151,171 +123,115 @@
               <body>
                 <!-- center text -->
                 <div class="container mt-4 text-center">
-                  <h1>Mindy login credentials for ${enteredName}</h1>
+                  <h1>Mindy login credentials for #{enteredName}</h1>
                   <!-- warning that login info is not stored -->
                   <p class="text-danger">NOTE THAT LOST LOGIN INFORMATION CANNOT BE RECOVERED AS WE DO NOT STORE IT.</p>
                   <h2>Login token</h2>
-                  <p>Here is your login token to log in as <code>${enteredName}</code>:</p>
-                  <pre>${token}</pre>
+                  <p>Here is your login token to log in as <code>#{enteredName}</code>:</p>
+                  <pre>#{token}</pre>
                   <!-- Button to copy token -->
                   <button id="copy-token" class="btn btn-outline-secondary"
-                    onclick="navigator.clipboard.writeText('${token}'); Object.assign(document.querySelector('#copy-token'), { disabled: true, innerText: 'Copied!'}); setTimeout(() => Object.assign(document.querySelector('#copy-token'), { disabled: false, innerText: 'Copy token' }), 1000);"
+                    onclick="navigator.clipboard.writeText('#{token}'); Object.assign(document.querySelector('#copy-token'), { disabled: true, innerText: 'Copied!'}); setTimeout(() => Object.assign(document.querySelector('#copy-token'), { disabled: false, innerText: 'Copy token' }), 1000);"
                   >
                     Copy token
                   </button>
                   <h2>Login link</h2>
                   <p>Use this link to login from another device:</p>
-                  <p><a href="${url}">${url}</a></p>
+                  <p><a href="#{url}">#{url}</a></p>
                   <!-- QR code -->
                   <h2>QR code</h2>
                   <p>Scan this QR code to login from e.g. a mobile device:</p>
-                  <img src="${await QRCode.toDataURL(url)}" />
+                  <img src="#{await QRCode.toDataURL(url)}" />
                 </div>
               </body>
             </html>
-          `
-          let filename = `Mindy credentials for ${enteredName}.html`
-          let blob = new Blob([html], { type: 'text/html' })
-          let link = document.createElement('a')
-          link.href = window.URL.createObjectURL(blob)
+          """
+          filename = "Mindy credentials for #{enteredName}.html"
+          blob = new Blob [html],
+            type: 'text/html'
+          link = document.createElement 'a'
+          link.href = window.URL.createObjectURL blob
           link.download = filename
           link.click()
-
-        } catch (error) {
-
-          if (error.response?.status === 409) {
-
+        catch error
+          if error.response?.status is 409
             this.nameUnavailable = true
-
-          } else {
+          else
             throw error
-          }
-
-        } finally {
-
+        finally
           this.checkingName = false
 
-        }
-
-      },
-
-      async sendMessage() {
-
+      sendMessage: ->
         this.sending = true
-        try {
-          
-          let {
+        try
+          {
             data: { message, botWillStartReplyingIn }
-          } = await mindy.post('/postMessage', { content: this.message }, {
-            headers: {
-              Authorization: `Bearer ${this.settings.mindy.token}`,
-            },
-          })
+          } = await mindy.post '/postMessage',
+            content: this.message,
+            headers:
+              Authorization: "Bearer #{this.settings.mindy.token}"
 
-          setTimeout( () => {
+          setTimeout =>
             this.generatingReply = true
-          }, botWillStartReplyingIn )
+          , botWillStartReplyingIn
 
-          this.messages.push(message)
+          this.messages.push message
 
           this.message = ''
 
-          // Focus on the message input
-          this.$nextTick(() => {
+          # Focus on the message input
+          this.$nextTick =>
             document.querySelector('#message').focus()
-          })
-
-        } catch (error) {
-
-          console.error(error)
-          this.$bvToast.toast('Something went wrong, please try again.', {
-            title: 'Error',
-            variant: 'danger',
-            solid: true,
-            autoHideDelay: 5000,
-          })
-
-        } finally {
-
+        catch error
+          console.error error
+          this.$bvToast.toast 'Something went wrong, please try again.',
+            title: 'Error'
+            variant: 'danger'
+            solid: true
+            autoHideDelay: 5000
+        finally
           this.sending = false
 
-        }
-
-
-
-      },
-
-    },
-
-    watch: {
-
-      'settings.mindy.token': {
-        immediate: true,
-        async handler(token) {
-          if ( !token ) return
-          mindy.defaults.headers.Authorization = `Bearer ${token}`
-          try {
-
-            this.user = (
-              await mindy.get('/me')
-            ).data
+    watch:
+      'settings.mindy.token':
+        immediate: true
+        handler: (token) ->
+          if not token then return
+          mindy.defaults.headers.Authorization = "Bearer #{token}"
+          try
+            this.user = (await mindy.get '/me').data
             this.nameUnavailable = false
-
-
-          } catch (error) {
+          catch error
             this.settings.mindy.token = null
-            // If it's a 401, show a toast
-            if (error.response?.status === 401) {
-              this.$bvToast.toast(
-                'Invalid Mindy token. Please double-check your Mindy credentials. Unfortunately, lost tokens cannot be recovered as we do not store them.',
-                {
-                  title: 'Mindy',
-                  variant: 'danger',
-                  solid: true
-                }
-              )
-            } else {
+            # If it's a 401, show a toast
+            if error.response?.status is 401
+              this.$bvToast.toast 'Invalid Mindy token. Please double-check your Mindy credentials. Unfortunately, lost tokens cannot be recovered as we do not store them.',
+                title: 'Mindy'
+                variant: 'danger'
+                solid: true
+            else
               throw error
-            }
-          }
-        },
-      },
 
-      messages(messages) {
-        // If there are new messages, scroll to 'scroll-to-bottom'
-        let { time } = messages[messages.length - 1]
-        if ( this.lastMessageTime !== time ) {
-          this.$nextTick(() =>
+      messages: (messages) ->
+        # If there are new messages, scroll to 'scroll-to-bottom'
+        { time } = messages[messages.length - 1]
+        if this.lastMessageTime isnt time
+          this.$nextTick =>
             document.getElementById('scroll-to-bottom')?.scrollIntoView()
-          )
           this.lastMessageTime = time
-        }
-      },
 
-      generatingReply(generatingReply) {
-
-        clearInterval(this.typingInterval)
-        if ( generatingReply ) {
-
-          this.typingInterval = setInterval(() => {
+      generatingReply: (generatingReply) ->
+        clearInterval this.typingInterval
+        if generatingReply
+          this.typingInterval = setInterval =>
             this.typingCount = ( this.typingCount + 1 ) % 3
-          }, 500)
-
-        } else {
-          
+          , 500
+        else
           this.typingCount = 0
-
-        }
-
-      },
-
-    }
-
-  }
 
 </script>
 
-<style>
+<style
   label {
     font-weight: bold;
   }
@@ -334,6 +250,6 @@
     z-index: 1;
     background-color: #f7f7f7;
     border-bottom: 1px solid #e7e7e7;
-  }
+  } */
 
 </style>
