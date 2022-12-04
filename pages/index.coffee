@@ -28,12 +28,12 @@ export default
 
   mounted: ->
     # Load token from query
-    { token } = @$route.query
+    { token } = this.$route.query
     if token
       console.log 'token', token
-      @settings.mindy.token = token
+      this.settings.mindy.token = token
 
-    @checkMessages()
+    this.checkMessages()
     
   methods:
   
@@ -44,23 +44,25 @@ export default
         { data: { messages } } = await mindy.post '/fetchMessages',
           lastChecked
 
-        @messages = messages
-        @generatingReply = false
+        this.messages = messages
+        this.generatingReply = false
       catch e
         console.error e
+        # Wait 5 seconds before trying again
+        await new Promise (resolve) => setTimeout resolve, 5000
       finally
-        @$nextTick =>
-          @checkMessages checkedAt
+        this.$nextTick =>
+          this.checkMessages checkedAt
 
     createUser: ->
       { enteredName } = this
-      @checkingName = true
-      @nameUnavailable = false
+      this.checkingName = true
+      this.nameUnavailable = false
 
       try
         { data: token } = await mindy.post '/users',
           name: enteredName
-        @settings.mindy.token = token
+        this.settings.mindy.token = token
 
         # Download an html with login info
         # Link is /mindy?token=<token>
@@ -119,42 +121,42 @@ export default
         link.click()
       catch error
         if error.response?.status is 409
-          @nameUnavailable = true
+          this.nameUnavailable = true
         else
           throw error
       finally
-        @checkingName = false
+        this.checkingName = false
 
     sendMessage: ->
-      @sending = true
+      this.sending = true
       try
         {
           data: { message, botWillStartReplyingIn }
         } = await mindy.post '/postMessage',
-          content: @message,
+          content: this.message,
           headers:
-            Authorization: "Bearer #{@settings.mindy.token}"
+            Authorization: "Bearer #{this.settings.mindy.token}"
 
         setTimeout =>
-          @generatingReply = true
+          this.generatingReply = true
         , botWillStartReplyingIn
 
-        @messages.push message
+        this.messages.push message
 
-        @message = ''
+        this.message = ''
 
         # Focus on the message input
-        @$nextTick =>
+        this.$nextTick =>
           document.querySelector('#message').focus()
       catch error
         console.error error
-        @$bvToast.toast 'Something went wrong, please try again.',
+        this.$bvToast.toast 'Something went wrong, please try again.',
           title: 'Error'
           variant: 'danger'
           solid: true
           autoHideDelay: 5000
       finally
-        @sending = false
+        this.sending = false
 
   watch:
     'settings.mindy.token':
@@ -163,13 +165,13 @@ export default
         if not token then return
         mindy.defaults.headers.Authorization = "Bearer #{token}"
         try
-          @user = (await mindy.get '/me').data
-          @nameUnavailable = false
+          this.user = (await mindy.get '/me').data
+          this.nameUnavailable = false
         catch error
-          @settings.mindy.token = null
+          this.settings.mindy.token = null
           # If it's a 401, show a toast
           if error.response?.status is 401
-            @$bvToast.toast 'Invalid Mindy token. Please double-check your Mindy credentials. Unfortunately, lost tokens cannot be recovered as we do not store them.',
+            this.$bvToast.toast 'Invalid Mindy token. Please double-check your Mindy credentials. Unfortunately, lost tokens cannot be recovered as we do not store them.',
               title: 'Mindy'
               variant: 'danger'
               solid: true
@@ -179,16 +181,16 @@ export default
     messages: (messages) ->
       # If there are new messages, scroll to 'scroll-to-bottom'
       { time } = messages[messages.length - 1]
-      if @lastMessageTime isnt time
-        @$nextTick =>
+      if this.lastMessageTime isnt time
+        this.$nextTick =>
           document.getElementById('scroll-to-bottom')?.scrollIntoView()
-        @lastMessageTime = time
+        this.lastMessageTime = time
 
     generatingReply: (generatingReply) ->
-      clearInterval @typingInterval
+      clearInterval this.typingInterval
       if generatingReply
-        @typingInterval = setInterval =>
-          @typingCount = ( @typingCount + 1 ) % 3
+        this.typingInterval = setInterval =>
+          this.typingCount = ( this.typingCount + 1 ) % 3
         , 500
       else
-        @typingCount = 0
+        this.typingCount = 0
