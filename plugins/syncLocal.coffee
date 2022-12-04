@@ -4,7 +4,7 @@ export default ({ computeSettings, keys, container } = {}) ->
 
     # If container is undefined, use either this.settings or (if none) just this
     if container is undefined
-      container = @settings ? @
+      container = @settings or @
 
     for key in keys or Object.keys container
 
