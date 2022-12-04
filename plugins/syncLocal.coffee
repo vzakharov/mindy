@@ -5,8 +5,14 @@ export default ({ computeSettings, keys, container } = {}) ->
     # If container is undefined, use either this.settings or (if none) just this
     if container is undefined
       container = @settings or @
+    
+    # If container is other than `this`, get the container key as string by going through all keys in `this` and comparing the value with the container object
+    if container isnt @
+      containerKey = Object.keys(@).find key => @[key] is container
+      unless containerKey
+        throw new Error "Could not find container key in this"
 
-    for key in keys or Object.keys container
+    ( keys or Object.keys container ).forEach ( key ) =>
 
       localValue = localStorage.getItem(key)
       defaultValue = container[key]
@@ -23,15 +29,16 @@ export default ({ computeSettings, keys, container } = {}) ->
       else
         localValue or defaultValue
 
-      @$watch("settings.#{key}", deep: true, handler: (value) ->
-        localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
+      keyToWatch = if containerKey then "#{containerKey}.#{key}" else key
+      @$watch keyToWatch,
+        deep: true
+        handler: (value) ->
+          debugger
+          localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
 
       # If computeSettings is set, then define a this get/set for the key
       if computeSettings
-        debugger
         # Define a getter/setter for the key
         Object.defineProperty this, key,
           get: -> container[key]
           set: (value) -> container[key] = value
-          
-      )

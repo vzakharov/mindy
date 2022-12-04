@@ -30,7 +30,7 @@
                   @change="user.name = enteredName",
                   placeholder="Enter your name to start chatting"
                 )
-
+              
             b-form(@submit.prevent="sendMessage", class="mb-0")
               b-form-group(:label="user && user.name", label-for="message")
                 b-form-input(id="message", v-model="message", placeholder="Enter your message", :disabled="!user || sending")
@@ -60,7 +60,9 @@ export default
     enteredName: ''
     checkingName: false
     nameUnavailable: false
-    user: {}
+    user: {
+      name: null
+    }
     messages: []
     typingCount: 0
     typingInterval: null
@@ -116,6 +118,7 @@ export default
         , 500
       else
         @typingCount = 0
+
 </script>
 
 <style
