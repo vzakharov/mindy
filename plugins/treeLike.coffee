@@ -5,9 +5,9 @@ import _ from 'lodash'
 TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
 # childOrder takes the same format as _.orderBy starting from the second argument (see https://lodash.com/docs#orderBy)
 
-  Object.assign this,
+  Object.assign @,
 
-    items
+    items: items
 
     # Functions to get various items
 
@@ -58,20 +58,22 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
       else
         item
 
-    thread: (item) ->
+    thread: (item, includeDescendants = true) ->
       # i.e. lineage of the ultimate heir
-      @lineage(@heir(item))
+      @lineage( if includeDescendants then @heir(item) else item )
     
     # Functions to manipulate the tree
 
-    addChild: (item, child) ->
-      items.push Object.assign child,
+    createChild: (item, child) ->
+      Object.assign child,
         parentId: item?.id
         # Id is the maximum id + 1
         id: _(items).map('id').max() + 1 or 1
         createdAt: new Date()
-      items
-      # ( We return items so that the caller can do `this.items = treeLike.addChild(...)`. This is useful if the caller is using Vue.js and wants to update the items in the Vue data. )
+    
+    clone: (item) ->
+      # Clone the item (without children) and add it as a child of the item's parent
+      @createChild @parent(item), _.omit(item, 'id', 'createdAt')
 
 # export the TreeLike function
 export default TreeLike
