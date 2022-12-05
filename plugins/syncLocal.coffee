@@ -12,7 +12,7 @@ export default ({ computeSettings, keys, container } = {}) ->
       unless containerKey
         throw new Error "Could not find container key in this"
 
-    ( keys or Object.keys container ).forEach ( key ) =>
+    ( keys or Object.keys(container) ).forEach ( key ) =>
 
       localValue = localStorage.getItem(key)
       defaultValue = container[key]
@@ -33,7 +33,6 @@ export default ({ computeSettings, keys, container } = {}) ->
       @$watch keyToWatch,
         deep: true
         handler: (value) ->
-          debugger
           localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
 
       # If computeSettings is set, then define a this get/set for the key

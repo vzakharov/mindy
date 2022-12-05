@@ -20,8 +20,14 @@ export default {
     MINDY_API_URL: process.env.MINDY_API_URL ||
       baseUrl + 'mindy/',
 
-    NOTION_DATABASE_ID: process.env.NOTION_DATABASE_ID ||
+    NOTION_MESSAGES_DB_ID: process.env.NOTION_MESSAGES_DB_ID ||
       'dec1a3932d774d97a1e549295b0dc302',
+
+    NOTION_PROMPTS_DB_ID: process.env.NOTION_PROMPTS_DB_ID ||
+      '485b3bd6b4524c1dbd9ef2acc5bccfbf',
+
+    POLYGON_API_URL: process.env.POLYGON_API_URL ||
+      baseUrl + 'polygon/',
   },
 
 
@@ -63,8 +69,13 @@ export default {
     'bootstrap-vue/nuxt',
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
-    'nuxt-coffeescript-module'
+    'nuxt-coffeescript-module',
+    '@nuxtjs/markdownit'
   ],
+  
+  markdownit: {
+    runtime: true // Support `$md()`
+  },
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
   axios: {
