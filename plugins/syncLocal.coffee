@@ -1,4 +1,15 @@
-export default ({ computeSettings, keys, container } = {}) ->
+import yaml from 'js-yaml'
+
+export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
+
+  # parsing/dumping; format can be 'json' or 'yaml'
+  if format is 'yaml'
+    parse = yaml.load
+    dump = yaml.dump
+  else
+    parse = JSON.parse
+    dump = JSON.stringify
+
 
   mounted: ->
 
@@ -19,10 +30,11 @@ export default ({ computeSettings, keys, container } = {}) ->
 
       console.log key: key, localValue: localValue, defaultValue: defaultValue
 
-      isObject = typeof defaultValue is 'object'
+      isObject = typeof defaultValue is 'object' and defaultValue isnt null
       isArray = Array.isArray defaultValue
       if isObject
-        localValue = JSON.parse(localValue or null)
+        # localValue = JSON.parse(localValue or null)
+        localValue = parse(localValue or null)
 
       container[key] = if isObject and not isArray
         {...defaultValue, ...localValue}
@@ -33,7 +45,8 @@ export default ({ computeSettings, keys, container } = {}) ->
       @$watch keyToWatch,
         deep: true
         handler: (value) ->
-          localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
+          # localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
+          localStorage.setItem(key, if isObject then dump(value) else value)
 
       # If computeSettings is set, then define a this get/set for the key
       if computeSettings

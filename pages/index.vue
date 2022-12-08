@@ -1,15 +1,16 @@
 <template lang="pug">
-  b-container
+  b-container.pt-5
     b-row
-      b-col(class="border p-0")
+      b-col.border.p-0(style="max-width: 800px; margin: 0 auto;")
         b-spinner(v-if="!messages")
         template(v-else)
-          div(class="header p-3")
-            h1 Chat
+          div.header.p-3.text-center
+            h1.display-3 Mindy
+            p.lede Someone you can talk to
 
           div
 
-            div(v-for="(message, index) in thread", :key="index", class="mt-2 p-2", :style=`{
+            div.mt-2.p-2(v-for="(message, index) in thread", :key="index", :style=`{
               'background-color': index % 2 ? '#f7f7f7' : '#fff',
             }`)
 
@@ -32,6 +33,10 @@
                 
               template(v-if="message.user.name === user.name && !editing.message")
                 a(style="font-size: 0.8em; color: #aaa; float: right; cursor: pointer;",
+                  :class=`{
+                    //- Add right border if there are siblings
+                    'mr-1': tree.numSiblings(message) > 1
+                  }`,
                   @click="edit(message)"
                   v-text="`🖉`"
                 )
@@ -43,16 +48,31 @@
                 div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
 
                 div(v-else)
-                  b-form-textarea(v-model="editing.input", rows="3", max-rows="10")
-                  b-button(variant="primary", size="sm", @click="resendMessage", class="m-1")
+                  //- Send on shift+enter, cancel on escape
+                  b-form-textarea(rows="3", max-rows="10",
+                    v-model="editing.input",
+                    @keydown.shift.enter="cloneAndSend",
+                    @keydown.esc="editing.message = null"
+                  )
+                  //- Save & submit
+                  b-button(variant="primary", size="sm", @click="cloneAndSend", class="m-1")
                     | Save &amp; submit
-                  b-button(variant="secondary", size="sm", @click="editing.message = null", class="m-1")
+                  //- Just save (to edit the message text but not send it)
+                  b-button(variant="outline-secondary", size="sm", @click="message.content = editing.input; editing.message = null", class="m-1")
+                    | Just save
+                  //- Cancel
+                  b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
                     | Cancel
-              
-                
-            div(v-if="generatingReply", class="mt-2 text-muted")
-              em mindy is typing{{ '.'.repeat(typingCount + 1) }}
-            div(id="scroll-to-bottom", class="mt-2")
+
+            div.p-2(v-if="generatingReply", class="text-muted")
+              em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
+
+            //- If the last message is from the bot, display a centered 'Try again' button
+            div.p-2.text-center(v-if="lastMessage && lastMessage.user.isBot")
+              b-button(variant="outline-secondary", @click="sendMessage(tree.parent(lastMessage).content, tree.parent(lastMessage), true)", :disabled="sending || generatingReply")
+                | ↺ Try again
+
+            div(ref="scrollToBottom", class="mt-2")
 
           div(class="footer p-3")
 
@@ -66,27 +86,42 @@
                   placeholder="Enter your name to start chatting"
                 )
               
-            b-form(@submit.prevent="sendMessage", class="mb-0")
+            b-form(@submit.prevent="sendMessage()", class="mb-0")
               b-form-group(:label="user && user.name", label-for="input")
-                b-form-input(id="input", v-model="input", placeholder="Enter your message", :disabled="!user || sending")
-              b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending")
+                b-form-input(id="input", v-model="input", placeholder="Enter your message", :disabled="!user || sending || generatingReply")
+              b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
-                
+
+    OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
+
 </template>
 
 <script lang="coffee">
 
   import axios from 'axios'
   import _ from 'lodash'
-  import syncLocal from '~/plugins/syncLocal.coffee'
   import QRCode from 'qrcode'
-  import TreeLike from '~/plugins/treeLike.coffee'
+
+  import syncLocal from '~/plugins/syncLocal'
+  import TreeLike from '~/plugins/treeLike'
+  import exposeVM from '~/plugins/exposeVM'
+  import tryAction from '~/plugins/tryAction'
 
   polygon = axios.create
     baseURL: process.env.POLYGON_API_URL
 
   export default
+
+    mixins: [
+      syncLocal
+        keys: [
+          'user', 'messages', 'openAIkey'
+        ]
+        format: 'yaml'
+      exposeVM
+      tryAction
+    ]
 
 
     data: ->
@@ -105,18 +140,13 @@
         name: null
       }
       messages: []
+      openAIkey: null
       typingCount: 0
       typingInterval: null
       bot:
         name: 'mindy'
         isBot: true
       idsBySlug: null
-
-    mixins: [
-      syncLocal keys: [
-        'user', 'messages'
-      ]
-    ]
 
     computed:
 
@@ -136,9 +166,17 @@
         
 
       thread: ->
-        if @routedMessage then @tree.thread(@routedMessage) else []
+        @tree.thread(@routedMessage or @tree.root)
       
+      lastMessage: ->
+        _.last @thread
+
     mounted: ->
+
+      # Show OpenAI key modal if not set
+      if !@openAIkey
+        console.log "OpenAI key not set; showing modal"
+        @$refs.openAIkeyModal.show()
       
       @idsBySlug = new Promise (resolve, reject) =>
 
@@ -158,95 +196,100 @@
         @editing.message = message
         @editing.input = message.content
     
-      sendMessage: ->
+      sendMessage: ( input = @input, parent = _.last(@thread) or @tree.root, retrying = false ) ->
+
+        console.log {input, parent, retrying}
 
         idsBySlug = await @idsBySlug
 
-        # Use slug mindy-first if there are no messages, mindy-continued otherwise
-        if @messages.length
-          slug = 'mindy-continued'
+        # Use slug 'first' if this the first message (i.e. parent is null), otherwise use 'continued' (which will use the previous convo  as context)
+        if ( if retrying then @tree.parent(parent) else parent ) isnt @tree.root
+          slug = 'continued'
 
           # Also combine all the previous messages in the thread as `previousConversation`, in the format "user1:\nmessage1\n\nuser2:\nmessage2\n\n..."
-          previousConversation = @thread.map(({ user: { name }, content }) -> "#{name}:\n#{content}").join('\n\n')
+          previousConversation = @tree
+            .lineage(
+              parent, !retrying
+            )
+            .map(({ user: { name }, content }) -> "#{name}:\n#{content}")
+            .join('\n\n')
           console.log {previousConversation}
 
         else
-          slug = 'mindy-first'
+          slug = 'first'
 
         promptId = idsBySlug[slug]
         
-        try
 
-          @sending = true
-          message = @addMessage @tree.createChild _.last(@thread), {
-            @user
-            content: @input
-          }
-          @sending = false
+        @try 'sending', =>
+
+          if !retrying
+
+            message = @addMessage @tree.createChild parent,
+              user: @user
+              content: input
+            @input = ''
+            @$router.push { query: { id: message.id } }
+
+            # scroll to bottom
+            @$nextTick =>
+              @$refs.scrollToBottom.scrollIntoView()
+        
+          else
+            message = parent
+
+          console.log {message}
 
           @$nextTick =>
 
-            @generatingReply = true
+            @try 'generatingReply', =>
 
-            { data: {
-              choices
-            } } = await polygon.post "/run", {
-              promptId,
-              variables: {
-                @input,
-                previousConversation
-              },
-              parameters:
-                n: 3
-                max_tokens: 100
-            }
+              { data: {
+                choices
+              } } = await polygon.post "/run", {
+                promptId,
+                @openAIkey,
+                variables: {
+                  input,
+                  previousConversation,
+                  username: @user.name
+                },
+                parameters:
+                  n: 3
+                  max_tokens: 100
+              }
 
-            @input = ''
-            
-            console.log {choices}
-            choices.forEach (choice) =>
-              console.log {choice}
-              @addMessage @tree.createChild message,
-                user: @bot
-                content: choice.text
+              @input = ''
+              
+              console.log { message, choices }
+              choices.forEach (choice) =>
+                console.log {choice}
+                @addMessage @tree.createChild message,
+                  user: @bot
+                  content: choice.text
 
-            @$nextTick =>
-              @$router.push { query: { id: choices[0].id } }
-              document.querySelector('#input').focus()
+              @$nextTick =>
+                # Navigate to the last created message
+                @$router.push { query: { id: _.last(@messages).id } }
+                @$refs.scrollToBottom.scrollIntoView()
+                document.querySelector('#input').focus()
 
-        catch error
+      cloneAndSend: () ->
 
-          console.error error
-          @$bvToast.toast 'Something went wrong, please try again.',
-            title: 'Error'
-            variant: 'danger'
-            solid: true
-            autoHideDelay: 5000
-
+        try
+          @sendMessage( @editing.input, @tree.parent(@editing.message) )
         finally
-          @sending = false
-          @generatingReply = false
-
-      resendMessage: () ->
-
-        # Route to the editing.message's parent
-        parent = @tree.parent(@editing.message)
-        id = parent?.id ? 0
-        console.log {id}
-        @$router.push { query: { id } }
-        @input = @editing.input
-        @$nextTick =>
-          debugger
-          try
-            @sendMessage()
-          finally
-            @editing.message = null
+          @editing.message = null
 
     watch:
 
       generatingReply: (generatingReply) ->
+
         clearInterval @typingInterval
         if generatingReply
+          # Scroll to bottom
+          @$nextTick =>
+            @$refs.scrollToBottom.scrollIntoView()
           @typingInterval = setInterval =>
             @typingCount = ( @typingCount + 1 ) % 3
           , 500

@@ -33,7 +33,7 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'Mindy · Talk to me',
+    title: 'Mindy · Someone you can talk to',
     htmlAttrs: {
       lang: 'en'
     },
