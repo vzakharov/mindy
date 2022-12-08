@@ -92,6 +92,14 @@
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
+    
+    //- Context column
+    b-col.col-7(
+      v-if="context"
+    )
+      MindyContext(
+        :context="context",
+      )
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
@@ -108,8 +116,7 @@
   import exposeVM from '~/plugins/exposeVM'
   import tryAction from '~/plugins/tryAction'
 
-  polygon = axios.create
-    baseURL: process.env.POLYGON_API_URL
+  import PolygonClient from '~/plugins/polygonClient'
 
   export default
 
@@ -125,6 +132,7 @@
 
 
     data: ->
+      context: null,
       input: ''
       lastMessageTime: null
       sending: false
@@ -171,6 +179,9 @@
       lastMessage: ->
         _.last @thread
 
+      polygon: ->
+        new PolygonClient({ @openAIkey, params: { max_tokens: 300 } })
+
     mounted: ->
 
       # Show OpenAI key modal if not set
@@ -178,14 +189,6 @@
         console.log "OpenAI key not set; showing modal"
         @$refs.openAIkeyModal.show()
       
-      @idsBySlug = new Promise (resolve, reject) =>
-
-        { NOTION_PROMPTS_DB_ID } = process.env
-
-        polygon.get("/prompt-ids/#{NOTION_PROMPTS_DB_ID}")
-          .then ({ data }) -> resolve data
-          .catch reject
-
     methods:
 
       addMessage: (message) ->
@@ -218,9 +221,6 @@
         else
           slug = 'first'
 
-        promptId = idsBySlug[slug]
-        
-
         @try 'sending', =>
 
           if !retrying
@@ -244,20 +244,7 @@
 
             @try 'generatingReply', =>
 
-              { data: {
-                choices
-              } } = await polygon.post "/run", {
-                promptId,
-                @openAIkey,
-                variables: {
-                  input,
-                  previousConversation,
-                  username: @user.name
-                },
-                parameters:
-                  n: 3
-                  max_tokens: 100
-              }
+              { choices } = @polygon.run slug, { input, previousConversation }
 
               @input = ''
               

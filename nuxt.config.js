@@ -23,7 +23,7 @@ export default {
     NOTION_MESSAGES_DB_ID: process.env.NOTION_MESSAGES_DB_ID ||
       'dec1a3932d774d97a1e549295b0dc302',
 
-    NOTION_PROMPTS_DB_ID: process.env.NOTION_PROMPTS_DB_ID ||
+    POLYGON_DATABASE_ID: process.env.POLYGON_DATABASE_ID ||
       '485b3bd6b4524c1dbd9ef2acc5bccfbf',
 
     POLYGON_API_URL: process.env.POLYGON_API_URL ||
@@ -70,7 +70,8 @@ export default {
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
     'nuxt-coffeescript-module',
-    '@nuxtjs/markdownit'
+    '@nuxtjs/markdownit',
+    'nuxt-mermaid-string',
   ],
   
   markdownit: {
