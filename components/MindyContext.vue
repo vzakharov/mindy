@@ -5,7 +5,7 @@
     //- Tabs to switch between visual and plain text representations
     b-tabs
       //- Visual representation
-      b-tab-item(title="Mind map")
+      b-tab(title="Mind map")
         VueMermaidString(
           v-if="isValid"
           :value="mermaidString"
@@ -25,10 +25,10 @@
             li The second line must be indented by one level
             li Every next line must be indented by not more than previous line plus one and not less than one level
       //- Plain text representation
-      b-tab-item(title="Plain text")
+      b-tab(title="Plain text")
         //- The text area (monospace dark theme, full-height)
         //- Red border if the context is invalid
-        b-textarea.code(
+        b-textarea(
           v-model="context"
           :style="{ borderColor: isValid ? 'transparent' : 'red' }"
         )
@@ -53,10 +53,16 @@
       'value'
     ]
 
-    data: ->
-      context: @value
-
     computed:
+
+      context:
+
+        get: ->
+          # Remove everything after and including \n```
+          @value.replace? /\n```[\s\S]*/, ''
+
+        set: (value) ->
+          @$emit 'input', value
 
       isValid: -> try @validate(@context) catch e then false
 
@@ -66,8 +72,7 @@
         # the word "mindmap"
         #   context, indented by one more level
 
-        if not @isValid
-          throw new MermaidValidationError("The context is invalid. By the way, you shouldn't be seeing this because the context should be validated before the mind map is rendered. Tell the developer he is an idiot. (Just kidding, don't do that to anyone.)")
+        try @validate(@context) catch e then throw new MermaidValidationError e.message
 
         lines = @context.split('\n')
 
@@ -86,7 +91,7 @@
 
     methods:
 
-      validate: context ->
+      validate: ( context ) ->
         # Validates the context
 
         # First of all, test that the context meets the requirements:
@@ -102,28 +107,29 @@
 
         # 2. The second line must be indented by one level
         # Also use this line to get if it's a tab or a space and how many spaces per level (if it's a space)
-        if getIndent( lines[1] ) != 1
-          throw new MermaidValidationError('The second line must be indented by one level')
+        if getIndent( lines[1] ) == 0
+          throw new MermaidValidationError('The second line must be indented')
         
         tabSize = getIndent( lines[1], 1 )
 
         # 3. Every next line must be indented by not more than previous line plus one and not less than one level
         for i in [ 2...lines.length ]
 
-          if getIndent( lines[i] ) > getIndent( lines[i-1] ) + 1
+          if getIndent( lines[i], tabSize ) > getIndent( lines[i-1], tabSize ) + 1
             throw new MermaidValidationError("Line #{i+1} is indented by more than one level more than the previous line")
 
-          if getIndent( lines[i] ) < 1
+          if getIndent( lines[i], tabSize ) < 1
             throw new MermaidValidationError("Line #{i+1} is not indented; only one root topic is allowed")
 
         return true
+</script>
+
 
 <style scoped>
   .code {
     font-family: monospace;
     background-color: #1e1e1e;
     color: #d4d4d4;
-    # Calc the height to allow for the save button
     height: calc(100% - 2.5rem);
   }
 </style>

@@ -10,6 +10,7 @@ export default
         console.log "Started #{stateKey}"
         await action()
       catch error
+        console.error "Error while #{stateKey}: #{error}"
         # If errorMessage is a function, call it with the error as argument
         if typeof errorMessage is 'function'
           errorMessage = errorMessage(error)
@@ -20,7 +21,6 @@ export default
         console.log "Finished #{stateKey}"
 
     alert: (error, errorMessage='Something went wrong, please try again.') ->
-      console.error error
       @$bvToast.toast 'See console for error details.',
         title: errorMessage
         variant: 'danger'

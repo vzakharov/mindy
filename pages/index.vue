@@ -95,10 +95,10 @@
     
     //- Context column
     b-col.col-7(
-      v-if="context"
+      v-if="lastMessage && lastMessage.context",
     )
       MindyContext(
-        :context="context",
+        v-model="lastMessage.context",
       )
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
@@ -132,10 +132,10 @@
 
 
     data: ->
-      context: null,
       input: ''
       lastMessageTime: null
       sending: false
+      generatingContext: false
       generatingReply: false
       enteredName: ''
       checkingName: false
@@ -177,10 +177,10 @@
         @tree.thread(@routedMessage or @tree.root)
       
       lastMessage: ->
-        _.last @thread
+        _.last(@thread)
 
       polygon: ->
-        new PolygonClient({ @openAIkey, params: { max_tokens: 300 } })
+        new PolygonClient({ @openAIkey, defaultParameters: { max_tokens: 300 } })
 
     mounted: ->
 
@@ -214,8 +214,9 @@
             .lineage(
               parent, !retrying
             )
-            .map(({ user: { name }, content }) -> "#{name}:\n#{content}")
+            .map(({ user: { isBot }, content }) -> "#{if isBot then 'Mindy' else 'User'}:\n#{content}")
             .join('\n\n')
+
           console.log {previousConversation}
 
         else
@@ -244,16 +245,24 @@
 
             @try 'generatingReply', =>
 
-              { choices } = @polygon.run slug, { input, previousConversation }
+              { choices } = await @polygon.run slug, { input, previousConversation }
 
               @input = ''
               
               console.log { message, choices }
-              choices.forEach (choice) =>
-                console.log {choice}
-                @addMessage @tree.createChild message,
+              
+              choices.forEach ({ text }) =>
+
+                reply = @addMessage @tree.createChild message,
                   user: @bot
-                  content: choice.text
+                  content: text
+                
+                console.log { reply }
+
+                # Generate the context
+                @try 'generatingContext', =>
+                  { choices: [{ text }] } = await @polygon.run "context-#{slug}", { input, previousConversation, reply: text }
+                  @$set reply, 'context', text
 
               @$nextTick =>
                 # Navigate to the last created message
