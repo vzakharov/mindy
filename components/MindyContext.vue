@@ -2,27 +2,33 @@
   //- "Context" is a sort of a canvas/workspace that visualizes the topic according to the conversation so far. It helps the user to understand the topic better while at the same time giving the bot more context to work with. Visually, the context is represented as a mind map or a similar visual aid. Under the hood, the context is plain text, with one non-indented line representing the main topic, and any following tab-indented lines representing sub-topics (think nested bullet points but with tabs instead of asterisks).
   div
     //- Tabs to switch between visual and plain text representations
-    b-tabs
+    b-tabs(nav-wrapper-class="sticky-top bg-white")
       //- Visual representation
       b-tab(title="Mind map")
-        pre.mermaid(
-          v-if="isValid"
-          v-text="mermaidString"
-        )
-        //- Error message if the context is invalid with a suggestion to edit in plain text
-        b-alert(
-          v-else
-          variant="danger"
-          show
-        )
-          strong Cannot render the mind map; please edit the context in the
-            em Plain text
-          |  tab.
-          p The context must meet the following requirements:
-          ul 
-            li Exactly one line with no indentation in the beginning
-            li The second line must be indented by one level
-            li Every next line must be indented by not more than previous line plus one and not less than one level
+
+        b-container
+          b-row.sticky-top(
+            align-v="center"
+            style="height: calc(100vh - 200px);"
+          )
+            b-col
+
+              pre.mermaid#mermaid-container(
+                v-if="isValid"
+                v-text="mermaidString"
+              )
+              //- Error message if the context is invalid with a suggestion to edit in plain text
+              b-alert(
+                v-else
+                variant="danger"
+                show
+              )
+                strong Cannot render the mind map; please edit the context in the <em>Plain text</em> tab.
+                ul 
+                  li Exactly one line with no indentation in the beginning
+                  li The second line must be indented by one level
+                  li Every next line must be indented by not more than previous line plus one and not less than one level
+
       //- Plain text representation
       b-tab(title="Plain text")
         //- The text area (monospace dark theme, full-height)
@@ -32,23 +38,28 @@
           :style="{ borderColor: isValid ? 'transparent' : 'red' }"
         )
         //- Save button
-        b-button(
-          variant="primary"
-          @click="saveContext"
-        )
-          | Save
+        //- b-button(
+        //-   variant="primary"
+        //-   @click="saveContext"
+        //- )
+        //-   | Save
 
 </template>
 
 <script lang="coffee">
 
   import log from '~/plugins/log'
+  import mountedMixin from '~/plugins/mixins/mounted'
 
   class MermaidValidationError extends Error
 
   getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
 
   export default
+
+    mixins: [
+      mountedMixin
+    ]
 
     props: [
       'value'
@@ -65,39 +76,63 @@
         set: (value) ->
           @$emit 'input', value
 
-      isValid: -> try @validate(@context) catch e then false
+      isValid: ->
+        try
+          @validate @context
+          return true
+        catch e
+          console.error e
+          return false
 
       mermaidString: ->
 
-        try @validate(@context) catch e then throw new MermaidValidationError e.message
+        try @validate(@context) catch e then return ''
 
         # - Add "mindmap\n" at the beginning
         # - Escape special characters: -, @, ~, ", ( and ). Escaping is done with #[ascii code]; (e.g. #64; for @)
         result = 'mindmap\n' + @context.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
         console.log result
         return result
+      
+      mermaidChart: ->
+
+        if @mermaidString and @mounted
+
+          element = document.getElementById 'mermaid-container'
+          @$nextTick =>
+            console.log 'Updating mermaid chart'
+            element?.removeAttribute 'data-processed'
+            mermaid.init()
+          element
+
     
     mounted: ->
 
-      #   import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.min.mjs';
-      #   import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.min.mjs';
-      #   await mermaid.registerExternalDiagrams([mindmap]);
-
-      importScript = (src) ->
-        new Promise (resolve, reject) ->
-          Object.assign(
-            ( document.body.appendChild document.createElement('script') ),
-            {
-              src
-              onload: resolve
-              onerror: reject
-            }
-          )
-      
-      # await importScript 'https://unpkg.com/mermaid@9/dist/mermaid.min.js'
-      # await importScript 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.min.js'
+      console.log 'MindyContext mounted'
+      # Check if there's a script with id "mermaid-init" and if not, create one
+      if document.getElementById 'mermaid-init'
+        console.log 'mermaid-init script already exists'
+      else
+        console.log 'creating mermaid-init script'
+        script = document.createElement 'script'
+        script.id = 'mermaid-init'
+        script.type = 'module'
+        script.innerHTML = """
+          import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.mjs';
+          console.log({mermaid})
+          import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.mjs';
+          console.log({mindmap})
+          await mermaid.registerExternalDiagrams([mindmap]);
+          Object.assign(window, {mermaid, mindmap});
+        """
+        document.head.appendChild script
+        console.log script
+    
 
     methods:
+
+      helloWorld: ->
+        console.log 'Hello world'
 
       validate: ( context ) ->
         # Validates the context
@@ -131,8 +166,7 @@
 
         return true
 
-      saveContext: ->
-        true
+
 
 </script>
 

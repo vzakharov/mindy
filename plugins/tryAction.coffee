@@ -4,7 +4,7 @@ export default
 
   methods:
 
-    try: ( stateKey, action, { errorMessage, errorCallback } = {} ) ->
+    try: ( stateKey, action, { errorMessage, catcher } = {} ) ->
       @[stateKey] = true
       try
         console.log "Started #{stateKey}"
@@ -15,7 +15,7 @@ export default
         if typeof errorMessage is 'function'
           errorMessage = errorMessage(error)
         @alert error, errorMessage
-        errorCallback?(error)
+        catcher?(error)
       finally
         @[stateKey] = false
         console.log "Finished #{stateKey}"

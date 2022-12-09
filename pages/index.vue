@@ -1,18 +1,29 @@
 <template lang="pug">
-  b-container.pt-5
+  b-container.p-5.vh-100(fluid)
     b-row
-      b-col.border.p-0(style="max-width: 800px; margin: 0 auto;")
+
+      b-col.p-0(
+        style="height: calc(100vh - 200px);",
+      )
         b-spinner(v-if="!messages")
         template(v-else)
-          div.header.p-3.text-center
-            h1.display-3 Mindy
+        
+          div.header.text-center.border-top.border-right.border-left
+            h1.display-3(style="font-size: 2.5rem;") Mindy
             p.lede Someone you can talk to
 
-          div
-
-            div.mt-2.p-2(v-for="(message, index) in thread", :key="index", :style=`{
-              'background-color': index % 2 ? '#f7f7f7' : '#fff',
-            }`)
+          div#messages.border-right.border-left(
+            style="height: calc(100vh - 350px); overflow-y: scroll;"
+          )
+            div.mt-2.p-2(
+              v-for="(message, index) in thread", :key="index", 
+              :style=`{
+                'background-color': index % 2 ? '#f7f7f7' : '#fff',
+                'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
+                'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
+              }`
+              @click="message !== routedMessage && message.user.isBot && $router.push({ query: { id: message.id } })"
+            )
 
               template(v-if="message.special")
                 em
@@ -34,47 +45,47 @@
               template(v-if="message.user.name === user.name && !editing.message")
                 a(style="font-size: 0.8em; color: #aaa; float: right; cursor: pointer;",
                   :class=`{
-                    //- Add right border if there are siblings
                     'mr-1': tree.numSiblings(message) > 1
                   }`,
                   @click="edit(message)"
                   v-text="`🖉`"
                 )
 
-              template
-                div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
+              div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
 
-                //- If not editing, display the message content. On double-click, start editing
-                div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
+              //- If not editing, display the message content. On double-click, start editing
+              div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
 
-                div(v-else)
-                  //- Send on shift+enter, cancel on escape
-                  b-form-textarea(rows="3", max-rows="10",
-                    v-model="editing.input",
-                    @keydown.shift.enter="cloneAndSend",
-                    @keydown.esc="editing.message = null"
-                  )
-                  //- Save & submit
-                  b-button(variant="primary", size="sm", @click="cloneAndSend", class="m-1")
-                    | Save &amp; submit
-                  //- Just save (to edit the message text but not send it)
-                  b-button(variant="outline-secondary", size="sm", @click="message.content = editing.input; editing.message = null", class="m-1")
-                    | Just save
-                  //- Cancel
-                  b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
-                    | Cancel
+              div(v-else)
+                //- Send on shift+enter, cancel on escape
+                b-textarea(rows="3", max-rows="10",
+                  v-model="editing.input",
+                  @keydown.enter.exact.prevent="cloneAndSend",
+                  @keydown.esc="editing.message = null"
+                )
+                //- Save & submit
+                b-button(variant="primary", size="sm", @click="cloneAndSend", class="m-1")
+                  | Save &amp; submit
+                //- Just save (to edit the message text but not send it)
+                b-button(variant="outline-secondary", size="sm", @click="message.content = editing.input; editing.message = null", class="m-1")
+                  | Just save
+                //- Cancel
+                b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
+                  | Cancel
 
-            div.p-2(v-if="generatingReply", class="text-muted")
-              em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
+              template(v-if="message === routedMessage")
 
-            //- If the last message is from the bot, display a centered 'Try again' button
-            div.p-2.text-center(v-if="lastMessage && lastMessage.user.isBot")
-              b-button(variant="outline-secondary", @click="sendMessage(tree.parent(lastMessage).content, tree.parent(lastMessage), true)", :disabled="sending || generatingReply")
-                | ↺ Try again
+                div.p-2(v-if="generatingReply", class="text-muted")
+                  em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
+
+                //- If this is the routed message and it is from the bot, display a centered 'Try again' button
+                div.p-2.text-center(v-if="message.user.isBot")
+                  b-button(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
+                    | ↺ Try again
 
             div(ref="scrollToBottom", class="mt-2")
 
-          div(class="footer p-3")
+          div.footer.p-2.border-bottom.border-right.border-left
 
             template(v-if="!user.name")
               b-form-group(label="Name", label-for="username")
@@ -86,20 +97,32 @@
                   placeholder="Enter your name to start chatting"
                 )
               
-            b-form(@submit.prevent="sendMessage()", class="mb-0")
+            b-form(
+              @submit.prevent="sendMessage()", class="mb-0"
+            )
               b-form-group(:label="user && user.name", label-for="input")
-                b-form-input(id="input", v-model="input", placeholder="Enter your message", :disabled="!user || sending || generatingReply")
+                b-textarea#input(
+                  v-model="input"
+                  placeholder="Enter to send, Shift+Enter for new line"
+                  :disabled="!user || sending || generatingReply"
+                  @keydown.enter.exact.prevent="if ( user && input && !sending && !generatingReply ) sendMessage()"
+                )
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
     
       //- Context column
-      b-col.col-7(
-        v-if="lastMessage && lastMessage.context",
-      )
-        MindyContext(
-          v-model="lastMessage.context",
-        )
+      b-col.col-xl-8.col-lg-7.col-md-6.col-sm-12.col-12
+        div(:style={
+          position: 'sticky',
+          top: '0',
+        })
+          MindyContext(
+            v-if="routedMessage && routedMessage.context",
+            v-model="routedMessage.context",
+          )
+          p(v-else, class="text-muted")
+            | Start a conversation to see the context
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
@@ -207,7 +230,8 @@
 
         # Use slug 'first' if this the first message (i.e. parent is null), otherwise use 'continued' (which will use the previous convo  as context)
         if ( if retrying then @tree.parent(parent) else parent ) isnt @tree.root
-          slug = 'continued'
+          # slug = 'continued'
+          continued = true
 
           # Also combine all the previous messages in the thread as `previousConversation`, in the format "user1:\nmessage1\n\nuser2:\nmessage2\n\n..."
           previousConversation = @tree
@@ -219,8 +243,10 @@
 
           console.log {previousConversation}
 
-        else
-          slug = 'first'
+        # else
+        #   slug = 'first'
+
+        slug = if continued then 'continued' else 'first'
 
         @try 'sending', =>
 
@@ -243,7 +269,7 @@
 
           @$nextTick =>
 
-            @try 'generatingReply', =>
+            @try 'generatingReply', ( =>
 
               { choices } = await @polygon.run slug, { input, previousConversation }
 
@@ -259,9 +285,13 @@
                 
                 console.log { reply }
 
+                if continued
+                  previousContext = @tree.parent(message).context
+                  console.log { previousContext }
+
                 # Generate the context
                 @try 'generatingContext', =>
-                  { choices: [{ text }] } = await @polygon.run "context-#{slug}", { input, previousConversation, reply: text }
+                  { choices: [{ text }] } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
                   @$set reply, 'context', text
 
               @$nextTick =>
@@ -269,6 +299,12 @@
                 @$router.push { query: { id: _.last(@messages).id } }
                 @$refs.scrollToBottom.scrollIntoView()
                 document.querySelector('#input').focus()
+            ),
+            catcher: (error) =>
+              console.error error
+              # Remove message (so that it isn't left unresponded to)
+              @messages = _.without @messages, message
+              input = message.content 
 
       cloneAndSend: () ->
 
@@ -306,17 +342,17 @@
   }
 
   .footer {
-    position: sticky;
+    /* position: sticky;
     bottom: 0;
-    z-index: 1;
+    z-index: 1; */
     background-color: #f7f7f7;
     border-top: 1px solid #e7e7e7;
   }
 
   .header {
-    position: sticky;
+    /* position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 1; */
     background-color: #f7f7f7;
     border-bottom: 1px solid #e7e7e7;
   }
