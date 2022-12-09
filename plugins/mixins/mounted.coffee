@@ -2,7 +2,17 @@
 export default
 
   data: ->
-    mounted: false
+
+    mounted = {
+      state: false
+    }
+
+    Object.assign mounted,
+      promise: new Promise ( resolve ) -> Object.assign mounted, { resolve }
+
+    { mounted }
 
   mounted: ->
-    @mounted = true
+
+    @mounted.resolve()
+    @mounted.state = true

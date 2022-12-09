@@ -6,6 +6,8 @@
       //- Visual representation
       b-tab(title="Mind map")
 
+        //- //- Centered spinner if the chart is not rendered yet
+        //- b-spinner(v-if="!chartRendered" small style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);")
         b-container
           b-row.sticky-top(
             align-v="center"
@@ -35,7 +37,11 @@
         //- Red border if the context is invalid
         b-textarea(
           v-model="context"
-          :style="{ borderColor: isValid ? 'transparent' : 'red' }"
+          rows="25"
+          :style=`{
+            borderColor: isValid ? 'transparent' : 'red',
+            fontFamily: 'monospace'
+          }`
         )
         //- Save button
         //- b-button(
@@ -64,6 +70,10 @@
     props: [
       'value'
     ]
+
+    data: ->
+
+      chartRendered: false
 
     computed:
 
@@ -94,18 +104,8 @@
         console.log result
         return result
       
-      mermaidChart: ->
+      
 
-        if @mermaidString and @mounted
-
-          element = document.getElementById 'mermaid-container'
-          @$nextTick =>
-            console.log 'Updating mermaid chart'
-            element?.removeAttribute 'data-processed'
-            mermaid.init()
-          element
-
-    
     mounted: ->
 
       console.log 'MindyContext mounted'
@@ -117,17 +117,48 @@
         script = document.createElement 'script'
         script.id = 'mermaid-init'
         script.type = 'module'
+        window.mermaidLoaded = {
+          state: false,
+          resolve: null
+        }
+        window.mermaidLoaded.promise = new Promise ( resolve ) ->
+          Object.assign window.mermaidLoaded, { resolve }
         script.innerHTML = """
+          let resolve = null
           import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.mjs';
           console.log({mermaid})
           import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.mjs';
           console.log({mindmap})
           await mermaid.registerExternalDiagrams([mindmap]);
           Object.assign(window, {mermaid, mindmap});
+          console.log('mermaid loaded')
+          window.mermaidLoaded.state = true
+          window.mermaidLoaded.resolve()
         """
         document.head.appendChild script
         console.log script
     
+    watch:
+      
+      mermaidString:
+        immediate: true
+        handler: (string) ->
+          @chartRendered = false
+          console.log 'Creating mermaid chart for', string
+          if not @mounted.state
+            console.log 'Waiting for the component to be mounted'
+            await @mounted.promise
+            console.log 'Component mounted'
+          if not window.mermaidLoaded.state
+            console.log 'Waiting for mermaid to be loaded'
+            await window.mermaidLoaded.promise
+            console.log 'Mermaid loaded'
+          element = document.getElementById 'mermaid-container'
+          @$nextTick =>
+            console.log 'Updating mermaid chart'
+            element?.removeAttribute 'data-processed'
+            mermaid.init()
+            @chartRendered = true
 
     methods:
 
