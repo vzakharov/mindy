@@ -18,7 +18,10 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
       ( items.find (i) -> i.id is item.parentId ) or @root
 
     children: (item) ->
-      items.filter (child) -> child.parentId is item.id
+      _(items)
+        .filter (child) -> if item then child.parentId is item.id else not child.parentId
+        .orderBy childOrder
+        .value()
     
     siblings: (item, includeSelf = true) ->
       _.orderBy(
@@ -84,6 +87,13 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
     clone: (item) ->
       # Clone the item (without children) and add it as a child of the item's parent
       @createChild @parent(item), _.omit(item, 'id', 'createdAt')
+    
+    delete: (item) ->
+      # Delete the item and all its descendants. Returns the new items array
+      children = @children(item)
+      items.splice items.indexOf(item), 1
+      children.forEach ( item ) => @delete item
+      items
 
 # export the TreeLike function
 export default TreeLike

@@ -72,6 +72,15 @@
                 //- Cancel
                 b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
                   | Cancel
+                //- Delete (danger, alert, confirm)
+                b-button(variant="outline-danger", size="sm", @click=`
+                  if ( window.confirm('Are you sure you want to delete this message and all of its further replies? THERE IS NO UNDO!') ) {
+                    messages = tree.delete(message)
+                    $router.push({ query: { id: tree.parent(message).id } })
+                    editing.message = null
+                  }
+                `, class="m-1")
+                  | Delete
 
               template(v-if="message === routedMessage")
 
@@ -121,6 +130,9 @@
             v-if="routedMessage && routedMessage.context",
             v-model="routedMessage.context",
           )
+          b-spinner(
+            v-else-if="generatingReply || generatingContext",
+          )
           p(v-else, class="text-muted")
             | Start a conversation to see the context
 
@@ -138,6 +150,7 @@
   import TreeLike from '~/plugins/treeLike'
   import exposeVM from '~/plugins/exposeVM'
   import tryAction from '~/plugins/tryAction'
+  import windowMixin from '~/plugins/mixins/window'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -151,6 +164,7 @@
         format: 'yaml'
       exposeVM
       tryAction
+      windowMixin
     ]
 
 
@@ -178,6 +192,7 @@
         name: 'mindy'
         isBot: true
       idsBySlug: null
+      previousThread: null
 
     computed:
 
@@ -203,7 +218,11 @@
         
 
       thread: ->
-        @tree.thread(@routedMessage or @tree.root)
+        # If the existing thread includes the routed message, use that
+        if @previousThread?.includes(@routedMessage)
+          @previousThread
+        else
+          @previousThread = @tree.thread(@routedMessage or @tree.root)
       
       lastMessage: ->
         _.last(@thread)
