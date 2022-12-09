@@ -79,12 +79,9 @@
 
       context:
 
-        get: ->
-          # Remove everything after and including \n```
-          @value.replace? /\n```[\s\S]*/, ''
+        get: -> @value
 
-        set: (value) ->
-          @$emit 'input', value
+        set: (value) -> @$emit 'input', value
 
       isValid: ->
         try
@@ -130,6 +127,7 @@
           import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.mjs';
           console.log({mindmap})
           await mermaid.registerExternalDiagrams([mindmap]);
+          mermaid.startOnLoad = false;
           Object.assign(window, {mermaid, mindmap});
           console.log('mermaid loaded')
           window.mermaidLoaded.state = true
@@ -158,7 +156,6 @@
             console.log 'Updating mermaid chart'
             element?.removeAttribute 'data-processed'
             mermaid.init()
-            @chartRendered = true
 
     methods:
 
@@ -194,13 +191,8 @@
 
           if getIndent( lines[i], tabSize ) < 1
             throw new MermaidValidationError("Line #{i+1} is not indented; only one root topic is allowed")
-        
-        # Update the context, setting two spaces as the indentation
-        @context = lines
-          .map (line) -> line.replace /^(\s*)/, ( '  '.repeat getIndent(line, tabSize) )
-          .join '\n'
-        
-        console.log { @context }
+                
+        # console.log { @context }
 
         return true
 

@@ -314,16 +314,38 @@
                   previousContext = @tree.parent(message).context
                   console.log { previousContext }
 
+
                 # Generate the context
                 @try 'generatingContext', =>
+
                   { choices: [{ text }] } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
-                  @$set reply, 'context', text
+
+                  getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
+                  postProcessContext = (value) ->
+
+                    value = value.replace? /```[\s\S]*?/, ''
+                    value = value.trim()
+                    lines = value.trim().split '\n'
+
+                    # Take the tab size from the second line
+                    tabSize = getIndent lines[1], 1
+
+                    # Make the indent of two spaces
+                    lines = lines.map (line) ->
+                      indent = getIndent line, tabSize
+                      line.replace /^\s*/, '  '.repeat indent
+                    
+                    lines.join '\n'
+
+                  @$set reply, 'context', postProcessContext(text)
 
               @$nextTick =>
                 # Navigate to the last created message
                 @$router.push { query: { id: _.last(@messages).id } }
                 @$refs.scrollToBottom.scrollIntoView()
-                document.querySelector('#input').focus()
+                @$nextTick =>
+                  document.querySelector('#input')?.focus()
+
             ),
             catcher: (error) =>
               console.error error
