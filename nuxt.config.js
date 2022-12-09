@@ -71,7 +71,7 @@ export default {
     '@nuxtjs/axios',
     'nuxt-coffeescript-module',
     '@nuxtjs/markdownit',
-    'nuxt-mermaid-string',
+    // 'nuxt-mermaid-string',
   ],
   
   markdownit: {

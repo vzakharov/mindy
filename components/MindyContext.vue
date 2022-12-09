@@ -1,14 +1,13 @@
 <template lang="pug">
   //- "Context" is a sort of a canvas/workspace that visualizes the topic according to the conversation so far. It helps the user to understand the topic better while at the same time giving the bot more context to work with. Visually, the context is represented as a mind map or a similar visual aid. Under the hood, the context is plain text, with one non-indented line representing the main topic, and any following tab-indented lines representing sub-topics (think nested bullet points but with tabs instead of asterisks).
-  //- The visual representation is generated using nuxt-mermaid-string, which is a wrapper around mermaid.js, a "markdown-inspired" JavaScript library for generating diagrams from text.
   div
     //- Tabs to switch between visual and plain text representations
     b-tabs
       //- Visual representation
       b-tab(title="Mind map")
-        VueMermaidString(
+        pre.mermaid(
           v-if="isValid"
-          :value="mermaidString"
+          v-text="mermaidString"
         )
         //- Error message if the context is invalid with a suggestion to edit in plain text
         b-alert(
@@ -43,6 +42,8 @@
 
 <script lang="coffee">
 
+  import log from '~/plugins/log'
+
   class MermaidValidationError extends Error
 
   getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
@@ -68,26 +69,33 @@
 
       mermaidString: ->
 
-        # Generates the mermaid string from the context, i.e.:
-        # the word "mindmap"
-        #   context, indented by one more level
-
         try @validate(@context) catch e then throw new MermaidValidationError e.message
 
-        lines = @context.split('\n')
+        # - Add "mindmap\n" at the beginning
+        # - Escape special characters: -, @, ~, ", ( and ). Escaping is done with #[ascii code]; (e.g. #64; for @)
+        result = 'mindmap\n' + @context.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
+        console.log result
+        return result
+    
+    mounted: ->
 
-        # Take the tab size & character from the second line
-        tabSize = getIndent( lines[1], 1 )
-        tabChar = lines[1][0]
+      #   import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.min.mjs';
+      #   import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.min.mjs';
+      #   await mermaid.registerExternalDiagrams([mindmap]);
 
-        # Indent all lines by one level
-        lines = lines.map (line) -> tabChar + line
-
-        # Add the word "mindmap" to the beginning
-        lines.unshift 'mindmap'
-
-        # Join the lines with newlines
-        lines.join '\n'
+      importScript = (src) ->
+        new Promise (resolve, reject) ->
+          Object.assign(
+            ( document.body.appendChild document.createElement('script') ),
+            {
+              src
+              onload: resolve
+              onerror: reject
+            }
+          )
+      
+      # await importScript 'https://unpkg.com/mermaid@9/dist/mermaid.min.js'
+      # await importScript 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.min.js'
 
     methods:
 
@@ -122,6 +130,10 @@
             throw new MermaidValidationError("Line #{i+1} is not indented; only one root topic is allowed")
 
         return true
+
+      saveContext: ->
+        true
+
 </script>
 
 

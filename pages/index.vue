@@ -93,13 +93,13 @@
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
     
-    //- Context column
-    b-col.col-7(
-      v-if="lastMessage && lastMessage.context",
-    )
-      MindyContext(
-        v-model="lastMessage.context",
+      //- Context column
+      b-col.col-7(
+        v-if="lastMessage && lastMessage.context",
       )
+        MindyContext(
+          v-model="lastMessage.context",
+        )
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
