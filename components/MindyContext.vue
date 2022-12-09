@@ -194,6 +194,13 @@
 
           if getIndent( lines[i], tabSize ) < 1
             throw new MermaidValidationError("Line #{i+1} is not indented; only one root topic is allowed")
+        
+        # Update the context, setting two spaces as the indentation
+        @context = lines
+          .map (line) -> line.replace /^(\s*)/, ( '  '.repeat getIndent(line, tabSize) )
+          .join '\n'
+        
+        console.log { @context }
 
         return true
 

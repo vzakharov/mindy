@@ -188,12 +188,18 @@
         
         # Either message with the id from a query param or the last message
         { $route: { query: { id } } } = @
-        if id?
+        message = if id?
           # convert to int
           id = parseInt(id)
           _.find @messages, { id }
         else
           _.last @messages
+        
+        # If the message is not from bot, user the first child (if any)
+        if message?.user?.isBot or !@tree.children(message).length
+          message
+        else
+          _.first @tree.children(message)
         
 
       thread: ->
