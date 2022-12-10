@@ -13,7 +13,7 @@
             p.lede Someone you can talk to
 
           div#messages.border-right.border-left(
-            style="height: calc(100vh - 350px); overflow-y: scroll;"
+            style="height: calc(100vh - 400px); overflow-y: scroll;"
           )
             div.mt-2.p-2(
               v-for="(message, index) in thread", :key="index", 
@@ -114,7 +114,7 @@
                   v-model="input"
                   placeholder="Enter to send, Shift+Enter for new line"
                   :disabled="!user || sending || generatingReply"
-                  @keydown.enter.exact.prevent="if ( user && input && !sending && !generatingReply ) sendMessage()"
+                  @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
                 )
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
@@ -138,6 +138,20 @@
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
+    //- Footer with various data displayed in a row from right to left
+    div.footer.p-2.border-top.border-right.border-left.fixed-bottom
+      //- OpenAI key (masked) + edit button
+      div.float-right.text-right.text-muted.px-2(
+        @click="$refs.openAIkeyModal.show()"
+        style="cursor: pointer"
+      ) {{ openAIkey ? `🔑 ${openAIkey.slice(0, 7)}...` : '🔑 No OpenAI key' }}
+      //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
+      div.float-right.text-right.text-muted.px-2(
+        @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
+        style="cursor: not-allowed"
+      )
+        | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
+
 </template>
 
 <script lang="coffee">
@@ -159,7 +173,7 @@
     mixins: [
       syncLocal
         keys: [
-          'user', 'messages', 'openAIkey'
+          'user', 'messages', 'openAIkey', 'usdSpent'
         ]
         format: 'yaml'
       exposeVM
@@ -188,6 +202,7 @@
       openAIkey: null
       typingCount: 0
       typingInterval: null
+      usdSpent: 0
       bot:
         name: 'mindy'
         isBot: true
@@ -296,7 +311,8 @@
 
             @try 'generatingReply', ( =>
 
-              { choices } = await @polygon.run slug, { input, previousConversation }
+              { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }
+              @usdSpent += parseFloat(approximateCost)
 
               @input = ''
               
@@ -318,7 +334,8 @@
                 # Generate the context
                 @try 'generatingContext', =>
 
-                  { choices: [{ text }] } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
+                  { choices: [{ text }], approximateCost } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
+                  @usdSpent += approximateCost
 
                   getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
                   postProcessContext = (value) ->
