@@ -32,9 +32,14 @@ export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
 
       isObject = typeof defaultValue is 'object' and defaultValue isnt null
       isArray = Array.isArray defaultValue
+      isNumber = typeof defaultValue is 'number'
       if isObject
         # localValue = JSON.parse(localValue or null)
         localValue = parse(localValue or null)
+      else if isNumber
+        localValue = parseFloat(localValue or null)
+      else
+        localValue = localValue or null
 
       container[key] = if isObject and not isArray
         {...defaultValue, ...localValue}

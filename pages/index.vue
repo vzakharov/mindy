@@ -335,7 +335,7 @@
                 @try 'generatingContext', =>
 
                   { choices: [{ text }], approximateCost } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
-                  @usdSpent += approximateCost
+                  @usdSpent += parseFloat(approximateCost)
 
                   getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
                   postProcessContext = (value) ->
