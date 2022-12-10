@@ -154,8 +154,10 @@
           element = document.getElementById 'mermaid-container'
           @$nextTick =>
             console.log 'Updating mermaid chart'
-            element?.removeAttribute 'data-processed'
-            mermaid.init()
+            mermaid.renderAsync "mermaid-#{Date.now()}", string, (svg) =>
+              element.innerHTML = svg
+              @chartRendered = true
+              console.log 'Mermaid chart updated'
 
     methods:
 
