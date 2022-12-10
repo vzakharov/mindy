@@ -105,16 +105,11 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
 
   _.forEach @getters, ( getter, name ) =>
     @[name] = (item, ...args) ->
-      log 'name', name
-      log 'item', item
-      log 'args', args
-      log 'path', path = [ item?.id ? 'undefined', name, JSON.stringify(args) ]      
-      if _.has @cache, path
-        log 'get cache', @cache[path]
-      else
-        log 'set cache', _.set @cache, path, getter.apply(@, [ item, ...args ])
+      path = [ item?.id ? 'undefined', name, JSON.stringify(args) ]      
+      if not _.has @cache, path
+        _.set @cache, path, getter.apply(@, [ item, ...args ])
+      _.get(@cache, path)
         
-
   @
 
 
