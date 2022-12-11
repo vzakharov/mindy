@@ -93,10 +93,17 @@
                 div.p-2(v-if="generatingReply", class="text-muted")
                   em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
 
-                //- If this is the routed message and it is from the bot, display a centered 'Try again' button
+                //- Buttons with various message actions
                 div.p-2.text-center(v-if="message.user.isBot")
-                  b-button(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
+
+                  //- Try again
+                  b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
                     | ↺ Try again
+                  
+                  //- Generate context
+                  b-button.mx-1(variant="outline-primary", @click="generateContext(message)", :disabled="sending || generatingReply || generatingContext")
+                    //- | 丫 Generate context
+                    | 丫 {{ generatingContext ? 'Generating...' : message.context ? 'Rebuild mindmap' : 'Mindmap' }}
 
             div(ref="scrollToBottom", class="mt-2")
 
@@ -112,6 +119,7 @@
                   placeholder="Enter your name to start chatting"
                 )
               
+            //- Message input & buttons
             b-form(
               @submit.prevent="sendMessage()", class="mb-0"
             )
@@ -122,6 +130,8 @@
                   :disabled="!user || sending || generatingReply"
                   @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
                 )
+
+              //- Submit button
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
@@ -166,8 +176,10 @@
   import _ from 'lodash'
   import QRCode from 'qrcode'
 
-  import syncLocal from '~/plugins/syncLocal'
   import TreeLike from '~/plugins/treeLike'
+  import log from '~/plugins/log'
+
+  import syncLocal from '~/plugins/syncLocal'
   import exposeVM from '~/plugins/exposeVM'
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
@@ -335,36 +347,6 @@
                 
                 console.log { reply }
 
-                if continued
-                  previousContext = @tree.parent(message).context
-                  console.log { previousContext }
-
-
-                # Generate the context
-                @try 'generatingContext', =>
-
-                  { choices: [{ text }], approximateCost } = await @polygon.run "context-#{slug}", { input, previousConversation, previousContext, reply: text }
-                  @usdSpent += parseFloat(approximateCost)
-
-                  getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
-                  postProcessContext = (value) ->
-
-                    value = value.replace? /```[\s\S]*?/, ''
-                    value = value.trim()
-                    lines = value.trim().split '\n'
-
-                    # Take the tab size from the second line
-                    tabSize = getIndent lines[1], 1
-
-                    # Make the indent of two spaces
-                    lines = lines.map (line) ->
-                      indent = getIndent line, tabSize
-                      line.replace /^\s*/, '  '.repeat indent
-                    
-                    lines.join '\n'
-
-                  @$set reply, 'context', postProcessContext(text)
-
               @$nextTick =>
                 # Navigate to the last created message
                 @$router.push { query: { id: _.last(@messages).id } }
@@ -379,6 +361,77 @@
               @messages = _.without @messages, message
               input = message.content 
 
+      getConversation: (message) ->
+
+        # Map all messages before and including the message to a conversation
+        @tree
+          .lineage(message, includeSelf: true)
+          .map(({ user: { isBot }, content }) -> "#{if isBot then 'Mindy' else 'User'}:\n#{content}")
+          .join('\n\n')
+
+
+      generateContext: (message) ->
+
+        @try 'generatingContext', =>
+
+          # Find the most recent message that has a context (it can be the message itself)
+          log 'Previous message with context', 
+          previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: true), (message) -> message.context
+
+          if !previousMessageWithContext
+            log 'No previous message with context, using current message', 
+            previousMessageWithContext = message
+            slug = 'context'
+          else
+            previousContext = previousMessageWithContext.context
+            slug = 'context-rebuild'
+
+          log { slug }
+
+          contextExists = !!previousMessageWithContext.context
+
+          log "Conversation before #{if contextExists then 'previous context' else 'current message'}",
+          conversationBeforePreviousContext = @getConversation previousMessageWithContext
+          
+
+          if contextExists
+
+            log 'Messages after previous context',
+            messagesAfterPreviousContext = @tree
+              .lineage(message, includeSelf: true)
+              .slice @tree.lineage(previousMessageWithContext, includeSelf: true).length
+
+            log 'Conversation after previous context', 
+            conversationAfterPreviousContext = @getConversation previousMessageWithContext
+
+          { choices: [{ text }], approximateCost } = await @polygon.run slug, {
+            conversationBeforePreviousContext,
+            previousContext,
+            conversationAfterPreviousContext,
+          }
+
+          @usdSpent += parseFloat(approximateCost)
+
+          getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
+          postProcessContext = (value) ->
+
+            value = value.replace? /```[\s\S]*?/, ''
+            value = value.trim()
+            lines = value.trim().split '\n'
+
+            # Take the tab size from the second line
+            tabSize = getIndent lines[1], 1
+
+            # Make the indent of two spaces
+            lines = lines.map (line) ->
+              indent = getIndent line, tabSize
+              line.replace /^\s*/, '  '.repeat indent
+            
+            lines.join '\n'
+
+          @$set message, 'context', postProcessContext(text)
+          
+      
       cloneAndSend: () ->
 
         try

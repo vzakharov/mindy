@@ -30,7 +30,6 @@
           | 🖉
         b-modal#plain-text-modal(
           title="Edit context in plain text"
-          size="sm"
           hide-footer hide-header
         )
           EditSettingsContainer(
