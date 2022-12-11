@@ -57,18 +57,24 @@
               div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
 
               div(v-else)
-                //- Send on shift+enter, cancel on escape
+                //- Send on Enter -- only if this not a bot message, -- cancel on escape 
                 b-textarea(rows="3", max-rows="10",
                   v-model="editing.input",
-                  @keydown.enter.exact.prevent="cloneAndSend",
+                  @keydown.enter.exact.prevent="() => { if ( !message.user.isBot ) { cloneAndSend() } }",
                   @keydown.esc="editing.message = null"
                 )
-                //- Save & submit
-                b-button(variant="primary", size="sm", @click="cloneAndSend", class="m-1")
+                //- Save & submit -- if not a bot message
+                b-button.m-1(size="sm", variant="primary"
+                  v-if="!message.user.isBot"
+                  @click="cloneAndSend"
+                )
                   | Save &amp; submit
                 //- Just save (to edit the message text but not send it)
-                b-button(variant="outline-secondary", size="sm", @click="message.content = editing.input; editing.message = null", class="m-1")
-                  | Just save
+                b-button.m-1(size="sm"
+                  :variant="message.user.isBot ? 'primary' : 'outline-secondary'"
+                  @click="message.content = editing.input; editing.message = null"
+                )
+                  | {{ message.user.isBot ? 'Save' : 'Just save' }}
                 //- Cancel
                 b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
                   | Cancel
@@ -243,7 +249,10 @@
         _.last(@thread)
 
       polygon: ->
-        new PolygonClient({ @openAIkey, defaultParameters: { max_tokens: 300 } })
+        new PolygonClient({ @openAIkey, defaultParameters: { 
+          max_tokens: 300 
+          n: 3
+        } })
 
     mounted: ->
 
