@@ -144,9 +144,6 @@
               v-model="routedMessage.context"
               @rebuild="generateContext(routedMessage)"
             )
-            b-spinner(
-              v-if="generatingReply || generatingContext",
-            )
             //- Generate context
             b-button.mx-1(
               v-if="!routedMessage.context"
@@ -155,7 +152,7 @@
               :variant="generatingContext ? 'light' : 'outline-primary'"
             )
               //- | 丫 Generate context
-              | 丫 {{ generatingContext ? 'Building mindmap...' : 'Build mindmap' }}
+              | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
           div.lead(v-else)
             p Ask Mindy a question, and watch the magic unfold!
 
