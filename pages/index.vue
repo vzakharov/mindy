@@ -351,8 +351,7 @@
                 # Navigate to the last created message
                 @$router.push { query: { id: _.last(@messages).id } }
                 @$refs.scrollToBottom.scrollIntoView()
-                @$nextTick =>
-                  document.querySelector('#input')?.focus()
+                focusOnInput()
 
             ),
             catcher: (error) =>
@@ -360,6 +359,16 @@
               # Remove message (so that it isn't left unresponded to)
               @messages = _.without @messages, message
               input = message.content 
+
+      focusOnInput: ->
+      
+        @$nextTick =>
+          observer = new MutationObserver ( mutations ) =>
+            if mutation = mutations.find ({ attributeName, target: { disabled } }) -> attributeName is 'disabled' and !disabled
+            # (`=` is not a typo; it's an assignment, not a comparison)
+              mutation.target.focus()
+              observer.disconnect()
+          observer.observe document.querySelector('#input'), { attributes: true }
 
       getConversation: (message) ->
 
