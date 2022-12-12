@@ -10,16 +10,17 @@ export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
     parse = JSON.parse
     dump = JSON.stringify
 
+  useDefaultContainer = container is undefined
 
   mounted: ->
 
     # If container is undefined, use either this.settings or (if none) just this
-    if container is undefined
+    if useDefaultContainer
       container = @settings or @
     
     # If container is other than `this`, get the container key as string by going through all keys in `this` and comparing the value with the container object
     if container isnt @
-      containerKey = Object.keys(@).find key => @[key] is container
+      containerKey = Object.keys(@).find (key) => @[key] is container
       unless containerKey
         throw new Error "Could not find container key in this"
 
