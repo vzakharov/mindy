@@ -354,7 +354,7 @@
                 focusOnInput()
 
             ),
-            catcher: (error) =>
+            except: (error) =>
               console.error error
               # Remove message (so that it isn't left unresponded to)
               @messages = _.without @messages, message

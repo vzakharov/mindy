@@ -2,25 +2,37 @@
 
 export default
 
+  data: ->
+
+    actionPromises: {}
+
   methods:
 
-    try: ( stateKey, action, { errorMessage, catcher } = {} ) ->
+    actionPromise: (stateKey) -> @actionPromises[stateKey] ? Promise.resolve()
+
+    try: ( stateKey, action, { errorMessage, except } = {} ) ->
       @[stateKey] = true
+      resolve = null
+      reject = null
+      @actionPromises[stateKey] = new Promise (res, rej) ->
+        resolve = res
+        reject = rej
       try
         console.log "Started #{stateKey}"
-        await action()
+        resolve await action()
       catch error
         console.error "Error while #{stateKey}: #{error}"
         # If errorMessage is a function, call it with the error as argument
         if typeof errorMessage is 'function'
           errorMessage = errorMessage(error)
-        @alert error, errorMessage
-        catcher?(error)
+        @alert errorMessage
+        except? error
+        reject error
       finally
         @[stateKey] = false
         console.log "Finished #{stateKey}"
 
-    alert: (error, errorMessage='Something went wrong, please try again.') ->
+    alert: (errorMessage='Something went wrong.') ->
       @$bvToast.toast 'See console for error details.',
         title: errorMessage
         variant: 'danger'
