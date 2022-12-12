@@ -12,7 +12,7 @@
         
           div.header.text-center.border-top.border-right.border-left
             h1.display-3(style="font-size: 2.5rem;") Mindy
-            p.lede Someone you can talk to
+            p.lede Brainstorm with AI
 
           div#messages.border-right.border-left(
             style="height: calc(100vh - 400px); overflow-y: scroll;"
@@ -245,6 +245,8 @@
       windowMixin
     ]
 
+    head: ->
+      title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
     data: ->
       settings:
@@ -541,6 +543,8 @@
           log "Navigating to message ##{id}"
           if id
             await @localLoaded
+            if id == 'last'
+              { id } = _.last @messages
             message = @tree.find parseInt id
             if message
               @routedMessage = message
