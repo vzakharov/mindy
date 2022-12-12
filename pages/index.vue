@@ -1,6 +1,8 @@
 <template lang="pug">
   b-container.p-5.vh-100(fluid)
-    b-row
+    b-row(
+      align-v="center",
+    )
 
       b-col.p-0(
         style="height: calc(100vh - 200px);",
@@ -99,11 +101,6 @@
                   //- Try again
                   b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
                     | ↺ Try again
-                  
-                  //- Generate context
-                  b-button.mx-1(variant="outline-primary", @click="generateContext(message)", :disabled="sending || generatingReply || generatingContext")
-                    //- | 丫 Generate context
-                    | 丫 {{ generatingContext ? 'Building mindmap...' : message.context ? 'Rebuild mindmap' : 'Mindmap' }}
 
             div(ref="scrollToBottom", class="mt-2")
 
@@ -125,6 +122,7 @@
             )
               b-form-group(:label="user && user.name", label-for="input")
                 b-textarea#input(
+                  ref="input"
                   v-model="input"
                   placeholder="Enter to send, Shift+Enter for new line"
                   :disabled="!user || sending || generatingReply"
@@ -138,20 +136,22 @@
             
     
       //- Context column
-      b-col.col-xl-8.col-lg-7.col-md-6.col-sm-12.col-12
-        div(:style={
-          position: 'sticky',
-          top: '0',
-        })
-          MindyContext(
-            v-if="routedMessage && routedMessage.context",
-            v-model="routedMessage.context",
-          )
-          b-spinner(
-            v-else-if="generatingReply || generatingContext",
-          )
-          p(v-else, class="text-muted")
-            | Start a conversation to see the context
+      b-col.col-xl-8.col-lg-7.col-sm-6
+        b-row.justify-content-center.text-center
+          template(v-if="routedMessage")
+            MindyContext(
+              v-show="!!routedMessage.context"
+              v-model="routedMessage.context"
+            )
+            b-spinner(
+              v-if="generatingReply || generatingContext",
+            )
+            //- Generate context
+            b-button.mx-1(variant="outline-primary", @click="generateContext(routedMessage)", :disabled="sending || generatingReply || generatingContext")
+              //- | 丫 Generate context
+              | 丫 {{ generatingContext ? 'Building mindmap...' : routedMessage.context ? 'Rebuild mindmap' : 'Build mindmap' }}
+          p.text-muted.lead(v-if="!routedMessage") Ask Mindy a question, and watch the magic unfold!              
+
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
@@ -162,7 +162,7 @@
       div.float-right.text-right.text-muted.px-2(
         @click="$refs.openAIkeyModal.show()"
         style="cursor: pointer"
-      ) {{ openAIkey ? `🔑 ${openAIkey.slice(0, 7)}...` : '🔑 No OpenAI key' }}
+      ) {{ openAIkey ? `🔑 sk-...${openAIkey.slice(-4)}` : '🔑 No OpenAI key' }}
 
       //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
       div.float-right.text-right.text-muted.px-2(
@@ -232,6 +232,7 @@
           'user', 'messages', 'openAIkey', 'usdSpent', 'settings'
         ]
         format: 'yaml'
+        prefix: 'mindy'
       exposeVM
       tryAction
       windowMixin
@@ -255,7 +256,7 @@
       }
       nameUnavailable: false
       user: {
-        name: null
+        name: 'you'
       }
       messages: []
       openAIkey: null
@@ -313,6 +314,8 @@
       if !@openAIkey
         console.log "OpenAI key not set; showing modal"
         @$refs.openAIkeyModal.show()
+      else
+        @$refs.input.focus()
       
     methods:
 
@@ -327,8 +330,6 @@
       sendMessage: ( input = @input, parent = _.last(@thread) or @tree.root, retrying = false ) ->
 
         console.log {input, parent, retrying}
-
-        idsBySlug = await @idsBySlug
 
         # Use slug 'first' if this the first message (i.e. parent is null), otherwise use 'continued' (which will use the previous convo  as context)
         if ( if retrying then @tree.parent(parent) else parent ) isnt @tree.root
@@ -362,7 +363,7 @@
 
             # scroll to bottom
             @$nextTick =>
-              @$refs.scrollToBottom.scrollIntoView()
+              @$refs.scrollToBottom?.scrollIntoView()
         
           else
             message = parent
@@ -395,7 +396,7 @@
               @$nextTick =>
                 # Navigate to the last created message
                 @$router.push { query: { id: _.last(@messages).id } }
-                @$refs.scrollToBottom.scrollIntoView()
+                @$refs.scrollToBottom?.scrollIntoView()
                 @focusOnInput()
 
             ),
@@ -442,7 +443,7 @@
           log { slug }
 
           log "Conversation before #{if contextExists then 'previous context' else 'current message'}",
-          conversationBeforePreviousContext = @getConversation previousMessageWithContext
+          conversationBeforePreviousContext = @getConversation previousMessageWithContext or message
 
           if contextExists
 
@@ -502,7 +503,7 @@
         if generatingReply
           # Scroll to bottom
           @$nextTick =>
-            @$refs.scrollToBottom.scrollIntoView()
+            @$refs.scrollToBottom?.scrollIntoView()
           @typingInterval = setInterval =>
             @typingCount = ( @typingCount + 1 ) % 3
           , 500

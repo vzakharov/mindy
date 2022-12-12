@@ -12,18 +12,20 @@ export default ( key, { deep, save = identity, load = identity } = {} ) ->
 
   computed:
     not deep and
-      [key]: { get, set }
-
-  data: ->
-    if deep
-      [key]: get.call @
-    else
-      {}
+      [key]: {
+        get, set
+      }
 
   watch:
 
     deep and
-      [key]: {
+
+      [key]:
         deep: true
         handler: set
-      }
+
+      value:
+        deep: true
+        immediate: true
+        handler: (value) ->
+          @[key] = get.call @

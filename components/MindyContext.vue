@@ -1,52 +1,50 @@
 <template lang="pug">
   //- "Context" is a sort of a canvas/workspace that visualizes the topic according to the conversation so far. It helps the user to understand the topic better while at the same time giving the bot more context to work with. Visually, the context is represented as a mind map or a similar visual aid. Under the hood, the context is plain text, with one non-indented line representing the main topic, and any following tab-indented lines representing sub-topics (think nested bullet points but with tabs instead of asterisks).
-  b-container
-    b-row.sticky-top(
-      align-v="center"
-      style="height: calc(100vh - 200px);"
-    )
-      b-col
+  b-col
 
-        pre.mermaid#mermaid-container(
-          v-if="isValid"
-          v-text="mermaidString"
-        )
-        //- Error message if the context is invalid with a suggestion to edit in plain text
-        b-alert#mermaid-container(
-          v-else
-          variant="danger"
-          show
-        )
-          strong Cannot render the mind map; please edit the context in the <em>Plain text</em> tab.
-          ul 
-            li Exactly one line with no indentation in the beginning
-            li The second line must be indented by one level
-            li Every next line must be indented by not more than previous line plus one and not less than one level
-        
-        //- Button to edit the context in plain text
-        b-button.btn-sm.btn-light(
-          @click="editInPlainText = !editInPlainText"
-          :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
-        )
-          | 🖉
-        b-row(
-          v-show="editInPlainText || !isValid"
-          :style="isValid ? '' : 'border: 1px solid red; border-radius: 5px; padding: 10px;'"
-        )
-          EditSettings(
-            title="Edit context in plain text"
-            :value="{ context }"
-            @input="context = $event.context"
-            :properties=`{
-              context: {
-                type: 'multiline',
-                monospace: true,
-                label: 'Context',
-                placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
-                description: 'Tab/Shift-Tab to indent/unindent lines.'
-              }
-            }`
-          )
+    b-row#mermaid-container.justify-content-center
+    //- Error message if the context is invalid with a suggestion to edit in plain text
+    b-alert(
+      v-if="!isValid"
+      variant="danger"
+      show
+    )
+      strong Cannot render the mind map; please edit the context in the <em>Plain text</em> tab.
+      ul 
+        li Exactly one line with no indentation in the beginning
+        li The second line must be indented by one level
+        li Every next line must be indented by not more than previous line plus one and not less than one level
+    
+    //- Button to edit the context in plain text
+    b-button.btn-sm.btn-light.m-1(
+      @click="editInPlainText = !editInPlainText"
+      :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
+    )
+      | 🖉
+    //- Button to rebuild the mind map
+    b-button.btn-sm.btn-light.m-1(
+      @click="$emit('rebuild')"
+    )
+      | ↺
+
+    b-row(
+      v-show="editInPlainText || !isValid"
+      :style="isValid ? '' : 'border: 1px solid red; border-radius: 5px; padding: 10px;'"
+    )
+      EditSettings(
+        title="Edit context in plain text"
+        :value="{ context }"
+        @input="context = $event.context"
+        :properties=`{
+          context: {
+            type: 'multiline',
+            monospace: true,
+            label: 'Context',
+            placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
+            description: 'Tab/Shift-Tab to indent/unindent lines.'
+          }
+        }`
+      )
 
 </template>
 

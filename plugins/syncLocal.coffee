@@ -1,6 +1,6 @@
 import yaml from 'js-yaml'
 
-export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
+export default ({ computeSettings, prefix, keys, container, format = 'json' } = {}) ->
 
   # parsing/dumping; format can be 'json' or 'yaml'
   if format is 'yaml'
@@ -26,7 +26,8 @@ export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
 
     ( keys or Object.keys(container) ).forEach ( key ) =>
 
-      localValue = localStorage.getItem(key)
+      localKey = if prefix then "#{prefix}.#{key}" else key
+      localValue = localStorage.getItem(localKey)
       defaultValue = container[key]
 
       console.log key: key, localValue: localValue, defaultValue: defaultValue
@@ -50,9 +51,8 @@ export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
       keyToWatch = if containerKey then "#{containerKey}.#{key}" else key
       @$watch keyToWatch,
         deep: true
-        handler: (value) ->
-          # localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
-          localStorage.setItem(key, if isObject then dump(value) else value)
+        handler: (value) ->          # localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
+          localStorage.setItem(localKey, if isObject then dump(value) else value)
 
       # If computeSettings is set, then define a this get/set for the key
       if computeSettings
