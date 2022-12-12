@@ -26,11 +26,12 @@
         //- Button to edit the context in plain text
         b-button.btn-sm.btn-light(
           @click="editInPlainText = !editInPlainText"
-          :variant="editInPlainText ? 'secondary' : 'light'"
+          :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
         )
           | 🖉
         b-row(
-          v-show="editInPlainText"
+          v-show="editInPlainText || !isValid"
+          :style="isValid ? '' : 'border: 1px solid red; border-radius: 5px; padding: 10px;'"
         )
           EditSettings(
             title="Edit context in plain text"
@@ -41,7 +42,8 @@
                 type: 'multiline',
                 monospace: true,
                 label: 'Context',
-                placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic'
+                placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
+                description: 'Tab/Shift-Tab to indent/unindent lines.'
               }
             }`
           )
