@@ -135,29 +135,6 @@
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
-              
-              //- Settings button
-              b-button.float-right(variant="light", v-b-modal.settings-modal) ⚙
-              b-modal#settings-modal(
-                title="Settings"
-                hide-footer hide-header centered
-              )
-                EditSettings(
-                  v-model="settings"
-                  :properties=`{
-                    autoBuildContext: {
-                      label: 'Auto-build mindmap',
-                      description: {
-                        true: 'Mindy will automatically build a mindmap whenever you navigate to a reply.',
-                        false: 'You will have to click the "Mindmap" button to build a mindmap.',
-                      }
-                    },
-                    numGenerations: {
-                      label: 'Number of replies at once',
-                      description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
-                    },
-                  }`
-                )
             
     
       //- Context column
@@ -180,17 +157,54 @@
 
     //- Footer with various data displayed in a row from right to left
     div.footer.p-2.border-top.border-right.border-left.fixed-bottom
+
       //- OpenAI key (masked) + edit button
       div.float-right.text-right.text-muted.px-2(
         @click="$refs.openAIkeyModal.show()"
         style="cursor: pointer"
       ) {{ openAIkey ? `🔑 ${openAIkey.slice(0, 7)}...` : '🔑 No OpenAI key' }}
+
       //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
       div.float-right.text-right.text-muted.px-2(
         @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
         style="cursor: not-allowed"
       )
         | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
+
+      //- Settings buttons
+      span.float-left.text-right.px-2(
+        :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
+        @click="settings.autoBuildContext = !settings.autoBuildContext"
+        style="cursor: pointer"
+      ) 丫
+      span.float-left.text-right.text-muted.px-2(
+        @click="settings.numGenerations = ( settings.numGenerations % 3 ) + 1"
+        style="cursor: pointer"
+      ) 💬 × {{ settings.numGenerations }}
+      div.float-left.text-right.text-muted.px-2(
+        @click="$bvModal.show('settings-modal')"
+        style="cursor: pointer"
+      ) ...
+      b-modal#settings-modal(
+        title="Settings"
+        hide-footer hide-header centered
+      )
+        EditSettings(
+          v-model="settings"
+          :properties=`{
+            autoBuildContext: {
+              label: 'Auto-build mindmap',
+              description: {
+                true: 'Mindy will automatically build a mindmap whenever you navigate to a reply.',
+                false: 'You will have to click the "Mindmap" button to build a mindmap.',
+              }
+            },
+            numGenerations: {
+              label: 'Number of replies at once',
+              description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
+            },
+          }`
+        )
 
 </template>
 
