@@ -4,16 +4,15 @@
 
     b-row#mermaid-container.justify-content-center
     //- Error message if the context is invalid with a suggestion to edit in plain text
-    b-alert(
+    b-alert.text-left.mt-3(
       v-if="!isValid"
       variant="danger"
       show
     )
-      strong Cannot render the mind map; please edit the context in the <em>Plain text</em> tab.
+      strong Cannot render the mind map; please edit the context below:
       ul 
-        li Exactly one line with no indentation in the beginning
-        li The second line must be indented by one level
-        li Every next line must be indented by not more than previous line plus one and not less than one level
+        li Exactly one line with no tabs in the beginning
+        li Every next line indented by the same, fewer, or just one more tab than the previous line
     
     //- Button to edit the context in plain text
     b-button.btn-sm.btn-light.m-1(
@@ -39,7 +38,7 @@
           context: {
             type: 'multiline',
             monospace: true,
-            label: 'Context',
+            label: 'Mind map tree',
             placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
             description: 'Tab/Shift-Tab to indent/unindent lines.'
           }
@@ -168,6 +167,9 @@
         # 1. Exactly one line with no indentation in the beginning
         # 2. The second line must be indented by one level
         # 3. Every next line must be indented by not more than previous line plus one and not less than one level
+
+        if !context
+          throw new MermaidValidationError('Context is empty')
 
         lines = context.split('\n')
 

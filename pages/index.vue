@@ -24,7 +24,7 @@
                 'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
                 'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
               }`
-              @click="message !== routedMessage && message.user.isBot && $router.push({ query: { id: message.id } })"
+              @click="() => { if ( message !== routedMessage && message.user.isBot ) routedMessage = message }"
             )
 
               template(v-if="message.special")
@@ -84,7 +84,7 @@
                 b-button(variant="outline-danger", size="sm", @click=`
                   if ( window.confirm('Are you sure you want to delete this message and all of its further replies? THERE IS NO UNDO!') ) {
                     messages = tree.delete(message)
-                    $router.push({ query: { id: tree.parent(message).id } })
+                    routedMessage = tree.parent(message)
                     editing.message = null
                   }
                 `, class="m-1")
@@ -140,16 +140,22 @@
         b-row.justify-content-center.text-center
           template(v-if="routedMessage")
             MindyContext(
-              v-show="!!routedMessage.context"
+              v-show="!!routedMessage.context && !generatingContext"
               v-model="routedMessage.context"
+              @rebuild="generateContext(routedMessage)"
             )
             b-spinner(
               v-if="generatingReply || generatingContext",
             )
             //- Generate context
-            b-button.mx-1(variant="outline-primary", @click="generateContext(routedMessage)", :disabled="sending || generatingReply || generatingContext")
+            b-button.mx-1(
+              v-if="!routedMessage.context"
+              @click="generateContext(routedMessage)"
+              :disabled="sending || generatingReply || generatingContext"
+              :variant="generatingContext ? 'light' : 'outline-primary'"
+            )
               //- | 丫 Generate context
-              | 丫 {{ generatingContext ? 'Building mindmap...' : routedMessage.context ? 'Rebuild mindmap' : 'Build mindmap' }}
+              | 丫 {{ generatingContext ? 'Building mindmap...' : 'Build mindmap' }}
           p.text-muted.lead(v-if="!routedMessage") Ask Mindy a question, and watch the magic unfold!              
 
 
@@ -260,6 +266,7 @@
       }
       messages: []
       openAIkey: null
+      routedMessage: null
       typingCount: 0
       typingInterval: null
       usdSpent: 0
@@ -273,24 +280,6 @@
 
       tree: ->
         new TreeLike(@messages)
-
-      routedMessage: ->
-        
-        # Either message with the id from a query param or the last message
-        { $route: { query: { id } } } = @
-        message = if id?
-          # convert to int
-          id = parseInt(id)
-          _.find @messages, { id }
-        else
-          _.last @messages
-        
-        # If the message is not from bot, user the first child (if any)
-        if message?.user?.isBot or !@tree.children(message).length
-          message
-        else
-          _.first @tree.children(message)
-        
 
       thread: ->
         # If the existing thread includes the routed message, use that
@@ -316,7 +305,24 @@
         @$refs.openAIkeyModal.show()
       else
         @$refs.input.focus()
-      
+
+      # @routedMessage = do =>
+        
+      #   # Either message with the id from a query param or the last message
+      #   { $route: { query: { id } } } = @
+      #   message = if id?
+      #     # convert to int
+      #     id = parseInt(id)
+      #     _.find @messages, { id }
+      #   else
+      #     _.last @messages
+        
+      #   # If the message is not from bot, user the first child (if any)
+      #   if message?.user?.isBot or !@tree.children(message).length
+      #     message
+      #   else
+      #     _.first @tree.children(message)
+
     methods:
 
       addMessage: (message) ->
@@ -359,7 +365,7 @@
               user: @user
               content: input
             @input = ''
-            @$router.push { query: { id: message.id } }
+            @routedMessage = message
 
             # scroll to bottom
             @$nextTick =>
@@ -395,7 +401,7 @@
 
               @$nextTick =>
                 # Navigate to the last created message
-                @$router.push { query: { id: _.last(@messages).id } }
+                @routedMessage = _.last(@messages)
                 @$refs.scrollToBottom?.scrollIntoView()
                 @focusOnInput()
 
@@ -510,10 +516,32 @@
         else
           @typingCount = 0
       
+      # '$route.query.id':
+      #   immediate: true
+      #   handler: (id) ->
+      #     console.log {id}
+      routedMessage: (message) ->
+        flush: 'post'
+        if message
+          { id } = message
+          if id == parseInt @$route.query.id
+            return
+          log "Routing to message ##{id}"
+          @$router.push { query: { id: message.id } }
+      
       '$route.query.id':
         immediate: true
         handler: (id) ->
-          console.log {id}
+          log "Navigating to message ##{id}"
+          if id
+            message = @tree.find parseInt id
+            if message
+              @routedMessage = message
+            else
+              log "Message ##{id} not found"
+              @routedMessage = null
+          else
+            @routedMessage = null
 
 </script>
 

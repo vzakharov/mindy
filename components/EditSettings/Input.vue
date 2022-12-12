@@ -68,7 +68,7 @@
           multiline: =>
             tag: 'b-textarea'
             props:
-              rows: Math.max( 10, Math.min( 20, @value.split('\n').length ) )
+              rows: Math.max( 10, Math.min( 20, @value?.split('\n').length ) )
               style: if @properties.monospace
                 'font-family: monospace; tab-size: 2; -moz-tab-size: 2;'
               else ''

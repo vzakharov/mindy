@@ -1,6 +1,6 @@
 import yaml from 'js-yaml'
 
-export default ({ computeSettings, prefix, keys, container, format = 'json' } = {}) ->
+export default ({ prefix, keys, format = 'json' } = {}) ->
 
   # parsing/dumping; format can be 'json' or 'yaml'
   if format is 'yaml'
@@ -10,25 +10,15 @@ export default ({ computeSettings, prefix, keys, container, format = 'json' } = 
     parse = JSON.parse
     dump = JSON.stringify
 
-  useDefaultContainer = container is undefined
+  loaded = false
+  getLocalKey = (key) -> if prefix then "#{prefix}.#{key}" else key
 
   mounted: ->
 
-    # If container is undefined, use either this.settings or (if none) just this
-    if useDefaultContainer
-      container = @
-    
-    # If container is other than `this`, get the container key as string by going through all keys in `this` and comparing the value with the container object
-    if container isnt @
-      containerKey = Object.keys(@).find (key) => @[key] is container
-      unless containerKey
-        throw new Error "Could not find container key in this"
+    keys.forEach ( key ) =>
 
-    ( keys or Object.keys(container) ).forEach ( key ) =>
-
-      localKey = if prefix then "#{prefix}.#{key}" else key
-      localValue = localStorage.getItem(localKey)
-      defaultValue = container[key]
+      localValue = localStorage.getItem(getLocalKey(key))
+      defaultValue = @[key]
 
       console.log key: key, localValue: localValue, defaultValue: defaultValue
 
@@ -43,20 +33,26 @@ export default ({ computeSettings, prefix, keys, container, format = 'json' } = 
       else
         localValue = localValue or null
 
-      container[key] = if isObject and not isArray
+      @[key] = if isObject and not isArray
         {...defaultValue, ...localValue}
       else
         localValue or defaultValue
 
-      keyToWatch = if containerKey then "#{containerKey}.#{key}" else key
-      @$watch keyToWatch,
-        deep: true
-        handler: (value) ->          # localStorage.setItem(key, if isObject then JSON.stringify(value) else value)
-          localStorage.setItem(localKey, if isObject then dump(value) else value)
+    loaded = true
+  
+  watch: {
 
-      # If computeSettings is set, then define a this get/set for the key
-      if computeSettings
-        # Define a getter/setter for the key
-        Object.defineProperty this, key,
-          get: -> container[key]
-          set: (value) -> container[key] = value
+    ...keys.reduce ( watch, key ) ->
+
+      Object.assign watch,
+        [key]:
+          deep: true
+          handler: (value) ->
+            if loaded
+              localKey = getLocalKey(key)
+              console.log "Syncing #{key} to local storage key #{localKey}"
+              localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
+
+    , {}
+
+  }

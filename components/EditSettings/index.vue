@@ -21,7 +21,7 @@
   export default
 
     mixins: [
-      syncValueMixin 'settings', deep: true
+      syncValueMixin('settings', deep: true)
     ]
 
     props:

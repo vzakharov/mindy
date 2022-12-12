@@ -12,7 +12,10 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
     root: { id: 0 }
     # Note that root is not part of the items array, but acts as a parent for all items that have no parent id
 
-    # Functions to get various items
+    find: (id) ->
+      _.find @items, { id }
+
+    # Functions to get various items related to a given item
 
     getters:
 

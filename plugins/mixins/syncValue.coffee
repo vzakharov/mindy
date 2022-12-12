@@ -3,29 +3,22 @@
 identity = (value) -> value
 
 export default ( key, { deep, save = identity, load = identity } = {} ) ->
+  
+  # debugger
 
-  get = ->
-    load.call @, @value
-
-  set = (value) ->
-    @$emit "input", save.call @, value
-
-  computed:
-    not deep and
-      [key]: {
-        get, set
-      }
+  data: ->
+    [key]: null
 
   watch:
 
-    deep and
+    [key]: {
+      deep
+      handler: (value) -> @$emit 'input', save.call @, value
+    }
 
-      [key]:
-        deep: true
-        handler: set
-
-      value:
-        deep: true
-        immediate: true
-        handler: (value) ->
-          @[key] = get.call @
+    value: {
+      deep
+      immediate: true
+      handler: (value) ->
+        @[key] = load.call @, value
+    }
