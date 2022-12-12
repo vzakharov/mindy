@@ -1,214 +1,224 @@
 <template lang="pug">
-  b-container.p-5.vh-100(fluid)
-    b-row(
-      align-v="center",
-    )
-
-      b-col.p-0(
-        style="height: calc(100vh - 200px);",
-      )
-        b-spinner(v-if="!messages")
-        template(v-else)
-        
-          div.header.text-center.border-top.border-right.border-left
-            h1.mb-0.display-3(style="font-size: 3rem;") Mindy
-            p.lead(style="font-size: 1rem;") Brainstorm with AI
-
-          div#messages.border-right.border-left(
-            style="height: calc(100vh - 400px); overflow-y: scroll;"
-          )
-            div.mt-2.p-2(
-              v-for="(message, index) in thread", :key="index", 
-              :style=`{
-                'background-color': index % 2 ? '#f7f7f7' : '#fff',
-                'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
-                'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
-              }`
-              @click="() => { if ( message !== routedMessage && message.user.isBot ) routedMessage = message }"
+  DarkMode(
+    v-if="darkmode"
+    v-bind="{ polygon }"
+    @wheres-the-fucking-light-switch="darkmode = false"
+  )
+  div(v-else)
+    b-container.p-5.vh-100(fluid)
+      b-row(
+        align-v="center"
+      )    
+        b-col.p-0(
+          style="height: calc(100vh - 200px);",
+        )
+          b-spinner(v-if="!messages")
+          template(v-else)
+          
+            div.header.text-center.border-top.border-right.border-left
+              h1.mb-0.display-3(style="font-size: 3rem;") Mindy
+              p.lead(style="font-size: 1rem;") Brainstorm with AI
+            div#messages.border-right.border-left(
+              style="height: calc(100vh - 400px); overflow-y: scroll;"
             )
+              div.mt-2.p-2(
+                v-for="(message, index) in thread", :key="index", 
+                :style=`{
+                  'background-color': index % 2 ? '#f7f7f7' : '#fff',
+                  'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
+                  'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
+                }`
+                @click="() => { if ( message !== routedMessage && message.user.isBot ) routedMessage = message }"
+              )
 
-              template(v-if="message.special")
-                em
-                  strong {{ message.user.name }} {{ message.content }}
+                template(v-if="message.special")
+                  em
+                    strong {{ message.user.name }} {{ message.content }}
 
-              //- If the message has siblings, display a switcher looking like "< n / N >" where n is the current sibling index and N is the total number of siblings
-              //- Clicking "<" / ">" will switch the current message to the previous / next sibling respectively
-              template( v-if="tree.numSiblings(message) > 1")
-                div(style="font-size: 0.8em; color: #aaa; float: right;")
-                  //- Switching is done by changing 'id' in the URL query string
-                  nuxt-link(:to="{ query: { id: tree.sibling(message, -1).id } }", class="mr-1", style="color: inherit",
-                    v-text="`< ${tree.siblingIndex(message) + 1}`"
+                //- If the message has siblings, display a switcher looking like "< n / N >" where n is the current sibling index and N is the total number of siblings
+                //- Clicking "<" / ">" will switch the current message to the previous / next sibling respectively
+                template( v-if="tree.numSiblings(message) > 1")
+                  div(style="font-size: 0.8em; color: #aaa; float: right;")
+                    //- Switching is done by changing 'id' in the URL query string
+                    nuxt-link(:to="{ query: { id: tree.sibling(message, -1).id } }", class="mr-1", style="color: inherit",
+                      v-text="`< ${tree.siblingIndex(message) + 1}`"
+                    )
+                    | /
+                    nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
+                      v-text="`${tree.numSiblings(message)} >`"
+                    )
+                  
+                template(v-if="message.user.name === user.name && !editing.message")
+                  a(style="font-size: 0.8em; color: #aaa; float: right; cursor: pointer;",
+                    :class=`{
+                      'mr-1': tree.numSiblings(message) > 1
+                    }`,
+                    @click="edit(message)"
+                    v-text="`🖉`"
                   )
-                  | /
-                  nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
-                    v-text="`${tree.numSiblings(message)} >`"
+
+                div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
+
+                //- If not editing, display the message content. On double-click, start editing
+                div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
+
+                div(v-else)
+                  //- Send on Enter -- only if this not a bot message, -- cancel on escape 
+                  b-textarea(rows="3", max-rows="10",
+                    v-model="editing.input",
+                    @keydown.enter.exact.prevent="() => { if ( !message.user.isBot ) { cloneAndSend() } }",
+                    @keydown.esc="editing.message = null"
+                  )
+                  //- Save & submit -- if not a bot message
+                  b-button.m-1(size="sm", variant="primary"
+                    v-if="!message.user.isBot"
+                    @click="cloneAndSend"
+                  )
+                    | Save &amp; submit
+                  //- Just save (to edit the message text but not send it)
+                  b-button.m-1(size="sm"
+                    :variant="message.user.isBot ? 'primary' : 'outline-secondary'"
+                    @click="message.content = editing.input; editing.message = null"
+                  )
+                    | {{ message.user.isBot ? 'Save' : 'Just save' }}
+                  //- Cancel
+                  b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
+                    | Cancel
+                  //- Delete (danger, alert, confirm)
+                  b-button(variant="outline-danger", size="sm", @click=`
+                    if ( window.confirm('Are you sure you want to delete this message and all of its further replies? THERE IS NO UNDO!') ) {
+                      messages = tree.delete(message)
+                      routedMessage = tree.parent(message)
+                      editing.message = null
+                    }
+                  `, class="m-1")
+                    | Delete
+
+                template(v-if="message === routedMessage")
+
+                  div.p-2(v-if="generatingReply", class="text-muted")
+                    em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
+
+                  //- Buttons with various message actions
+                  div.p-2.text-center(v-if="message.user.isBot")
+
+                    //- Try again
+                    b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
+                      | ↺ Try again
+
+              div(ref="scrollToBottom", class="mt-2")
+
+            div.footer.p-2.border-bottom.border-right.border-left
+
+              template(v-if="!user.name")
+                b-form-group(label="Name", label-for="username")
+                  b-form-input(
+                    id="username",
+                    :value="enteredName",
+                    @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-')",
+                    @change="user.name = enteredName",
+                    placeholder="Enter your name to start chatting"
                   )
                 
-              template(v-if="message.user.name === user.name && !editing.message")
-                a(style="font-size: 0.8em; color: #aaa; float: right; cursor: pointer;",
-                  :class=`{
-                    'mr-1': tree.numSiblings(message) > 1
-                  }`,
-                  @click="edit(message)"
-                  v-text="`🖉`"
-                )
+              //- Message input & buttons
+              b-form(
+                @submit.prevent="sendMessage()", class="mb-0"
+              )
+                b-form-group(:label="user && user.name", label-for="input")
+                  b-textarea#input(
+                    ref="input"
+                    v-model="input"
+                    placeholder="Enter to send, Shift+Enter for new line"
+                    :disabled="!user || sending || generatingReply"
+                    @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
+                  )
 
-              div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
-
-              //- If not editing, display the message content. On double-click, start editing
-              div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
-
-              div(v-else)
-                //- Send on Enter -- only if this not a bot message, -- cancel on escape 
-                b-textarea(rows="3", max-rows="10",
-                  v-model="editing.input",
-                  @keydown.enter.exact.prevent="() => { if ( !message.user.isBot ) { cloneAndSend() } }",
-                  @keydown.esc="editing.message = null"
-                )
-                //- Save & submit -- if not a bot message
-                b-button.m-1(size="sm", variant="primary"
-                  v-if="!message.user.isBot"
-                  @click="cloneAndSend"
-                )
-                  | Save &amp; submit
-                //- Just save (to edit the message text but not send it)
-                b-button.m-1(size="sm"
-                  :variant="message.user.isBot ? 'primary' : 'outline-secondary'"
-                  @click="message.content = editing.input; editing.message = null"
-                )
-                  | {{ message.user.isBot ? 'Save' : 'Just save' }}
-                //- Cancel
-                b-button(variant="outline-secondary", size="sm", @click="editing.message = null", class="m-1")
-                  | Cancel
-                //- Delete (danger, alert, confirm)
-                b-button(variant="outline-danger", size="sm", @click=`
-                  if ( window.confirm('Are you sure you want to delete this message and all of its further replies? THERE IS NO UNDO!') ) {
-                    messages = tree.delete(message)
-                    routedMessage = tree.parent(message)
-                    editing.message = null
-                  }
-                `, class="m-1")
-                  | Delete
-
-              template(v-if="message === routedMessage")
-
-                div.p-2(v-if="generatingReply", class="text-muted")
-                  em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
-
-                //- Buttons with various message actions
-                div.p-2.text-center(v-if="message.user.isBot")
-
-                  //- Try again
-                  b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
-                    | ↺ Try again
-
-            div(ref="scrollToBottom", class="mt-2")
-
-          div.footer.p-2.border-bottom.border-right.border-left
-
-            template(v-if="!user.name")
-              b-form-group(label="Name", label-for="username")
-                b-form-input(
-                  id="username",
-                  :value="enteredName",
-                  @input="enteredName = $event.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-')",
-                  @change="user.name = enteredName",
-                  placeholder="Enter your name to start chatting"
-                )
+                //- Send button
+                b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
+                  | {{ sending ? 'Sending...' : 'Send' }}
+                  b-spinner(v-if="sending", small)
               
-            //- Message input & buttons
-            b-form(
-              @submit.prevent="sendMessage()", class="mb-0"
-            )
-              b-form-group(:label="user && user.name", label-for="input")
-                b-textarea#input(
-                  ref="input"
-                  v-model="input"
-                  placeholder="Enter to send, Shift+Enter for new line"
-                  :disabled="!user || sending || generatingReply"
-                  @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
-                )
-
-              //- Send button
-              b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
-                | {{ sending ? 'Sending...' : 'Send' }}
-                b-spinner(v-if="sending", small)
-            
-    
-      //- Context column
-      b-col.col-xl-8.col-lg-7.col-sm-6
-        b-row.justify-content-center.text-center
-          template(v-if="routedMessage")
-            MindyContext(
-              v-show="!!routedMessage.context && !generatingContext"
-              v-model="routedMessage.context"
-              @rebuild="generateContext(routedMessage)"
-            )
-            //- Generate context
-            b-button.mx-1(
-              v-if="!routedMessage.context"
-              @click="generateContext(routedMessage)"
-              :disabled="sending || generatingReply || generatingContext"
-              :variant="generatingContext ? 'light' : 'outline-primary'"
-            )
-              //- | 丫 Generate context
-              | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
-          div.lead(v-else)
-            p Ask Mindy a question, and watch the magic unfold!
+      
+        //- Context column
+        b-col.col-xl-8.col-lg-7.col-sm-6
+          b-row.justify-content-center.text-center
+            template(v-if="routedMessage")
+              MindyContext(
+                v-show="!!routedMessage.context && !generatingContext"
+                v-model="routedMessage.context"
+                @rebuild="generateContext(routedMessage)"
+              )
+              //- Generate context
+              b-button.mx-1(
+                v-if="!routedMessage.context"
+                @click="generateContext(routedMessage)"
+                :disabled="sending || generatingReply || generatingContext"
+                :variant="generatingContext ? 'light' : 'outline-primary'"
+              )
+                //- | 丫 Generate context
+                | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
+            div.lead(v-else)
+              p Ask Mindy a question, and watch the magic unfold!
 
 
-    OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
+      OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
 
-    //- Footer with various data displayed in a row from right to left
-    div.footer.p-2.border-top.border-right.border-left.fixed-bottom
+      //- Footer with various data displayed in a row from right to left
+      div.footer.p-2.border-top.border-right.border-left.fixed-bottom
 
-      //- OpenAI key (masked) + edit button
-      div.float-right.text-right.text-muted.px-2(
-        @click="$refs.openAIkeyModal.show()"
-        style="cursor: pointer"
-      ) {{ openAIkey ? `🔑 sk-...${openAIkey.slice(-4)}` : '🔑 No OpenAI key' }}
+        //- OpenAI key (masked) + edit button
+        div.float-right.text-right.text-muted.px-2(
+          @click="$refs.openAIkeyModal.show()"
+          style="cursor: pointer"
+        ) {{ openAIkey ? `🔑 sk-...${openAIkey.slice(-4)}` : '🔑 No OpenAI key' }}
 
-      //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
-      div.float-right.text-right.text-muted.px-2(
-        @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
-        style="cursor: not-allowed"
-      )
-        | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
-
-      //- Settings buttons
-      span.float-left.text-right.px-2(
-        :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
-        @click="settings.autoBuildContext = !settings.autoBuildContext"
-        style="cursor: pointer"
-      ) 丫
-      span.float-left.text-right.text-muted.px-2(
-        @click="settings.numGenerations = ( settings.numGenerations % 3 ) + 1"
-        style="cursor: pointer"
-      ) 💬 × {{ settings.numGenerations }}
-      div.float-left.text-right.text-muted.px-2(
-        @click="$bvModal.show('settings-modal')"
-        style="cursor: pointer"
-      ) ...
-      b-modal#settings-modal(
-        title="Settings"
-        hide-footer hide-header centered
-      )
-        EditSettings(
-          v-model="settings"
-          :properties=`{
-            autoBuildContext: {
-              label: 'Auto-build mindmap',
-              description: {
-                true: 'Mindy will automatically build a mindmap whenever you navigate to a reply.',
-                false: 'You will have to click the "Mindmap" button to build a mindmap.',
-              }
-            },
-            numGenerations: {
-              label: 'Number of replies at once',
-              description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
-            },
-          }`
+        //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
+        div.float-right.text-right.text-muted.px-2(
+          @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
+          style="cursor: not-allowed"
         )
+          | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
+          
+        //- Dark mode switch
+        div.float-right.text-right.text-muted.px-2(
+          @click="darkmode = !darkmode"
+          style="cursor: pointer"
+        ) {{ darkmode ? '🌙 Dark' : '☀️ Light' }} mode
+
+        //- Settings buttons
+        span.float-left.text-right.px-2(
+          :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
+          @click="settings.autoBuildContext = !settings.autoBuildContext"
+          style="cursor: pointer"
+        ) 丫
+        span.float-left.text-right.text-muted.px-2(
+          @click="settings.numGenerations = ( settings.numGenerations % 3 ) + 1"
+          style="cursor: pointer"
+        ) 💬 × {{ settings.numGenerations }}
+        div.float-left.text-right.text-muted.px-2(
+          @click="$bvModal.show('settings-modal')"
+          style="cursor: pointer"
+        ) ...
+        b-modal#settings-modal(
+          title="Settings"
+          hide-footer hide-header centered
+        )
+          EditSettings(
+            v-model="settings"
+            :properties=`{
+              autoBuildContext: {
+                label: 'Auto-build mindmap',
+                description: {
+                  true: 'Mindy will automatically build a mindmap whenever you navigate to a reply.',
+                  false: 'You will have to click the "Mindmap" button to build a mindmap.',
+                }
+              },
+              numGenerations: {
+                label: 'Number of replies at once',
+                description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
+              },
+            }`
+          )
 
 </template>
 
@@ -246,6 +256,7 @@
       title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
     data: ->
+      darkmode: false
       settings:
         autoBuildContext: true
         numGenerations: 3
