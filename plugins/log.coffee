@@ -1,6 +1,26 @@
-# A log function that returns the (last) value it was called with, so you can log and use the value in the same line
+# Exports:
+#  log: (args...) -> logs the args and returns the last arg, using console.debug
+#  log.always: (args...) -> same, but using console.log
+#  log.breakpoint: (args...) -> same as log, but adds a breakpoint (debugger statement) right after logging 
 
-export default (...args) ->
 
-  console.log(...args)
+_log = ({ args, callback, logOrDebug = 'debug' } = {}) =>
+
+  console[logOrDebug] ...args
+  callback?()
   args[args.length - 1]
+
+log = (...args) =>
+
+  _log({ args })
+
+log.breakpoint = (...args) =>
+
+  _log({ args, callback: => debugger })
+
+log.always = (...args) =>
+
+  _log({ args, logOrDebug: 'log' })
+
+
+export default log

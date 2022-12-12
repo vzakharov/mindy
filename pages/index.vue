@@ -103,7 +103,7 @@
                   //- Generate context
                   b-button.mx-1(variant="outline-primary", @click="generateContext(message)", :disabled="sending || generatingReply || generatingContext")
                     //- | 丫 Generate context
-                    | 丫 {{ generatingContext ? 'Generating...' : message.context ? 'Rebuild mindmap' : 'Mindmap' }}
+                    | 丫 {{ generatingContext ? 'Building mindmap...' : message.context ? 'Rebuild mindmap' : 'Mindmap' }}
 
             div(ref="scrollToBottom", class="mt-2")
 
@@ -191,7 +191,7 @@
     mixins: [
       syncLocal
         keys: [
-          'user', 'messages', 'openAIkey', 'usdSpent'
+          'user', 'messages', 'openAIkey', 'usdSpent', 'autoBuildContext'
         ]
         format: 'yaml'
       exposeVM
@@ -201,6 +201,7 @@
 
 
     data: ->
+      autoBuildContext: true
       input: ''
       lastMessageTime: null
       sending: false
@@ -346,12 +347,16 @@
                   content: text
                 
                 console.log { reply }
+              
+                if @autoBuildContext
+                  @$nextTick =>
+                    @generateContext(reply)
 
               @$nextTick =>
                 # Navigate to the last created message
                 @$router.push { query: { id: _.last(@messages).id } }
                 @$refs.scrollToBottom.scrollIntoView()
-                focusOnInput()
+                @focusOnInput()
 
             ),
             except: (error) =>
@@ -361,7 +366,7 @@
               input = message.content 
 
       focusOnInput: ->
-      
+
         @$nextTick =>
           observer = new MutationObserver ( mutations ) =>
             if mutation = mutations.find ({ attributeName, target: { disabled } }) -> attributeName is 'disabled' and !disabled
@@ -370,11 +375,12 @@
               observer.disconnect()
           observer.observe document.querySelector('#input'), { attributes: true }
 
-      getConversation: (message) ->
+      getConversation: (messages) ->
 
-        # Map all messages before and including the message to a conversation
-        @tree
-          .lineage(message, includeSelf: true)
+        if not _.isArray messages
+          messages = @tree.lineage messages, includeSelf: true
+        
+        messages
           .map(({ user: { isBot }, content }) -> "#{if isBot then 'Mindy' else 'User'}:\n#{content}")
           .join('\n\n')
 
@@ -383,35 +389,32 @@
 
         @try 'generatingContext', =>
 
-          # Find the most recent message that has a context (it can be the message itself)
-          log 'Previous message with context', 
-          previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: true), (message) -> message.context
+          log 'Generating context for', message
 
-          if !previousMessageWithContext
-            log 'No previous message with context, using current message', 
-            previousMessageWithContext = message
-            slug = 'context'
-          else
-            previousContext = previousMessageWithContext.context
-            slug = 'context-rebuild'
+          # Find the most recent message that has a context
+          log 'Previous message with context', 
+          previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: false), (message) -> message.context
+
+          contextExists = !!previousMessageWithContext
+
+          slug = if contextExists then 'context-rebuild' else 'context'
 
           log { slug }
 
-          contextExists = !!previousMessageWithContext.context
-
           log "Conversation before #{if contextExists then 'previous context' else 'current message'}",
           conversationBeforePreviousContext = @getConversation previousMessageWithContext
-          
 
           if contextExists
 
+            previousContext = previousMessageWithContext.context
+
             log 'Messages after previous context',
-            messagesAfterPreviousContext = @tree
-              .lineage(message, includeSelf: true)
+            messagesAfterPreviousContext = @tree\
+              .lineage(message, includeSelf: true)\
               .slice @tree.lineage(previousMessageWithContext, includeSelf: true).length
 
             log 'Conversation after previous context', 
-            conversationAfterPreviousContext = @getConversation previousMessageWithContext
+            conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext
 
           { choices: [{ text }], approximateCost } = await @polygon.run slug, {
             conversationBeforePreviousContext,
@@ -431,14 +434,17 @@
             # Take the tab size from the second line
             tabSize = getIndent lines[1], 1
 
-            # Make the indent of two spaces
             lines = lines.map (line) ->
               indent = getIndent line, tabSize
-              line.replace /^\s*/, '  '.repeat indent
+              line
+              # Make the indent of one tab
+                .replace /^\s*/, '\t'.repeat indent
+              # Remove any leading bullet points: -, *, •
+                .replace /(?<=\s*)[-*•]\s*/, ''
             
             lines.join '\n'
 
-          @$set message, 'context', postProcessContext(text)
+          @$set message, 'context', log 'Post-processed context', postProcessContext(text)
           
       
       cloneAndSend: () ->

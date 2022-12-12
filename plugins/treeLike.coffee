@@ -56,7 +56,7 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
         else
           []
       
-      lineage: (item, includeSelf = true) ->
+      lineage: (item, { includeSelf = true } = {}) ->
         lineage = [ ...@ancestors(item) ].reverse()
         lineage.push(item) if includeSelf
         # remove root
