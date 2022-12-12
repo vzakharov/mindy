@@ -28,6 +28,12 @@ export default {
 
     POLYGON_API_URL: process.env.POLYGON_API_URL ||
       baseUrl + 'polygon/',
+
+    MIXPANEL_TOKEN: process.env.MIXPANEL_TOKEN ||
+      'f9ed5012981005142ed33251c919eb41',
+
+    MIXPANEL_DEBUG: process.env.MIXPANEL_DEBUG ||
+      true,
   },
 
 

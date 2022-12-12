@@ -1,5 +1,4 @@
 # A simpre "this.try" wrapper to execute some async code while setting a certain key to true while executing, setting it back to false when done, and showing an error message if the code throws an error
-
 export default
 
   data: ->
@@ -10,7 +9,11 @@ export default
 
     actionPromise: (stateKey) -> @actionPromises[stateKey] ? Promise.resolve()
 
-    try: ( stateKey, action, { errorMessage, except } = {} ) ->
+    try: ( stateKey, action, { errorMessage, except, track = true, mixpanelProps } = {} ) ->
+      
+      if track
+        { mixpanel } = @
+
       @[stateKey] = true
       resolve = null
       reject = null
@@ -19,9 +22,12 @@ export default
         reject = rej
       try
         console.log "Started #{stateKey}"
+        mixpanel?.track "#{stateKey} started", mixpanelProps
         resolve await action()
+        mixpanel?.track "#{stateKey} succeeded", mixpanelProps
       catch error
         console.error "Error while #{stateKey}: #{error}"
+        mixpanel?.track "#{stateKey} failed", { error: error.message, ...mixpanelProps }
         # If errorMessage is a function, call it with the error as argument
         if typeof errorMessage is 'function'
           errorMessage = errorMessage(error)

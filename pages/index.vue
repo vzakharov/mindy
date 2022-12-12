@@ -2,7 +2,10 @@
   DarkMode(
     v-if="darkmode"
     v-bind="{ polygon }"
-    @wheres-the-fucking-light-switch="darkmode = false"
+    @wheres-the-fucking-light-switch=`
+      darkmode = false
+      mixpanel.track('Dark mode off')
+    `
   )
   div(v-else)
     b-container.p-5.vh-100(fluid)
@@ -106,7 +109,7 @@
                     b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
                       | ↺ Try again
 
-              div(ref="scrollToBottom", class="mt-2")
+              div(ref="scrollToBottom", class="mt-2", id="scrollToBottom")
 
             div.footer.p-2.border-bottom.border-right.border-left
 
@@ -145,6 +148,7 @@
             template(v-if="routedMessage")
               MindyContext(
                 v-show="!!routedMessage.context && !generatingContext"
+                :key="routedMessage.id"
                 v-model="routedMessage.context"
                 @rebuild="generateContext(routedMessage)"
               )
@@ -153,7 +157,7 @@
                 v-if="!routedMessage.context"
                 @click="generateContext(routedMessage)"
                 :disabled="sending || generatingReply || generatingContext"
-                :variant="generatingContext ? 'light' : 'outline-primary'"
+                :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
                 | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
@@ -165,6 +169,15 @@
 
       //- Footer with various data displayed in a row from right to left
       div.footer.p-2.border-top.border-right.border-left.fixed-bottom
+
+        //- Dark mode switch
+        div.float-right.text-right.text-muted.px-2(
+          @click=`
+            mixpanel.track('Dark mode on')
+            darkmode = true
+          `
+          style="cursor: pointer"
+        ) ☾
 
         //- OpenAI key (masked) + edit button
         div.float-right.text-right.text-muted.px-2(
@@ -179,12 +192,6 @@
         )
           | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
           
-        //- Dark mode switch
-        div.float-right.text-right.text-muted.px-2(
-          @click="darkmode = !darkmode"
-          style="cursor: pointer"
-        ) {{ darkmode ? '🌙 Dark' : '☀️ Light' }} mode
-
         //- Settings buttons
         span.float-left.text-right.px-2(
           :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
@@ -235,6 +242,7 @@
   import exposeVM from '~/plugins/exposeVM'
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
+  import mixpanelMixin from '~/plugins/mixins/mixpanel'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -250,6 +258,7 @@
       exposeVM
       tryAction
       windowMixin
+      mixpanelMixin
     ]
 
     head: ->
@@ -313,6 +322,8 @@
 
     mounted: ->
 
+      @mixpanel.track 'Started'
+
       # Show OpenAI key modal if not set
       if !@openAIkey
         console.log "OpenAI key not set; showing modal"
@@ -371,60 +382,69 @@
 
         slug = if continued then 'continued' else 'first'
 
-        @try 'sending', =>
+        @try 'sending', 
+          =>
+            if !retrying
 
-          if !retrying
-
-            message = @addMessage @tree.createChild parent,
-              user: @user
-              content: input
-            @input = ''
-            @routedMessage = message
-
-            # scroll to bottom
-            @$nextTick =>
-              @$refs.scrollToBottom?.scrollIntoView()
-        
-          else
-            message = parent
-
-          console.log {message}
-
-          @$nextTick =>
-
-            @try 'generatingReply', ( =>
-
-              { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, { stop: 'User:' }
-              @usdSpent += parseFloat(approximateCost)
-
+              message = @addMessage @tree.createChild parent,
+                user: @user
+                content: input
               @input = ''
-              
-              console.log { message, choices }
-              
-              choices.forEach ({ text }) =>
+              @routedMessage = message
 
-                reply = @addMessage @tree.createChild message,
-                  user: @bot
-                  content: text
-                
-                console.log { reply }
-              
-                if @settings.autoBuildContext
-                  @$nextTick =>
-                    @generateContext(reply)
-
+              # scroll to bottom
               @$nextTick =>
-                # Navigate to the last created message
-                @routedMessage = _.last(@messages)
                 @$refs.scrollToBottom?.scrollIntoView()
-                @focusOnInput()
+          
+            else
+              message = parent
 
-            ),
-            except: (error) =>
-              console.error error
-              # Remove message (so that it isn't left unresponded to)
-              @messages = _.without @messages, message
-              input = message.content 
+            console.log {message}
+
+            @$nextTick =>
+
+              @try 'generatingReply', 
+                =>
+
+                  { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, { stop: 'User:' }
+                  @usdSpent += parseFloat(approximateCost)
+
+                  @input = ''
+                  
+                  console.log { message, choices }
+                  
+                  choices.forEach ({ text }) =>
+
+                    reply = @addMessage @tree.createChild message,
+                      user: @bot
+                      content: text
+                    
+                    console.log { reply }
+                  
+                    if @settings.autoBuildContext
+                      @mixpanel.track 'Auto context triggered'
+                      @$nextTick =>
+                        @generateContext(reply)
+
+                  @$nextTick =>
+                    # Navigate to the last created message
+                    @routedMessage = _.last(@messages)
+                    @$refs.scrollToBottom?.scrollIntoView()
+                    @focusOnInput()
+
+                mixpanelProps: {
+                  retrying
+                  @settings
+                  lineageLength: @tree.lineage(parent).length
+                }
+
+                except: (error) =>
+                  console.error error
+                  # Remove message (so that it isn't left unresponded to)
+                  @messages = _.without @messages, message
+                  input = message.content 
+          track: false
+
 
       focusOnInput: ->
 
@@ -448,70 +468,74 @@
 
       generateContext: (message) ->
 
-        @try 'generatingContext', =>
+        @try 'generatingContext',
+          =>
 
-          log 'Generating context for', message
+            log 'Generating context for', message
 
-          # Find the most recent message that has a context
-          log 'Previous message with context', 
-          previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: false), (message) -> message.context
+            # Find the most recent message that has a context
+            log 'Previous message with context', 
+            previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: false), (message) -> message.context
 
-          contextExists = !!previousMessageWithContext
+            contextExists = !!previousMessageWithContext
 
-          slug = if contextExists then 'context-rebuild' else 'context'
+            slug = if contextExists then 'context-rebuild' else 'context'
 
-          log { slug }
+            log { slug }
 
-          log "Conversation before #{if contextExists then 'previous context' else 'current message'}",
-          conversationBeforePreviousContext = @getConversation previousMessageWithContext or message
+            log "Conversation before #{if contextExists then 'previous context' else 'current message'}",
+            conversationBeforePreviousContext = @getConversation previousMessageWithContext or message
 
-          if contextExists
+            if contextExists
 
-            previousContext = previousMessageWithContext.context
+              previousContext = previousMessageWithContext.context
 
-            log 'Messages after previous context',
-            messagesAfterPreviousContext = @tree\
-              .lineage(message, includeSelf: true)\
-              .slice @tree.lineage(previousMessageWithContext, includeSelf: true).length
+              log 'Messages after previous context',
+              messagesAfterPreviousContext = @tree\
+                .lineage(message, includeSelf: true)\
+                .slice @tree.lineage(previousMessageWithContext, includeSelf: true).length
 
-            log 'Conversation after previous context', 
-            conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext
+              log 'Conversation after previous context', 
+              conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext
 
-          { choices: [{ text }], approximateCost } = await @polygon.run slug, {
-            conversationBeforePreviousContext,
-            previousContext,
-            conversationAfterPreviousContext,
-          }, {
-            stop: '```'
-          }
+            { choices: [{ text }], approximateCost } = await @polygon.run slug, {
+              conversationBeforePreviousContext,
+              previousContext,
+              conversationAfterPreviousContext,
+            }, {
+              stop: '```'
+            }
 
-          @usdSpent += parseFloat(approximateCost)
+            @usdSpent += parseFloat(approximateCost)
 
-          getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
-          postProcessContext = (value) ->
+            getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
+            postProcessContext = (value) ->
 
-            value = value.replace? /```[\s\S]*?/, ''
-            value = value.trim()
-            lines = value.trim().split '\n'
+              value = value.replace? /```[\s\S]*?/, ''
+              value = value.trim()
+              lines = value.trim().split '\n'
 
-            # Take the tab size from the second line
-            tabSize = getIndent lines[1], 1
+              # Take the tab size from the second line
+              tabSize = getIndent lines[1], 1
 
-            lines = lines.map (line) ->
-              indent = getIndent line, tabSize
-              line
-              # Make the indent of one tab
-                .replace /^\s*/, '\t'.repeat indent
-              # Remove any leading bullet points: -, *, •
-                # .replace /(?<=\s*)[-*•]\s*/, ''
-                # rewrite because safari doesn't support lookbehind
-                .replace /(^\s*)[-*•]\s*/, '$1'
-            
-            lines.join '\n'
+              lines = lines.map (line) ->
+                indent = getIndent line, tabSize
+                line
+                # Make the indent of one tab
+                  .replace /^\s*/, '\t'.repeat indent
+                # Remove any leading bullet points: -, *, •
+                  # .replace /(?<=\s*)[-*•]\s*/, ''
+                  # rewrite because safari doesn't support lookbehind
+                  .replace /(^\s*)[-*•]\s*/, '$1'
+              
+              lines.join '\n'
 
-          @$set message, 'context', log 'Post-processed context', postProcessContext(text)
-          
+            @$set message, 'context', log 'Post-processed context', postProcessContext(text)
+
+          except: (error) =>
+            console.error error
       
+
       cloneAndSend: () ->
 
         try
@@ -534,10 +558,6 @@
         else
           @typingCount = 0
       
-      # '$route.query.id':
-      #   immediate: true
-      #   handler: (id) ->
-      #     console.log {id}
       routedMessage: (message) ->
         flush: 'post'
         if message
@@ -563,6 +583,11 @@
               @routedMessage = null
           else
             @routedMessage = null
+
+      usdSpent: ( usdSpent, oldUsdSpent ) ->
+        @mixpanel.track 'USD spent',
+          total: usdSpent
+          delta: usdSpent - oldUsdSpent
 
 </script>
 

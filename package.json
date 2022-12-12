@@ -18,6 +18,7 @@
     "core-js": "^3.19.3",
     "gojs-vue": "^1.0.1",
     "js-yaml": "^4.1.0",
+    "mixpanel-browser": "^2.45.0",
     "nuxt": "^2.15.8",
     "nuxt-coffeescript-module": "^2.3.0",
     "pug": "^3.0.2",

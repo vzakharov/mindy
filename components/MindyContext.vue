@@ -16,7 +16,7 @@
     
     //- Button to edit the context in plain text
     b-button.btn-sm.btn-light.m-1(
-      @click="editInPlainText = !editInPlainText"
+      @click="editInPlainText = !editInPlainText; mixpanel.track('Switched plain text context editing ' + (editInPlainText ? 'on' : 'off'))"
       :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
     )
       | 🖉
@@ -51,6 +51,7 @@
 
   import log from '~/plugins/log'
   import mountedMixin from '~/plugins/mixins/mounted'
+  import mixpanelMixin from '~/plugins/mixins/mixpanel'
 
   class MermaidValidationError extends Error
 
@@ -60,6 +61,7 @@
 
     mixins: [
       mountedMixin
+      mixpanelMixin
     ]
 
     props: [
@@ -70,6 +72,8 @@
 
       chartRendered: false
       editInPlainText: false
+      wasInvalid: false
+      contextChanged: false
 
     computed:
 
@@ -82,9 +86,15 @@
       isValid: ->
         try
           @validate @context
+          if @wasInvalid
+            @wasInvalid = false
+            @mixpanel.track 'Context fixed'
           return true
         catch e
           console.error e
+          if not @wasInvalid
+            @wasInvalid = true
+            @mixpanel.track 'Invalid context'
           return false
 
       mermaidString: ->
@@ -154,6 +164,12 @@
               element.innerHTML = svg
               @chartRendered = true
               console.log 'Mermaid chart updated'
+
+      context: ->
+        if not @contextChanged
+          @contextChanged = true
+          @mixpanel.track 'Context changed'
+
 
     methods:
 

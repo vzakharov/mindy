@@ -46,11 +46,13 @@
 
   import axios from 'axios'
   import tryAction from '~/plugins/tryAction'
+  import mixpanelMixin from '~/plugins/mixins/mixpanel'
 
   export default
 
     mixins: [
       tryAction
+      mixpanelMixin
     ]
 
     props: [
@@ -96,9 +98,13 @@
             @keyValid = true
             @$emit 'input', @openAIkey
             @hide()
+            @mixpanel.track 'OpenAI key validated'
 
           errorMessage: (error) =>
             # if the key is invalid, use an "Invalid API key" error message; otherwise return nothing (to use the default error message)
             error?.response?.status == 401 && 'Invalid API key'
+          
+          except: =>
+            @mixpanel.track 'Error checking OpenAI key'
 
 </script>
