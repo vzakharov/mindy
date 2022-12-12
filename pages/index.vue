@@ -492,7 +492,9 @@
               # Make the indent of one tab
                 .replace /^\s*/, '\t'.repeat indent
               # Remove any leading bullet points: -, *, •
-                .replace /(?<=\s*)[-*•]\s*/, ''
+                # .replace /(?<=\s*)[-*•]\s*/, ''
+                # rewrite because safari doesn't support lookbehind
+                .replace /(^\s*)[-*•]\s*/, '$1'
             
             lines.join '\n'
 
