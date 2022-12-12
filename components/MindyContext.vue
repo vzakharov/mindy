@@ -12,7 +12,7 @@
           v-text="mermaidString"
         )
         //- Error message if the context is invalid with a suggestion to edit in plain text
-        b-alert(
+        b-alert#mermaid-container(
           v-else
           variant="danger"
           show
@@ -25,14 +25,14 @@
         
         //- Button to edit the context in plain text
         b-button.btn-sm.btn-light(
-          v-b-modal.plain-text-modal
+          @click="editInPlainText = !editInPlainText"
+          :variant="editInPlainText ? 'secondary' : 'light'"
         )
           | 🖉
-        b-modal#plain-text-modal(
-          title="Edit context in plain text"
-          hide-footer hide-header
+        b-row(
+          v-show="editInPlainText"
         )
-          EditSettingsContainer(
+          EditSettings(
             title="Edit context in plain text"
             :value="{ context }"
             @input="context = $event.context"
@@ -70,6 +70,7 @@
     data: ->
 
       chartRendered: false
+      editInPlainText: false
 
     computed:
 

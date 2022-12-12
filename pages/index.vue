@@ -131,10 +131,34 @@
                   @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
                 )
 
-              //- Submit button
+              //- Send button
               b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
                 | {{ sending ? 'Sending...' : 'Send' }}
                 b-spinner(v-if="sending", small)
+              
+              //- Settings button
+              b-button.float-right(variant="light", v-b-modal.settings-modal) ⚙
+              b-modal#settings-modal(
+                title="Settings"
+                hide-footer hide-header centered
+              )
+                EditSettings(
+                  v-model="settings"
+                  :properties=`{
+                    autoBuildContext: {
+                      label: 'Auto-build mindmap',
+                      description: {
+                        true: 'Mindy will automatically build a mindmap whenever you navigate to a reply.',
+                        false: 'You will have to click the "Mindmap" button to build a mindmap.',
+                      }
+                    },
+                    numGenerations: {
+                      label: 'Number of replies at once',
+                      description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
+                    },
+                  }`
+                )
+            
     
       //- Context column
       b-col.col-xl-8.col-lg-7.col-md-6.col-sm-12.col-12
@@ -191,7 +215,7 @@
     mixins: [
       syncLocal
         keys: [
-          'user', 'messages', 'openAIkey', 'usdSpent', 'autoBuildContext'
+          'user', 'messages', 'openAIkey', 'usdSpent', 'settings'
         ]
         format: 'yaml'
       exposeVM
@@ -201,7 +225,9 @@
 
 
     data: ->
-      autoBuildContext: true
+      settings:
+        autoBuildContext: true
+        numGenerations: 3
       input: ''
       lastMessageTime: null
       sending: false
@@ -264,7 +290,7 @@
       polygon: ->
         new PolygonClient({ @openAIkey, defaultParameters: { 
           max_tokens: 300 
-          n: 3
+          n: @settings.numGenerations
         } })
 
     mounted: ->
@@ -348,7 +374,7 @@
                 
                 console.log { reply }
               
-                if @autoBuildContext
+                if @settings.autoBuildContext
                   @$nextTick =>
                     @generateContext(reply)
 

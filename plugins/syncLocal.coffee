@@ -16,7 +16,7 @@ export default ({ computeSettings, keys, container, format = 'json' } = {}) ->
 
     # If container is undefined, use either this.settings or (if none) just this
     if useDefaultContainer
-      container = @settings or @
+      container = @
     
     # If container is other than `this`, get the container key as string by going through all keys in `this` and comparing the value with the container object
     if container isnt @

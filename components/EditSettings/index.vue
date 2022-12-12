@@ -1,16 +1,16 @@
 <template lang="pug">
 
-  //- A template for a container that can be used to edit arbitrary settings provided via the value prop
-  div
-    //- The form
-    b-form
-      //- The input
-      EditSettingsInput(
-        v-for="( setting, key ) in settings"
-        :key="key"
-        :properties="properties[key]"
-        v-model="settings[key]"
-      )
+  //- The form
+  b-form(
+    style="width: 100%;"
+  )
+    //- The input
+    EditSettingsInput(
+      v-for="( setting, key ) in settings"
+      :key="key"
+      :properties="properties[key]"
+      v-model="settings[key]"
+    )
 
 </template>
 
@@ -21,7 +21,7 @@
   export default
 
     mixins: [
-      syncValueMixin('settings', { deep: true })
+      syncValueMixin 'settings', deep: true
     ]
 
     props:

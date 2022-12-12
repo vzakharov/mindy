@@ -1,14 +1,29 @@
 # A simple mixin that creates a computed getter/setter synced (via $emit) with the `value` prop
 
-export default ( key, { deep } = {} ) ->
+identity = (value) -> value
+
+export default ( key, { deep, save = identity, load = identity } = {} ) ->
+
+  get = ->
+    load.call @, @value
+
+  set = (value) ->
+    @$emit "input", save.call @, value
+
+  computed:
+    not deep and
+      [key]: { get, set }
 
   data: ->
-
-    [key]: @value
+    if deep
+      [key]: get.call @
+    else
+      {}
 
   watch:
 
-    [key]: {
-      deep
-      handler: (value) -> @.$emit "input", value
-    }
+    deep and
+      [key]: {
+        deep: true
+        handler: set
+      }
