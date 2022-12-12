@@ -11,8 +11,8 @@
         template(v-else)
         
           div.header.text-center.border-top.border-right.border-left
-            h1.display-3(style="font-size: 2.5rem;") Mindy
-            p.lede Brainstorm with AI
+            h1.mb-0.display-3(style="font-size: 3rem;") Mindy
+            p.lead(style="font-size: 1rem;") Brainstorm with AI
 
           div#messages.border-right.border-left(
             style="height: calc(100vh - 400px); overflow-y: scroll;"
