@@ -11,7 +11,13 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
     dump = JSON.stringify
 
   loaded = false
+  resolve = null
+
   getLocalKey = (key) -> if prefix then "#{prefix}.#{key}" else key
+
+  data: ->
+
+    localLoaded: new Promise ( res ) -> resolve = res
 
   mounted: ->
 
@@ -38,7 +44,9 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
       else
         localValue or defaultValue
 
-    loaded = true
+    @$nextTick ->
+      loaded = true
+      resolve()
   
   watch: {
 

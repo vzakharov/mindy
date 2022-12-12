@@ -156,7 +156,8 @@
             )
               //- | 丫 Generate context
               | 丫 {{ generatingContext ? 'Building mindmap...' : 'Build mindmap' }}
-          p.text-muted.lead(v-if="!routedMessage") Ask Mindy a question, and watch the magic unfold!              
+          div.lead(v-else)
+            p Ask Mindy a question, and watch the magic unfold!
 
 
     OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
@@ -283,10 +284,13 @@
 
       thread: ->
         # If the existing thread includes the routed message, use that
-        if @previousThread?.includes(@routedMessage)
-          @previousThread
+        if not @routedMessage
+          []
         else
-          @previousThread = @tree.thread(@routedMessage or @tree.root)
+          if @previousThread?.includes(@routedMessage)
+            @previousThread
+          else
+            @previousThread = @tree.thread(@routedMessage or @tree.root)
       
       lastMessage: ->
         _.last(@thread)
@@ -380,7 +384,7 @@
 
             @try 'generatingReply', ( =>
 
-              { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }
+              { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, { stop: 'User:' }
               @usdSpent += parseFloat(approximateCost)
 
               @input = ''
@@ -467,6 +471,8 @@
             conversationBeforePreviousContext,
             previousContext,
             conversationAfterPreviousContext,
+          }, {
+            stop: '```'
           }
 
           @usdSpent += parseFloat(approximateCost)
@@ -534,6 +540,7 @@
         handler: (id) ->
           log "Navigating to message ##{id}"
           if id
+            await @localLoaded
             message = @tree.find parseInt id
             if message
               @routedMessage = message
