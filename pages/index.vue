@@ -22,7 +22,7 @@
             position: 'fixed',
             [chatboxVerticalAnchor]: chatboxVerticalAnchor === 'top' ? '10px' : '60px',
             [chatboxHorizontalAnchor]: '10px',
-            width: '300px',
+            width: '64px',
             boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.5)',
             zIndex: 1000,
           } : {
@@ -43,24 +43,25 @@
                 h1.mb-0.display-3(style="font-size: 3rem;") Mindy
                 p.lead(style="font-size: 1rem;") Brainstorm with AI
               template(v-else)
-                //- Switch to change chatbox anchor position
-                span.text-muted(
-                  variant="light"
-                  size="sm"
-                  @click="rotateChatboxAnchor"
-                  style="cursor: pointer; position: absolute; top: 0px; right: 10px;"
-                ) ✢
+                //- //- Switch to change chatbox anchor position
+                //- span.text-muted(
+                //-   variant="light"
+                //-   size="sm"
+                //-   @click="rotateChatboxAnchor"
+                //-   style="cursor: pointer; position: absolute; top: 0px; right: 10px;"
+                //- ) ✢
                 
                 p.mt-3.lead(style="font-size: 1rem; cursor: pointer;"
                   @click="toggleChatboxCollapsed"
-                ) Mindy · Brainstorm with AI
+                ) 💬
             div#messages.border-right.border-left(
+              v-if="!chatboxCollapsed"
               :style=`{
                 height: chatboxCollapsed ? '150px' : 'calc(100vh - 400px)',
                 overflowY: 'scroll',
                 fontSize: chatboxCollapsed ? '0.75em' : '1em',
               }`
-            )
+              )
               div.pt-4.p-2(
                 v-for="(message, index) in thread", :key="index", 
                 :style=`{
@@ -181,7 +182,9 @@
 
               div#scrollToBottom(ref="scrollToBottom")
 
-            div.footer.p-2.border-bottom.border-right.border-left
+            div.footer.p-2.border-bottom.border-right.border-left(
+              v-if="!chatboxCollapsed"
+              )
 
               template(v-if="!user.name")
                 b-form-group(label="Name", label-for="username")
