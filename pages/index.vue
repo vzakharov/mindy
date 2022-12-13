@@ -11,20 +11,55 @@
     b-container.p-5.vh-100(fluid)
       b-row(
         align-v="center"
+        style="height: calc(100vh - 50px);"
       )    
+        //- Chatbox
+        //- If `chatboxCollapsed` is `false`, the chatbox is pinned to the left of the screen
+        //- If `chatboxCollapsed` is `true`, it becomes smaller and floats in the top left corner with a shadow, allowing the user to interact with the mindmap
         b-col.p-0(
-          style="height: calc(100vh - 200px);",
-        )
+          :style=`chatboxCollapsed ? {
+            position: 'fixed',
+            [chatboxVerticalAnchor]: chatboxVerticalAnchor === 'top' ? '10px' : '60px',
+            [chatboxHorizontalAnchor]: '10px',
+            width: '300px',
+            boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.5)',
+            height: '373px',
+            zIndex: 1000,
+          } : {
+            height: 'calc(100vh - 50px)',
+          }`
+          )
           b-spinner(v-if="!messages")
           template(v-else)
           
             div.header.text-center.border-top.border-right.border-left
-              h1.mb-0.display-3(style="font-size: 3rem;") Mindy
-              p.lead(style="font-size: 1rem;") Brainstorm with AI
+              div(
+                v-if="!chatboxCollapsed"
+                @click="toggleChatboxCollapsed"
+                style="cursor: pointer;"
+              )
+                h1.mb-0.display-3(style="font-size: 3rem;") Mindy
+                p.lead(style="font-size: 1rem;") Brainstorm with AI
+              template(v-else)
+                //- Switch to change chatbox anchor position
+                span.text-muted(
+                  variant="light"
+                  size="sm"
+                  @click="rotateChatboxAnchor"
+                  style="cursor: pointer; position: absolute; top: 0px; right: 10px;"
+                ) ✢
+                
+                p.mt-3.lead(style="font-size: 1rem; cursor: pointer;"
+                  @click="toggleChatboxCollapsed"
+                ) Mindy · Brainstorm with AI
             div#messages.border-right.border-left(
-              style="height: calc(100vh - 400px); overflow-y: scroll;"
+              :style=`{
+                height: chatboxCollapsed ? '150px' : 'calc(100vh - 400px)',
+                overflowY: 'scroll',
+                fontSize: chatboxCollapsed ? '0.75em' : '1em',
+              }`
             )
-              div.mt-2.p-2(
+              div.pt-4.p-2(
                 v-for="(message, index) in thread", :key="index", 
                 :style=`{
                   'background-color': index % 2 ? '#f7f7f7' : '#fff',
@@ -106,10 +141,13 @@
                   div.p-2.text-center(v-if="message.user.isBot")
 
                     //- Try again
-                    b-button.mx-1(variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply")
+                    b-button.mx-1(
+                      variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply"
+                      :size="chatboxCollapsed ? 'sm' : 'md'"
+                    )
                       | ↺ Try again
 
-              div(ref="scrollToBottom", class="mt-2", id="scrollToBottom")
+              div#scrollToBottom(ref="scrollToBottom")
 
             div.footer.p-2.border-bottom.border-right.border-left
 
@@ -143,7 +181,10 @@
               
       
         //- Context column
-        b-col.col-xl-8.col-lg-7.col-sm-6
+        //- b-col.col-xl-8.col-lg-7.col-sm-6
+        b-col(
+          :class="chatboxCollapsed ? 'col-12' : 'col-md-8 col-sm-10 col-12'"
+          )
           b-row.justify-content-center.text-center
             template(v-if="routedMessage")
               MindyContext(
@@ -251,7 +292,7 @@
     mixins: [
       syncLocal
         keys: [
-          'user', 'messages', 'openAIkey', 'usdSpent', 'settings'
+          'user', 'messages', 'openAIkey', 'usdSpent', 'settings', 'chatboxCollapsed', 'chatboxHorizontalAnchor'
         ]
         format: 'yaml'
         prefix: 'mindy'
@@ -265,6 +306,9 @@
       title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
     data: ->
+      chatboxCollapsed: false
+      chatboxVerticalAnchor: 'top'
+      chatboxHorizontalAnchor: 'left'
       darkmode: false
       settings:
         autoBuildContext: true
@@ -322,6 +366,8 @@
 
     mounted: ->
 
+      # If window width is less than 768px, collapse chatbox
+
       @mixpanel.track 'Started'
 
       # Show OpenAI key modal if not set
@@ -349,6 +395,24 @@
       #     _.first @tree.children(message)
 
     methods:
+
+      toggleChatboxCollapsed: ->
+        @chatboxCollapsed = !@chatboxCollapsed
+        if !@chatboxCollapsed
+          @chatboxVerticalAnchor = 'top'
+          @chatboxHorizontalAnchor = 'left'
+
+      rotateChatboxAnchor: ->
+        if @chatboxVerticalAnchor is 'top'
+          if @chatboxHorizontalAnchor is 'left'
+            @chatboxHorizontalAnchor = 'right'
+          else
+            @chatboxVerticalAnchor = 'bottom'
+        else
+          if @chatboxHorizontalAnchor is 'right'
+            @chatboxHorizontalAnchor = 'left'
+          else
+            @chatboxVerticalAnchor = 'top'
 
       addMessage: (message) ->
         @messages = [ @messages..., message ]
