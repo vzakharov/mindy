@@ -3,6 +3,7 @@
 
   //- Fluid full-screen container
   b-container.justify-content-center.align-items-center.text-center.d-flex.flex-column(
+    ref="container"
     fluid
     style="height: 100vh; background-color: black; color: white;"
     @dblclick="$emit('wheres-the-fucking-light-switch')"
@@ -79,6 +80,9 @@
 
       getLine: ->
 
+        # Make sure the container is still mounted
+        return unless @$refs?.container
+
         continued = !!@lines.length
 
         slug = if continued then 'darkmode-continued' else 'darkmode'
@@ -111,6 +115,10 @@
         @getLineTimeout = setTimeout @getLine, 2000 + Math.random() * 4000
       
       blink: ->
+
+        # Make sure the container is still mounted
+        return unless @$refs?.container
+        
         # Randomly rotate between the following states:
         # open:        ( 👁️ )  ( 👁️ )
         # close:       (    )   (    )
