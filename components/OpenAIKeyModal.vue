@@ -15,8 +15,10 @@
     h4 Why?
     p
       | This app uses the OpenAI API to generate texts.
-      | We DO NOT store your API key anywhere on our servers.
-      | You can get your own API key&nbsp;
+      | We <a href="https://github.com/vzakharov/ideality-nuxt/blob/master/api/polygon/index.coffee", target="_blank">do not store</a>
+      | your API key anywhere on our servers.
+    p
+      | You can get your OpenAI key&nbsp;
       a(href="https://beta.openai.com/account/api-keys", target="_blank")
         | here
       | .
