@@ -36,6 +36,9 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
         localValue = parse(localValue or null)
       else if isNumber
         localValue = parseFloat(localValue or null)
+      # if boolean, parse as boolean, unless it already is a boolean
+      else if typeof defaultValue is 'boolean'
+        localValue = if typeof localValue is 'boolean' then localValue else localValue is 'true'
       else
         localValue = localValue or null
 

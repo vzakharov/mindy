@@ -23,8 +23,11 @@ export default {
     NOTION_MESSAGES_DB_ID: process.env.NOTION_MESSAGES_DB_ID ||
       'dec1a3932d774d97a1e549295b0dc302',
 
-    POLYGON_DATABASE_ID: process.env.POLYGON_DATABASE_ID ||
+    POLYGON_TEMPLATES_DB_ID: process.env.POLYGON_TEMPLATES_DB_ID ||
       '485b3bd6b4524c1dbd9ef2acc5bccfbf',
+
+    POLYGON_UPVOTES_DB_ID: process.env.POLYGON_UPVOTES_DB_ID ||
+      'ecdca719f95b4eeab4c86118e44d162c',
 
     POLYGON_API_URL: process.env.POLYGON_API_URL ||
       baseUrl + 'polygon/',

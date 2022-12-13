@@ -24,7 +24,6 @@
             [chatboxHorizontalAnchor]: '10px',
             width: '300px',
             boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.5)',
-            height: '373px',
             zIndex: 1000,
           } : {
             height: 'calc(100vh - 50px)',
@@ -149,6 +148,36 @@
                       :size="chatboxCollapsed ? 'sm' : 'md'"
                     )
                       | ↺ Try again
+                    
+                    //- Float-right thumbs-up button, grayscaled if not upvoted
+                    b-button.mx-1.float-right(
+                      @click="upvote(message)"
+                      variant="light"
+                      :size="chatboxCollapsed ? 'sm' : 'md'"
+                      :style="!message.upvoted ? { 'filter': 'grayscale(100%)' } : {}"
+                    )
+                      | 👍
+                    //- Fine-tuning request modal
+                    b-modal#fine-tuning-request-modal(
+                      title="Can we fine-tune Mindy based on your upvotes?"
+                      hide-footer centered
+                      )
+                      p
+                        strong If you upvote a reply, we will send it to our servers and “train” Mindy to generate more replies like this one.&nbsp;
+                        | This will also include the entire conversation thread, so that Mindy can understand the context.
+                      p In the long run, we hope this will help Mindy generate better replies, and make you a happier user, too.
+                      p So we will be grateful if you keep this switch on. :&#41;
+                      p
+                        | (You can always turn this off in the settings.)
+                      b-checkbox.my-4(
+                        v-model="settings.allowFineTuning"
+                        switch
+                      ) {{ settings.allowFineTuning ? 'Yes, ' : 'No, don’t ' }}send my upvotes to your servers to make Mindy better.
+                      p Now let’s upvote that message!
+                      b-button(variant="primary", size="lg"
+                        @click="upvote(message); $bvModal.hide('fine-tuning-request-modal')"
+                      )
+                        | 👍 {{ settings.allowFineTuning ? 'Upvote and send to servers' : 'Just upvote' }}
 
               div#scrollToBottom(ref="scrollToBottom")
 
@@ -277,7 +306,7 @@
         b-modal#settings-modal(
           title="Settings"
           hide-footer hide-header centered
-        )
+          )
           EditSettings(
             v-model="settings"
             :properties=`{
@@ -296,9 +325,17 @@
                 label: 'Temperature',
                 description: 'How creative to be. 0 gives deterministic (same) replies, 1 gets... weird. Note that for 0 the number of replies is always 1.'
               },
+              allowFineTuning: {
+                label: 'Allow fine-tuning',
+                description: {
+                  true: 'Mindy will be sending your upvoted replies to our servers to fine-tune her. This helps her generate better replies, and makes you a happier user, too.',
+                  false: 'Mindy will not be sending your upvoted replies to our servers.',
+                }
+              },
             }`
           )
 
+          
 </template>
 
 <script lang="coffee">
@@ -323,7 +360,7 @@
     mixins: [
       syncLocal
         keys: [
-          'user', 'messages', 'openAIkey', 'usdSpent', 'settings', 'chatboxCollapsed', 'chatboxHorizontalAnchor'
+          'user', 'messages', 'openAIkey', 'usdSpent', 'settings', 'chatboxCollapsed', 'chatboxHorizontalAnchor', 'fineTuningRequested'
         ]
         format: 'yaml'
         prefix: 'mindy'
@@ -337,11 +374,13 @@
       title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
     data: ->
+      fineTuningRequested: false
       chatboxCollapsed: false
       chatboxVerticalAnchor: 'top'
       chatboxHorizontalAnchor: 'left'
       darkmode: false
       settings:
+        allowFineTuning: true
         autoBuildContext: true
         numGenerations: 3
         temperature: 0.6
@@ -414,24 +453,26 @@
       else
         @$refs.input.focus()
 
-      # @routedMessage = do =>
-        
-      #   # Either message with the id from a query param or the last message
-      #   { $route: { query: { id } } } = @
-      #   message = if id?
-      #     # convert to int
-      #     id = parseInt(id)
-      #     _.find @messages, { id }
-      #   else
-      #     _.last @messages
-        
-      #   # If the message is not from bot, user the first child (if any)
-      #   if message?.user?.isBot or !@tree.children(message).length
-      #     message
-      #   else
-      #     _.first @tree.children(message)
-
     methods:
+
+      upvote: (message) ->
+
+        # If no fine-tuning was requested, request it now
+        if !@fineTuningRequested
+          @$bvModal.show('fine-tuning-request-modal')
+          @fineTuningRequested = true
+          @mixpanel.track 'Fine-tuning requested'
+        else
+          { upvoted } = message
+          @$set message, 'upvoted', !upvoted
+          if message.upvoted
+            @mixpanel.track 'Upvoted'
+            if !message.everUpvoted
+              @polygon.upvote(message.generationId)
+            @$set message, 'everUpvoted', true
+          else
+            @mixpanel.track 'Unupvoted'
+
 
       toggleChatboxCollapsed: ->
         @chatboxCollapsed = !@chatboxCollapsed
@@ -507,7 +548,7 @@
               @try 'generatingReply', 
                 =>
 
-                  { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, {
+                  { choices, approximateCost, generationId } = await @polygon.run slug, { input, previousConversation }, {
                     stop: 'User:'
                     n: if @settings.temperature > 0 then @settings.numGenerations else 1
                   }
@@ -517,11 +558,13 @@
                   
                   console.log { message, choices }
                   
-                  choices.forEach ({ text }) =>
+                  choices.forEach ({ text, generationId }) =>
 
-                    reply = @addMessage @tree.createChild message,
+                    reply = @addMessage @tree.createChild message, {
                       user: @bot
                       content: text
+                      generationId
+                    }
                     
                     console.log { reply }
                   
@@ -649,6 +692,24 @@
           @editing.message = null
 
     watch:
+
+      'settings.allowFineTuning': (allowFineTuning) ->
+        if allowFineTuning
+          @mixpanel.track 'Fine tuning enabled'
+        else
+          @mixpanel.track 'Fine tuning disabled'
+      
+      'settings.autoBuildContext': (autoBuildContext) ->
+        if autoBuildContext
+          @mixpanel.track 'Auto context enabled'
+        else
+          @mixpanel.track 'Auto context disabled'
+      
+      'settings.temperature': (temperature) ->
+        @mixpanel.track 'Temperature changed', { temperature }
+
+      'settings.numGenerations': (numGenerations) ->
+        @mixpanel.track 'Num generations changed', { numGenerations }
 
       generatingReply: (generatingReply) ->
 
