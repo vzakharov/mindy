@@ -32,7 +32,9 @@
           b-spinner(v-if="!messages")
           template(v-else)
           
-            div.header.text-center.border-top.border-right.border-left
+            div.header.text-center.border-top.border-right.border-left(
+              @dblclick="toggleChatboxCollapsed"
+            )
               div(
                 v-if="!chatboxCollapsed"
                 @click="toggleChatboxCollapsed"
