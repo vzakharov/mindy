@@ -212,26 +212,36 @@
 
       //- Footer with various data displayed in a row from right to left
       div.footer.p-2.border-top.border-right.border-left.fixed-bottom
-
-        //- Dark mode switch
+        //- Buy me a beer link
+        div.float-right.text-right.text-muted.px-2
+          a(
+            href="https://vzakharov.github.io/buy-me-a-beer/", target="_blank"
+            style="text-decoration: none"
+            @click="mixpanel.track('Cheers! 🍺')"
+            title="Buy me a beer!"
+          ) 🍺
+        //- Dark mode switch (place always in top right corner)
         div.float-right.text-right.text-muted.px-2(
           @click=`
             mixpanel.track('Dark mode on')
             darkmode = true
           `
-          style="cursor: pointer"
+          style="cursor: pointer; position: fixed; top: 5px; right: 5px; z-index: 9999"
+          title="Dark mode"
         ) ☾
 
         //- OpenAI key (masked) + edit button
         div.float-right.text-right.text-muted.px-2(
           @click="$refs.openAIkeyModal.show()"
           style="cursor: pointer"
+          title="Change OpenAI key"
         ) {{ openAIkey ? `🔑 sk-...${openAIkey.slice(-4)}` : '🔑 No OpenAI key' }}
 
         //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
         div.float-right.text-right.text-muted.px-2(
           @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
           style="cursor: not-allowed"
+          title="Approximate USD spent on OpenAI API calls. Click to clear."
         )
           | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
           
@@ -240,14 +250,17 @@
           :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
           @click="settings.autoBuildContext = !settings.autoBuildContext"
           style="cursor: pointer"
+          :title="`Auto-build mindmap is ${settings.autoBuildContext ? 'on' : 'off'}`"
         ) 丫
         span.float-left.text-right.text-muted.px-2(
           @click="settings.numGenerations = ( settings.numGenerations % 3 ) + 1"
           style="cursor: pointer"
+          :title="`Mindy will generate ${settings.numGenerations} ${settings.numGenerations === 1 ? 'reply' : 'replies'} at once`"
         ) 💬 × {{ settings.numGenerations }}
         div.float-left.text-right.text-muted.px-2(
           @click="$bvModal.show('settings-modal')"
           style="cursor: pointer"
+          title="Edit settings"
         ) ...
         b-modal#settings-modal(
           title="Settings"
