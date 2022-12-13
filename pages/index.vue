@@ -33,12 +33,11 @@
           template(v-else)
           
             div.header.text-center.border-top.border-right.border-left(
-              @dblclick="toggleChatboxCollapsed"
+              @click="toggleChatboxCollapsed"
+              style="cursor: pointer"
             )
               div(
                 v-if="!chatboxCollapsed"
-                @click="toggleChatboxCollapsed"
-                style="cursor: pointer;"
               )
                 h1.mb-0.display-3(style="font-size: 3rem;") Mindy
                 p.lead(style="font-size: 1rem;") Brainstorm with AI
@@ -51,9 +50,7 @@
                 //-   style="cursor: pointer; position: absolute; top: 0px; right: 10px;"
                 //- ) ✢
                 
-                p.mt-3.lead(style="font-size: 1rem; cursor: pointer;"
-                  @click="toggleChatboxCollapsed"
-                ) 💬
+                p.mt-3.lead(style="font-size: 1rem; cursor: pointer;") 💬
             div#messages.border-right.border-left(
               v-if="!chatboxCollapsed"
               :style=`{
