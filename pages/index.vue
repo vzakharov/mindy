@@ -1,7 +1,7 @@
 <template lang="pug">
   DarkMode(
     v-if="darkmode"
-    v-bind="{ polygon }"
+    v-bind="{ polygon, topic }"
     @wheres-the-fucking-light-switch=`
       darkmode = false
       mixpanel.track('Dark mode off')
@@ -356,6 +356,10 @@
       previousThread: null
 
     computed:
+
+      topic: ->
+        # Take the first line of the context, if any
+        @routedMessage?.context?.split('\n')?[0]
 
       tree: ->
         new TreeLike(@messages)

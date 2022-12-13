@@ -32,6 +32,9 @@
       polygon:
         type: PolygonClient
         required: true
+      topic:
+        type: String
+        default: 'stuff'
     
     data: ->
       lines: []
@@ -55,6 +58,7 @@
         previousLines = @lines.join('”\n“')
 
         { choices: [{ text }] } = await @polygon.run slug, {
+          @topic
           previousLines
         }, {
           max_tokens: 50
