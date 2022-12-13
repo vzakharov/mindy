@@ -25,28 +25,57 @@
 <script lang="coffee">
 
   import PolygonClient from '~/plugins/polygonClient'
+  import log from '~/plugins/log'
+  import syncLocalMixin from '~/plugins/syncLocal'
 
   export default
+
+    mixins: [
+      syncLocalMixin
+        keys: [
+          'darkmodeEverUsed'
+        ]
+        prefix: 'mindy'
+    ]
 
     props:
       polygon:
         type: PolygonClient
         required: true
-      topic:
-        type: String
+      context:
         default: 'stuff'
+      usdSpent:
+        type: Number
+        required: true
     
     data: ->
       lines: []
       blinkTimeout: null
       getLineTimeout: null
+      darkmodeEverUsed: false
     
     mounted: ->
       # Run the first getLine and blink methods in a random amount of time between 1 and 3 seconds
       setTimeout @getLine, Math.random() * 2000 + 1000
       setTimeout @blink, Math.random() * 2000 + 1000
     
+    computed:
+
+      topics: ->
+        # Get the topics from the context
+        @context.split('\n').map ( line ) -> line.trim().replace(/^[-*+]\s*/, '').toLowerCase()
+
     methods:
+
+      randomTopic: ->
+        # Use main (first) topic + a random topic, e.g. "app ideas and chatbots"
+        log 'Using topic',
+        if @topics.length > 1
+          subTopics = @topics.slice(1)
+          "#{@topics[0]} and #{subTopics[ Math.floor Math.random() * subTopics.length ]}"
+        else
+          @topics[0]
+
 
       getLine: ->
 
@@ -55,22 +84,31 @@
         slug = if continued then 'darkmode-continued' else 'darkmode'
         # (Depending on whether the monologue has already started or not, we need to use one prompt or another)
 
-        previousLines = @lines.join('”\n“')
+        if @darkmodeEverUsed
+          slug += '-repeated'
 
-        { choices: [{ text }] } = await @polygon.run slug, {
-          @topic
+        previousLines = @lines.join('”\nThen: “')
+
+        { choices: [{ text }], approximateCost } = await @polygon.run slug, {
+          topic: @randomTopic()
           previousLines
         }, {
           max_tokens: 50
-          stop: [ '”', '\n', '"']
+          temperature: 0.7
+          n: 1
+          stop: [ '”', '"']
         }
+
+        @$emit 'update:usdSpent', @usdSpent + approximateCost
+        @darkmodeEverUsed = true
 
         line = text.replace(/[”"\n].*/, '').trim()
 
-        @lines = [ ...@lines, line ]
+        if line
+          @lines = [ ...@lines, line ]
 
-        # Run itself in a random amount of time between 1 and 5 seconds
-        @getLineTimeout = setTimeout @getLine, Math.random() * 4000 + 1000
+        # Run itself in a random amount of time between 2 and 6 seconds
+        @getLineTimeout = setTimeout @getLine, 2000 + Math.random() * 4000
       
       blink: ->
         # Randomly rotate between the following states:

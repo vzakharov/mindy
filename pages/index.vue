@@ -1,7 +1,8 @@
 <template lang="pug">
   DarkMode(
     v-if="darkmode"
-    v-bind="{ polygon, topic }"
+    v-bind="{ polygon, context }"
+    :usdSpent.sync="usdSpent"
     @wheres-the-fucking-light-switch=`
       darkmode = false
       mixpanel.track('Dark mode off')
@@ -246,17 +247,28 @@
           | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
           
         //- Settings buttons
+        //- Auto-build context
         span.float-left.text-right.px-2(
           :class="settings.autoBuildContext ? 'text-success' : 'text-muted'"
           @click="settings.autoBuildContext = !settings.autoBuildContext"
           style="cursor: pointer"
           :title="`Auto-build mindmap is ${settings.autoBuildContext ? 'on' : 'off'}`"
         ) 丫
+        //- Number of replies
         span.float-left.text-right.text-muted.px-2(
           @click="settings.numGenerations = ( settings.numGenerations % 3 ) + 1"
           style="cursor: pointer"
           :title="`Mindy will generate ${settings.numGenerations} ${settings.numGenerations === 1 ? 'reply' : 'replies'} at once`"
         ) 💬 × {{ settings.numGenerations }}
+        //- Temperature
+        span.float-left.text-right.text-muted.px-2(
+          @click="settings.temperature = Math.floor(( settings.temperature + 0.2 ) * 10) / 10 % 1.2"
+          style="cursor: pointer"
+          :title="`Mindy will generate replies with a temperature (i.e. “creativity”) of ${ settings.temperature }`"
+        ) 
+          | {{ settings.temperature == 0 ? '🥱' : settings.temperature <= 0.2 ? '😐': settings.temperature <= 0.4 ? '🤔' : settings.temperature <= 0.6 ? '😉' : settings.temperature <= 0.8 ? '😜' : '🤪' }}
+          | t={{ Math.round(settings.temperature * 10) / 10 }}
+        //- Settings modal
         div.float-left.text-right.text-muted.px-2(
           @click="$bvModal.show('settings-modal')"
           style="cursor: pointer"
@@ -279,6 +291,10 @@
               numGenerations: {
                 label: 'Number of replies at once',
                 description: 'How many replies to generate at once. Increasing this helps explore more options, but also costs more.'
+              },
+              temperature: {
+                label: 'Temperature',
+                description: 'How creative to be. 0 gives deterministic (same) replies, 1 gets... weird. Note that for 0 the number of replies is always 1.'
               },
             }`
           )
@@ -328,6 +344,7 @@
       settings:
         autoBuildContext: true
         numGenerations: 3
+        temperature: 0.6
       input: ''
       lastMessageTime: null
       sending: false
@@ -357,9 +374,9 @@
 
     computed:
 
-      topic: ->
+      context: ->
         # Take the first line of the context, if any
-        @routedMessage?.context?.split('\n')?[0]
+        @routedMessage?.context
 
       tree: ->
         new TreeLike(@messages)
@@ -381,6 +398,7 @@
         new PolygonClient({ @openAIkey, defaultParameters: { 
           max_tokens: 300 
           n: @settings.numGenerations
+          temperature: @settings.temperature
         } })
 
     mounted: ->
@@ -489,7 +507,10 @@
               @try 'generatingReply', 
                 =>
 
-                  { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, { stop: 'User:' }
+                  { choices, approximateCost } = await @polygon.run slug, { input, previousConversation }, {
+                    stop: 'User:'
+                    n: if @settings.temperature > 0 then @settings.numGenerations else 1
+                  }
                   @usdSpent += parseFloat(approximateCost)
 
                   @input = ''
@@ -587,6 +608,7 @@
               conversationAfterPreviousContext,
             }, {
               stop: '```'
+              temperature: 0.5
             }
 
             @usdSpent += parseFloat(approximateCost)
@@ -668,9 +690,11 @@
             @routedMessage = null
 
       usdSpent: ( usdSpent, oldUsdSpent ) ->
-        @mixpanel.track 'USD spent',
-          total: usdSpent
-          delta: usdSpent - oldUsdSpent
+        if oldUsdSpent
+        # (Making sure it's not just initializing the value from localStorage)
+          @mixpanel.track 'USD spent',
+            total: usdSpent
+            delta: usdSpent - oldUsdSpent
 
 </script>
 
