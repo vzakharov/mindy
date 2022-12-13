@@ -4,10 +4,11 @@
   b-modal(
     ref="openAIKeyModal"
     title="Enter your OpenAI API key"
-    hide-footer
-    :no-close-on-backdrop="!openAIkey || !keyValid"
-    :no-close-on-esc="!openAIkey || !keyValid"
-    :hide-header-close="!openAIkey || !keyValid"
+    :hide-footer="!canClose"
+    :no-close-on-backdrop="!canClose"
+    :no-close-on-esc="!canClose"
+    :hide-header-close="!canClose"
+    ok-only
   )
 
     //- Clarification on what the API key is for
@@ -34,11 +35,18 @@
         )
       b-button(
         type="submit"
-        variant="primary"
+        :variant="keyValid ? 'outline-secondary' : 'primary'"
         :disabled="!openAIkey || checkingKey"
       )
         b-spinner(v-show="checkingKey" small type="grow")
         | {{ checkingKey ? 'Checking...' : 'Check and save' }}
+    
+    //- Clarification that the user will be spending their own OpenAI tokens (credits)
+    b-checkbox.mt-4(
+      v-model="acknowledged"
+      style="font-size: 1.2rem;"
+    )
+      | I understand that I will be spending my own OpenAI tokens (credits) to generate texts.
 
 </template>
 
@@ -47,12 +55,16 @@
   import axios from 'axios'
   import tryAction from '~/plugins/tryAction'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
+  import syncLocalMixin from '~/plugins/syncLocal'
 
   export default
 
     mixins: [
       tryAction
       mixpanelMixin
+      syncLocalMixin
+        keys: [ 'acknowledged' ]
+        prefix: 'mindy'
     ]
 
     props: [
@@ -66,6 +78,10 @@
       openAIkey: @value
       checkingKey: false
       keyValid: !!@value
+      acknowledged: false
+    
+    computed:
+      canClose: -> @openAIkey && @keyValid && @acknowledged
     
     methods:
 
@@ -97,7 +113,7 @@
             
             @keyValid = true
             @$emit 'input', @openAIkey
-            @hide()
+            # @hide()
             @mixpanel.track 'OpenAI key validated'
 
           errorMessage: (error) =>
