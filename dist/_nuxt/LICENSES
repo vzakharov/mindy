@@ -8,6 +8,9 @@
  */
 
 
+/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
+
+
 /*!
  * vue-client-only v0.0.0-semantic-release
  * (c) 2021-present egoist <0x142857@gmail.com>
@@ -57,9 +60,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-
-/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
 
 
 /*!
