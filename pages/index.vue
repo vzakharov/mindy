@@ -106,6 +106,7 @@
                     v-model="editing.input",
                     @keydown.enter.exact.prevent="() => { if ( !message.user.isBot ) { cloneAndSend() } }",
                     @keydown.esc="editing.message = null"
+                    style="touch-action: none;"
                   )
                   //- Save & submit -- if not a bot message
                   b-button.m-1(size="sm", variant="primary"
@@ -204,6 +205,7 @@
                     placeholder="Enter to send, Shift+Enter for new line"
                     :disabled="!user || sending || generatingReply"
                     @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
+                    style="touch-action: none;"
                   )
 
                 //- Send button

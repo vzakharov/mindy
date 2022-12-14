@@ -10,6 +10,8 @@ export default ({
 } = {}) ->
 
   axios = Axios.create baseURL: polygonAPIurl
+
+  console.log 'Polygon client initialized', { polygonAPIurl, templatesDatabaseId, upvotesDatabaseId, openAIkey, defaultParameters }
   
   run: ( slug, variables = {}, parameters = {} ) ->
 
