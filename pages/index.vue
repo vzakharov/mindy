@@ -463,13 +463,14 @@
       turnOffDarkmode: (finalLineReceived) ->
 
         @darkmode = false
-        [ text, approximateCost ] = await finalLineReceived
-        @$bvToast.toast(text, {
-          title: '💡',
-          variant: 'success',
-          autoHideDelay: text.length * 50,
-        })
-        @usdSpent += approximateCost
+        try
+          [ text, approximateCost ] = await finalLineReceived
+          @$bvToast.toast(text, {
+            title: '💡',
+            variant: 'success',
+            autoHideDelay: text.length * 50,
+          })
+          @usdSpent += approximateCost
 
       upvote: (message) ->
 

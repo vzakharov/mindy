@@ -139,17 +139,20 @@
         finalLineReceived = new Promise ( r ) -> resolve = r
         @$emit('usdSpent', @lastCost)
         @$emit('wheres-the-fucking-light-switch', finalLineReceived)
-        @polygon.run('darkmode-ended', {
-          topic: 'stuff'
-          previousLines: @lines.join('”\nThen: “')
-        }, {
-          max_tokens: 50
-          temperature: 0.7
-          n: 1
-          stop: [ '”', '"']
-        })
-        .then ( { choices: [{ text }], approximateCost } ) ->
-          resolve([ text, approximateCost ])
+        if !@lines.length
+          resolve()
+        else
+          @polygon.run('darkmode-ended', {
+            topic: 'stuff'
+            previousLines: @lines.join('”\nThen: “')
+          }, {
+            max_tokens: 50
+            temperature: 0.7
+            n: 1
+            stop: [ '”', '"']
+          })
+          .then ( { choices: [{ text }], approximateCost } ) ->
+            resolve([ text, approximateCost ])
 
     beforeDestroy: ->
       clearTimeout @blinkTimeout
