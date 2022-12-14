@@ -355,6 +355,12 @@
 
   import PolygonClient from '~/plugins/polygonClient'
 
+  defaultSettings =
+    allowFineTuning: true
+    autoBuildContext: true
+    numGenerations: 3
+    temperature: 0.6
+
   export default
 
     mixins: [
@@ -374,9 +380,10 @@
 
       title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
-      meta:
+      meta: [
         name: 'viewport'
         content: 'width=device-width, initial-scale=1, user-scalable=no'
+      ]
 
     data: ->
       fineTuningRequested: false
@@ -384,11 +391,7 @@
       chatboxVerticalAnchor: 'top'
       chatboxHorizontalAnchor: 'left'
       darkmode: false
-      settings:
-        allowFineTuning: true
-        autoBuildContext: true
-        numGenerations: 3
-        temperature: 0.6
+      settings: defaultSettings
       input: ''
       lastMessageTime: null
       sending: false
@@ -696,25 +699,24 @@
         finally
           @editing.message = null
 
-    watch:
+    watch: {
 
-      'settings.allowFineTuning': (allowFineTuning) ->
-        if allowFineTuning
-          @mixpanel.track 'Fine tuning enabled'
-        else
-          @mixpanel.track 'Fine tuning disabled'
-      
-      'settings.autoBuildContext': (autoBuildContext) ->
-        if autoBuildContext
-          @mixpanel.track 'Auto context enabled'
-        else
-          @mixpanel.track 'Auto context disabled'
-      
-      'settings.temperature': (temperature) ->
-        @mixpanel.track 'Temperature changed', { temperature }
+      ..._.transform defaultSettings, (result, value, key) ->
+        result["settings.#{key}"] = (value) ->
+          if !@watchersToIgnore?.includes 'settings'
+            @mixpanel.track {
+              allowFineTuning: if value then 'Fine tuning enabled' else 'Fine tuning disabled'
+              autoBuildContext: if value then 'Auto context enabled' else 'Auto context disabled'
+              temperature: 'Temperature changed'
+              numGenerations: 'Num generations changed'
+            }[key], if !_.isBoolean value then { [key]: value } else undefined
 
-      'settings.numGenerations': (numGenerations) ->
-        @mixpanel.track 'Num generations changed', { numGenerations }
+      usdSpent: ( usdSpent, oldUsdSpent ) ->
+        if !@watchersToIgnore?.includes 'usdSpent'
+          console.log 'USD spent', usdSpent, oldUsdSpent
+          @mixpanel.track 'USD spent',
+            total: usdSpent
+            delta: usdSpent - oldUsdSpent
 
       generatingReply: (generatingReply) ->
 
@@ -755,12 +757,7 @@
           else
             @routedMessage = null
 
-      usdSpent: ( usdSpent, oldUsdSpent ) ->
-        if oldUsdSpent
-        # (Making sure it's not just initializing the value from localStorage)
-          @mixpanel.track 'USD spent',
-            total: usdSpent
-            delta: usdSpent - oldUsdSpent
+    }
 
 </script>
 

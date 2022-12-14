@@ -1,4 +1,6 @@
 import yaml from 'js-yaml'
+import log from '~/plugins/log'
+import _ from 'lodash'
 
 export default ({ prefix, keys, format = 'json' } = {}) ->
 
@@ -15,9 +17,23 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
 
   getLocalKey = (key) -> if prefix then "#{prefix}.#{key}" else key
 
+  asSameTypeAs = ( value, defaultValue ) ->
+
+    if typeof defaultValue is 'object' and defaultValue isnt null
+      # localValue = JSON.parse(localValue or null)
+      parse(value or null)
+    else if typeof defaultValue is 'number'
+      parseFloat(value or null)
+    # if boolean, parse as boolean, unless it already is a boolean
+    else if typeof defaultValue is 'boolean'
+      if typeof value is 'boolean' then value else value is 'true'
+    else
+      value or null
+
   data: ->
 
     localLoaded: new Promise ( res ) -> resolve = res
+    watchersToIgnore: []
 
   mounted: ->
 
@@ -28,29 +44,17 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
 
       console.log key: key, localValue: localValue, defaultValue: defaultValue
 
-      isObject = typeof defaultValue is 'object' and defaultValue isnt null
-      isArray = Array.isArray defaultValue
-      isNumber = typeof defaultValue is 'number'
-      if isObject
-        # localValue = JSON.parse(localValue or null)
-        localValue = parse(localValue or null)
-      else if isNumber
-        localValue = parseFloat(localValue or null)
-      # if boolean, parse as boolean, unless it already is a boolean
-      else if typeof defaultValue is 'boolean'
-        localValue = if typeof localValue is 'boolean' then localValue else localValue is 'true'
-      else
-        localValue = localValue or null
+      localValue = asSameTypeAs localValue, defaultValue
 
-      @[key] = if isObject and not isArray
+      @[key] = if _.isObject(defaultValue) and not _.isArray(defaultValue)
         {...defaultValue, ...localValue}
       else
         localValue or defaultValue
 
-    @$nextTick ->
-      loaded = true
-      resolve()
-  
+      @$nextTick ->
+        loaded = true
+        resolve()
+
   watch: {
 
     ...keys.reduce ( watch, key ) ->
@@ -59,10 +63,13 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
         [key]:
           deep: true
           handler: (value) ->
-            if loaded
+            if !loaded
+              @watchersToIgnore.push key
+            else
               localKey = getLocalKey(key)
-              console.log "Syncing #{key} to local storage key #{localKey}"
               localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
+              log "Saved #{key} to local storage as #{localKey}"
+              @watchersToIgnore = _.without @watchersToIgnore, key
 
     , {}
 
