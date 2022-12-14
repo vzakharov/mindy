@@ -6,7 +6,7 @@
     ref="container"
     fluid
     style="height: 100vh; background-color: black; color: white;"
-    @dblclick="$emit('wheres-the-fucking-light-switch')"
+    @dblclick="turnOnTheLights"
   )
     b-row
       b-col
@@ -133,6 +133,23 @@
         ][ Math.floor Math.random() * 4 ]
         # Run itself in a random amount of time between 1 and 2 seconds
         @blinkTimeout = setTimeout @blink, Math.random() * 1000 + 1000
+      
+      turnOnTheLights: ->
+        resolve = null
+        finalLineReceived = new Promise ( r ) -> resolve = r
+        @$emit('usdSpent', @lastCost)
+        @$emit('wheres-the-fucking-light-switch', finalLineReceived)
+        @polygon.run('darkmode-ended', {
+          topic: 'stuff'
+          previousLines: @lines.join('”\nThen: “')
+        }, {
+          max_tokens: 50
+          temperature: 0.7
+          n: 1
+          stop: [ '”', '"']
+        })
+        .then ( { choices: [{ text }], approximateCost } ) ->
+          resolve([ text, approximateCost ])
 
     beforeDestroy: ->
       clearTimeout @blinkTimeout

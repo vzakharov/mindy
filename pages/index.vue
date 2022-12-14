@@ -3,10 +3,7 @@
     v-if="darkmode"
     v-bind="{ polygon, context }"
     :usdSpent.sync="usdSpent"
-    @wheres-the-fucking-light-switch=`
-      darkmode = false
-      mixpanel.track('Dark mode off')
-    `
+    @wheres-the-fucking-light-switch="turnOffDarkmode"
   )
   div(v-else)
     b-container.p-5.vh-100(fluid)
@@ -462,6 +459,17 @@
         @$refs.input.focus()
 
     methods:
+
+      turnOffDarkmode: (finalLineReceived) ->
+
+        @darkmode = false
+        [ text, approximateCost ] = await finalLineReceived
+        @$bvToast.toast(text, {
+          title: '💡',
+          variant: 'success',
+          autoHideDelay: text.length * 50,
+        })
+        @usdSpent += approximateCost
 
       upvote: (message) ->
 
