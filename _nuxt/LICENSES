@@ -1,3 +1,5 @@
+/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
+
 /**
  * @license
  * Lodash <https://lodash.com/>
@@ -57,9 +59,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-
-/*! js-yaml 4.1.0 https://github.com/nodeca/js-yaml @license MIT */
 
 
 /*!
