@@ -65,8 +65,8 @@
                   'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
                 }`
                 @click="routedMessage = message"
-                @mouseover="hoveredMessage = message"
               )
+                //- @mouseover="hoveredMessage = message"
 
                 template(v-if="message.special")
                   em
@@ -483,7 +483,7 @@
         @routedMessage?.context
 
       tree: ->
-        new TreeLike(@messages)
+        new TreeLike(@messages, vm: @)
 
       thread: ->
         # If the existing thread includes the routed message, use that
@@ -814,16 +814,17 @@
       routedMessage: (message) ->
         if message
           { id, user: { isBot }} = message
+          # Nudge the message
+          @tree.nudge message
           # If this is not a bot message, route to the child (next message in the thread)          
           if !isBot
             index = @thread.indexOf(message) + 1
             if index < @thread.length
               @routedMessage = @thread[index]
               return
-          if id == parseInt @$route.query.id
-            return
-          log "Routing to message ##{id}"
-          @$router.push { query: { id: message.id } }
+          if id != parseInt @$route.query.id
+            log "Routing to message ##{id}"
+            @$router.push { query: { id: message.id } }
       
       '$route.query.id':
         immediate: true

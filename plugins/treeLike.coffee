@@ -3,7 +3,7 @@
 import _ from 'lodash'
 import log from './log'
 
-TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
+TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
 # childOrder takes the same format as _.orderBy starting from the second argument (see https://lodash.com/docs#orderBy)
 
   Object.assign @,
@@ -68,17 +68,19 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
         console.log { item, includeSelf, lineage }
         lineage
       
-      heir: (item) ->
+      heir: (item, { nested } = {}) ->
         log "Calculating heir for", item
         # the first among children (sorted by ...childOrder), and so on recursively
         if @children(item).length
-          @heir(_.orderBy(@children(item), ...childOrder)[0])
+          heir = @children(item)[item.heirIndex or 0]
+          if nested
+            @heir(heir, nested: true)
         else
           item
 
       thread: (item, includeDescendants = true) ->
         # i.e. lineage of the ultimate heir
-        @lineage( if includeDescendants then @heir(item) else item )
+        @lineage( if includeDescendants then @heir(item, nested: true) else item )
     
     cache: {}
 
@@ -102,6 +104,17 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
       items.splice items.indexOf(item), 1
       children.forEach ( item ) => @delete item
       items
+    
+    nudge: (item) ->
+      # Make the item the heir of its parent
+      if parent = @parent(item)
+      # (= is not a typo)
+        log "Nudging item #{item.id} to be the heir of its parent #{parent.id}" 
+        heirIndex = @siblingIndex(item)
+        if vm
+          vm.$set parent, 'heirIndex', heirIndex
+        else
+          _.assign parent, { heirIndex }
 
   # For each getter, create a function that either returns the cached value or calls the getter and caches the result
   # If the getter has more than just the item as argument, the other arguments are JSON.stringified and used as a further (nested) key in the cache
