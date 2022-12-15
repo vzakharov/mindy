@@ -252,12 +252,12 @@
                 v-model="messageForContext.context"
                 @rebuild="generateContext(messageForContext)"
                 :style=`{
-                  filter: routedMessage !== messageForContext ? 'grayscale(25%) opacity(0.75)' : 'none',
+                  filter: routedMessage && routedMessage !== messageForContext ? 'grayscale(25%) opacity(0.75)' : 'none',
                 }`
               )
               //- Add a note in top right corner saying that this is a read-only context if it's not that message's context
               div#context-readonly-popover.text-muted.text-right.text-nowrap.text-truncate.px-2(                
-                v-if="routedMessage !== messageForContext && !generatingContext",
+                v-if="routedMessage && routedMessage !== messageForContext && !generatingContext",
                 class="position-absolute"
                 style="top: 0; right: 10px; z-index: 1; cursor: help;"
               )
@@ -280,15 +280,16 @@
             b-row.justify-content-center.mt-2
               //- Generate context
               b-button.mx-1(
-                v-if="!routedMessage.context"
+                v-if="routedMessage && !routedMessage.context"
                 @click="generateContext(messageForContext)"
                 :disabled="sending || generatingReply || generatingContext"
                 :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
                 | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
-          div.lead(v-else)
-            p Ask Mindy a question, and watch the magic unfold!
+          b-row.text-muted(v-else, align-h="center", justify="center")
+            b-spinner.text-muted(type="grow")
+            p.mx-2.lead Hold on a sec, unwrapping the magic wand...
 
 
       OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
@@ -439,6 +440,7 @@
       ]
 
     data: ->
+      suggestionsContext: null
       hoveredMessage: null
       fineTuningRequested: false
       chatboxCollapsed: false
@@ -476,7 +478,11 @@
     computed:
 
       messageForContext: ->
-        @getPreviousMessageWithContext(@routedMessage, includeSelf: true)
+        if @routedMessage
+          @getPreviousMessageWithContext(@routedMessage, includeSelf: true)
+        else if @suggestionsContext
+          id: 0
+          context: @suggestionsContext
 
       context: ->
         # Take the first line of the context, if any
@@ -516,9 +522,50 @@
         console.log "OpenAI key not set; showing modal"
         @$refs.openAIkeyModal.show()
       else
-        @$refs.input.focus()
+        @$refs.input?.focus()
 
     methods:
+
+      getSuggestions: ->
+
+        @try 'generatingContext',
+          =>
+            
+            log 'Suggestions:',
+            { choices: [{ text }] } = await @polygon.run 'suggest', {}, stop: ['\n\n']
+            # The text returned contains suggestions on how the user can use Mindy in the following format:
+            # ```How can I increase customer acquisition?
+            # 2. What are some creative ways to spice up dinner?
+            # 3. What are some tips to improve my relationships?```
+            # I.e., it is an ordered list of questions, with the first question missing the number.
+            # We should
+            # a) Split them by newline
+            # b) Test every line to see if it meets the format and discard the ones that don't
+            # c) Remove the list prefix from the lines that do
+            suggestions = text
+              .split('\n')
+              .filter( (line) ->
+                # Test if the line ends with a question mark
+                line.match(/\?$/)
+              )
+              .map( (line) ->
+                # Remove the list prefix, if any
+                line.replace(/^\d+\.\s*/, '')
+              )
+            # If there are no suggestions, just use the default ones
+            if suggestions.length == 0
+              suggestions = [
+                'What are some creative ways to spice up dinner?',
+                'What are some tips to improve my relationships?',
+                'How can I increase customer acquisition?'
+              ]
+            
+            # Create the suggestion context by using 'Hey Mindy!' as the root node and the others (indented by a tab) as children
+            log 'Suggestion context',
+            @suggestionsContext = [
+              'Hey Mindy!'
+              ...suggestions.map( (suggestion) -> "\t#{suggestion}" )
+            ].join('\n')
 
       getPreviousMessageWithContext: (message, { includeSelf } = {} ) -> 
         _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
@@ -688,7 +735,7 @@
           observer = new MutationObserver ( mutations ) =>
             if mutation = mutations.find ({ attributeName, target: { disabled } }) -> attributeName is 'disabled' and !disabled
             # (`=` is not a typo; it's an assignment, not a comparison)
-              mutation.target.focus()
+              mutation.target?.focus()
               observer.disconnect()
           observer.observe document.querySelector('#input'), { attributes: true }
 
@@ -822,7 +869,7 @@
             if index < @thread.length
               @routedMessage = @thread[index]
               return
-          if id != parseInt @$route.query.id
+          if id != parseInt @$route.query?.id
             log "Routing to message ##{id}"
             @$router.push { query: { id: message.id } }
       
@@ -842,6 +889,8 @@
               @routedMessage = null
           else
             @routedMessage = null
+            await @localLoaded
+            @getSuggestions()
 
     }
 

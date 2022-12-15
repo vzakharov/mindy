@@ -23,8 +23,9 @@ export default
       try
         console.log "Started #{stateKey}"
         mixpanel?.track "#{stateKey} started", mixpanelProps
-        resolve await action()
+        resolve result = await action()
         mixpanel?.track "#{stateKey} succeeded", mixpanelProps
+        return result
       catch error
         console.error "Error while #{stateKey}: #{error}"
         mixpanel?.track "#{stateKey} failed", { error: error.message, ...mixpanelProps }
