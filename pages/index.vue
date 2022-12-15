@@ -56,16 +56,14 @@
                 fontSize: chatboxCollapsed ? '0.75em' : '1em',
               }`
               )
-              div.message.pt-4.p-2(
-                :id="`message-${message.id}`"
+              div.pt-4.p-2(
                 v-for="(message, index) in thread", :key="index", 
                 :style=`{
                   'background-color': index % 2 ? '#f7f7f7' : '#fff',
                   'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
                   'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
                 }`
-                @click="routedMessage = message"
-                @mouseover="hoveredMessage = message"
+                @click="() => { if ( message !== routedMessage && message.user.isBot ) routedMessage = message }"
               )
 
                 template(v-if="message.special")
@@ -136,69 +134,45 @@
                   div.p-2(v-if="generatingReply", class="text-muted")
                     em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
 
-                //- Buttons with various messagem shown either if this is the routed message, if it has bookmarks, or if the user hovers over it
-                b-row(
-                  v-if="message === routedMessage || message.bookmark || hoveredMessage === message",
-                  align-h="between"
-                )
+                  //- Buttons with various message actions
+                  div.p-2.text-center(v-if="message.user.isBot")
 
-                  b-col
                     //- Try again
-                    b-button(
-                      v-if="message.user.isBot"
+                    b-button.mx-1(
                       variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply"
                       :size="chatboxCollapsed ? 'sm' : 'md'"
                     )
                       | ↺ Try again
-                  
-                  //- Right-aligned div for additional buttons
-                  b-col.text-right
                     
-                    //- Thumbs-up button, grayscaled if not upvoted
-                    b-button.mx-1(
-                      v-if="message.user.isBot"
+                    //- Float-right thumbs-up button, grayscaled if not upvoted
+                    b-button.mx-1.float-right(
                       @click="upvote(message)"
                       variant="light"
                       :size="chatboxCollapsed ? 'sm' : 'md'"
                       :style="!message.upvoted ? { 'filter': 'grayscale(100%)' } : {}"
                     )
                       | 👍
-                    
-                    //- Bookmark button
-                    b-button.mx-1(
-                      @click="bookmark(message)"
-                      variant="light"
-                      :size="chatboxCollapsed ? 'sm' : 'md'"
-                      :style="!message.bookmark ? { 'filter': 'grayscale(100%)' } : {}"
-                    )
-                      | 🔖
-                      span.text-muted(
-                        v-if="message.bookmark && message.bookmark.name"
-                        v-text="message.bookmark.name"
+                    //- Fine-tuning request modal
+                    b-modal#fine-tuning-request-modal(
+                      title="Can we fine-tune Mindy based on your upvotes?"
+                      hide-footer centered
                       )
-
-
-                  //- Fine-tuning request modal
-                  b-modal#fine-tuning-request-modal(
-                    title="Can we fine-tune Mindy based on your upvotes?"
-                    hide-footer centered
-                    )
-                    p
-                      strong If you upvote a reply, we will send it to our servers and “train” Mindy to generate more replies like this one.&nbsp;
-                      | This will also include the entire conversation thread, so that Mindy can understand the context.
-                    p In the long run, we hope this will help Mindy generate better replies, and make you a happier user, too.
-                    p So we will be grateful if you keep this switch on. :&#41;
-                    p
-                      | (You can always turn this off in the settings.)
-                    b-checkbox.my-4(
-                      v-model="settings.allowFineTuning"
-                      switch
-                    ) {{ settings.allowFineTuning ? 'Yes, ' : 'No, don’t ' }}send my upvotes to your servers to make Mindy better.
-                    p Now let’s upvote that message!
-                    b-button(variant="primary", size="lg"
-                      @click="upvote(message); $bvModal.hide('fine-tuning-request-modal')"
-                    )
-                      | 👍 {{ settings.allowFineTuning ? 'Upvote and send to servers' : 'Just upvote' }}
+                      p
+                        strong If you upvote a reply, we will send it to our servers and “train” Mindy to generate more replies like this one.&nbsp;
+                        | This will also include the entire conversation thread, so that Mindy can understand the context.
+                      p In the long run, we hope this will help Mindy generate better replies, and make you a happier user, too.
+                      p So we will be grateful if you keep this switch on. :&#41;
+                      p
+                        | (You can always turn this off in the settings.)
+                      b-checkbox.my-4(
+                        v-model="settings.allowFineTuning"
+                        switch
+                      ) {{ settings.allowFineTuning ? 'Yes, ' : 'No, don’t ' }}send my upvotes to your servers to make Mindy better.
+                      p Now let’s upvote that message!
+                      b-button(variant="primary", size="lg"
+                        @click="upvote(message); $bvModal.hide('fine-tuning-request-modal')"
+                      )
+                        | 👍 {{ settings.allowFineTuning ? 'Upvote and send to servers' : 'Just upvote' }}
 
               div#scrollToBottom(ref="scrollToBottom")
 
@@ -401,7 +375,7 @@
 
     head: ->
 
-      title: if @routedMessage then "#{@routedMessage.bookmark?.name || @routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
+      title: if @routedMessage then "#{@routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
 
       meta: [
         name: 'viewport'
@@ -409,7 +383,6 @@
       ]
 
     data: ->
-      hoveredMessage: null
       fineTuningRequested: false
       chatboxCollapsed: false
       chatboxVerticalAnchor: 'top'
@@ -486,15 +459,6 @@
         @$refs.input.focus()
 
     methods:
-
-      bookmark: (message) ->
-        if message.bookmark
-          @$set message, 'bookmark', false
-        else
-          # Show a prompt asking for a name. If no name is given, just use `true`
-          if name = prompt("Bookmark this reply as what? (Leave blank to bookmark anonymously)")
-          # (= is not a typo; we don't want to set the bookmark if the user cancels the prompt)
-            @$set message, 'bookmark', if name then { name } else true
 
       turnOffDarkmode: (finalLineReceived) ->
 
@@ -777,14 +741,9 @@
           @typingCount = 0
       
       routedMessage: (message) ->
+        flush: 'post'
         if message
-          { id, user: { isBot }} = message
-          # If this is not a bot message, route to the child (next message in the thread)          
-          if !isBot
-            index = @thread.indexOf(message) + 1
-            if index < @thread.length
-              @routedMessage = @thread[index]
-              return
+          { id } = message
           if id == parseInt @$route.query.id
             return
           log "Routing to message ##{id}"
