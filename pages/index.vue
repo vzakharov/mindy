@@ -2,7 +2,6 @@
   DarkMode(
     v-if="darkmode"
     v-bind="{ polygon, context }"
-    :usdSpent.sync="usdSpent"
     @wheres-the-fucking-light-switch="turnOffDarkmode"
   )
   div(v-else)
@@ -242,9 +241,11 @@
           :class="chatboxCollapsed ? 'col-12' : 'col-md-8 col-sm-10 col-12'"
           )
           template(
-            v-if="messageForContext"
+            v-if="routedMessage || messageForContext"
             )
-            b-row.justify-content-center.text-center
+            b-row.justify-content-center.text-center(
+              v-if="messageForContext"
+            )
               MindyContext(
                 v-show="!!messageForContext.context && !generatingContext"
                 :key="messageForContext.id"
@@ -323,11 +324,11 @@
 
         //- USD spent, rounded to 2 decimal places; clear on click (after confirmation)
         div.float-right.text-right.text-muted.px-2(
-          @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) usdSpent = 0 }"
+          @click="() => { if ( window.confirm('Are you sure you want to clear the cost counter?') ) polygon.spent = 0 }"
           style="cursor: not-allowed"
           title="Approximate USD spent on OpenAI API calls. Click to clear."
         )
-          | 💸 ~${{ parseFloat(usdSpent).toFixed(2) }}
+          | 💸 ~${{ parseFloat(polygon.spent).toFixed(2) }}
           
         //- Settings buttons
         //- Auto-build context
@@ -480,7 +481,7 @@
       messageForContext: ->
         if @routedMessage
           @getPreviousMessageWithContext(@routedMessage, includeSelf: true)
-        else if @suggestionsContext
+        else if not @$route.query.id and @suggestionsContext
           id: 0
           context: @suggestionsContext
 
@@ -505,11 +506,16 @@
         _.last(@thread)
 
       polygon: ->
-        new PolygonClient({ @openAIkey, defaultParameters: { 
-          max_tokens: 300 
-          n: @settings.numGenerations
-          temperature: @settings.temperature
-        } })
+        new PolygonClient({
+          @openAIkey
+          vm: @
+          vmKey: 'usdSpent'
+          spent: @usdSpent
+          defaultParameters:
+            max_tokens: 300 
+            n: @settings.numGenerations
+            temperature: @settings.temperature
+        })
 
     mounted: ->
 
@@ -579,17 +585,16 @@
           # (= is not a typo; we don't want to set the bookmark if the user cancels the prompt)
             @$set message, 'bookmark', if name then { name } else true
 
-      turnOffDarkmode: (finalLineReceived) ->
+      turnOffDarkmode: (darkModeExitPromise) ->
 
         @darkmode = false
         try
-          [ text, approximateCost ] = await finalLineReceived
+          text = await darkModeExitPromise
           @$bvToast.toast(text, {
             title: '💡',
             variant: 'success',
             autoHideDelay: text.length * 50,
           })
-          @usdSpent += approximateCost
 
       upvote: (message) ->
 
@@ -684,11 +689,10 @@
               @try 'generatingReply', 
                 =>
 
-                  { choices, approximateCost, generationId } = await @polygon.run slug, { input, previousConversation }, {
+                  { choices, generationId } = await @polygon.run slug, { input, previousConversation }, {
                     stop: 'User:'
                     n: if @settings.temperature > 0 then @settings.numGenerations else 1
                   }
-                  @usdSpent += parseFloat(approximateCost)
 
                   @input = ''
                   
@@ -780,7 +784,7 @@
               log 'Conversation after previous context', 
               conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext
 
-            { choices: [{ text }], approximateCost } = await @polygon.run slug, {
+            { choices: [{ text }] } = await @polygon.run slug, {
               conversationBeforePreviousContext,
               previousContext,
               conversationAfterPreviousContext,
@@ -788,8 +792,6 @@
               stop: '```'
               temperature: 0.5
             }
-
-            @usdSpent += parseFloat(approximateCost)
 
             getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
             postProcessContext = (value) ->
@@ -844,7 +846,7 @@
           @mixpanel.track 'USD spent',
             total: usdSpent
             delta: usdSpent - oldUsdSpent
-
+      
       generatingReply: (generatingReply) ->
 
         clearInterval @typingInterval

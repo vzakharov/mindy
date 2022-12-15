@@ -45,9 +45,6 @@
         required: true
       context:
         default: 'stuff'
-      usdSpent:
-        type: Number
-        required: true
     
     data: ->
       lines: []
@@ -103,7 +100,6 @@
           stop: [ '”', '"']
         }
 
-        @$emit 'update:usdSpent', @usdSpent + approximateCost
         @darkmodeEverUsed = true
 
         line = text.replace(/[”"\n].*/, '').trim()
@@ -136,9 +132,8 @@
       
       turnOnTheLights: ->
         resolve = null
-        finalLineReceived = new Promise ( r ) -> resolve = r
-        @$emit('usdSpent', @lastCost)
-        @$emit('wheres-the-fucking-light-switch', finalLineReceived)
+        darkModeExitPromise = new Promise ( r ) -> resolve = r
+        @$emit('wheres-the-fucking-light-switch', darkModeExitPromise)
         if !@lines.length
           resolve()
         else
@@ -151,8 +146,8 @@
             n: 1
             stop: [ '”', '"']
           })
-          .then ( { choices: [{ text }], approximateCost } ) ->
-            resolve([ text, approximateCost ])
+          .then ( { choices: [{ text }] } ) ->
+            resolve(text)
 
     beforeDestroy: ->
       clearTimeout @blinkTimeout
