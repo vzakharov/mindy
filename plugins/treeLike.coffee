@@ -54,16 +54,16 @@ TreeLike = ( items, childOrder = [[ 'createdAt', 'desc' ]] ) ->
         @sibling(item, -1)
 
       ancestors: (item) ->
-        if item.parentId
+        if item?.parentId
           [ @parent(item), ...@ancestors(@parent(item)) ]
         else
           []
       
       lineage: (item, { includeSelf = true } = {}) ->
         lineage = [ ...@ancestors(item) ].reverse()
-        lineage.push(item) if includeSelf
+        lineage.push(item) if includeSelf && item
         # remove root
-        if lineage[0] is @root
+        if lineage?[0] is @root
           lineage.shift()
         console.log { item, includeSelf, lineage }
         lineage

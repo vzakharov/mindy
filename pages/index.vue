@@ -234,31 +234,61 @@
                   | {{ sending ? 'Sending...' : 'Send' }}
                   b-spinner(v-if="sending", small)
               
-      
+
         //- Context column
+        //- Use routedMessage if it has context, or the latest message that has it
         //- b-col.col-xl-8.col-lg-7.col-sm-6
         b-col(
           :class="chatboxCollapsed ? 'col-12' : 'col-md-8 col-sm-10 col-12'"
           )
-          b-row.justify-content-center.text-center
-            template(v-if="routedMessage")
+          template(
+            v-if="messageForContext"
+            )
+            b-row.justify-content-center.text-center
               MindyContext(
-                v-show="!!routedMessage.context && !generatingContext"
-                :key="routedMessage.id"
-                v-model="routedMessage.context"
-                @rebuild="generateContext(routedMessage)"
+                v-show="!!messageForContext.context && !generatingContext"
+                :key="messageForContext.id"
+                :readonly="routedMessage !== messageForContext"
+                v-model="messageForContext.context"
+                @rebuild="generateContext(messageForContext)"
+                :style=`{
+                  filter: routedMessage !== messageForContext ? 'grayscale(25%) opacity(0.75)' : 'none',
+                }`
               )
+              //- Add a note in top right corner saying that this is a read-only context if it's not that message's context
+              div#context-readonly-popover.text-muted.text-right.text-nowrap.text-truncate.px-2(                
+                v-if="routedMessage !== messageForContext && !generatingContext",
+                class="position-absolute"
+                style="top: 0; right: 10px; z-index: 1; cursor: help;"
+              )
+                | Read-only. Why?
+                b-popover(
+                  target="context-readonly-popover",
+                  triggers="hover",
+                  placement="bottom",
+                )
+                  p This mindmap is taken from a previous message. We’re showing it here for convenience, but you can’t edit it.
+                  p
+                  | You can either
+                  ul
+                    li
+                      nuxt-link(:to="{ query: { id: getPreviousMessageWithContext(routedMessage).id } }") go to the previous message  
+                      | and edit it there, or
+                    li
+                      span.text-primary(@click="generateContext(routedMessage)", style="cursor: pointer") build a new mindmap  
+                      | for this one.
+            b-row.justify-content-center.mt-2
               //- Generate context
               b-button.mx-1(
                 v-if="!routedMessage.context"
-                @click="generateContext(routedMessage)"
+                @click="generateContext(messageForContext)"
                 :disabled="sending || generatingReply || generatingContext"
                 :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
                 | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
-            div.lead(v-else)
-              p Ask Mindy a question, and watch the magic unfold!
+          div.lead(v-else)
+            p Ask Mindy a question, and watch the magic unfold!
 
 
       OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
@@ -445,6 +475,9 @@
 
     computed:
 
+      messageForContext: ->
+        @getPreviousMessageWithContext(@routedMessage, includeSelf: true)
+
       context: ->
         # Take the first line of the context, if any
         @routedMessage?.context
@@ -486,6 +519,9 @@
         @$refs.input.focus()
 
     methods:
+
+      getPreviousMessageWithContext: (message, { includeSelf } = {} ) -> 
+        _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
 
       bookmark: (message) ->
         if message.bookmark
@@ -674,8 +710,7 @@
             log 'Generating context for', message
 
             # Find the most recent message that has a context
-            log 'Previous message with context', 
-            previousMessageWithContext = _.findLast @tree.lineage(message, includeSelf: false), (message) -> message.context
+            previousMessageWithContext = @getPreviousMessageWithContext message
 
             contextExists = !!previousMessageWithContext
 

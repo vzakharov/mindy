@@ -3,47 +3,48 @@
   b-col
 
     b-row#mermaid-container.justify-content-center
-    //- Error message if the context is invalid with a suggestion to edit in plain text
-    b-alert.text-left.mt-3(
-      v-if="!isValid"
-      variant="danger"
-      show
-    )
-      strong Cannot render the mind map; please edit the context below:
-      ul 
-        li Exactly one line with no tabs in the beginning
-        li Every next line indented by the same, fewer, or just one more tab than the previous line
-    
-    //- Button to edit the context in plain text
-    b-button.btn-sm.btn-light.m-1(
-      @click="editInPlainText = !editInPlainText; mixpanel.track('Switched plain text context editing ' + (editInPlainText ? 'on' : 'off'))"
-      :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
-    )
-      | 🖉
-    //- Button to rebuild the mind map
-    b-button.btn-sm.btn-light.m-1(
-      @click="$emit('rebuild')"
-    )
-      | ↺
-
-    b-row(
-      v-show="editInPlainText || !isValid"
-      :style="isValid ? '' : 'border: 1px solid red; border-radius: 5px; padding: 10px;'"
-    )
-      EditSettings(
-        title="Edit context in plain text"
-        :value="{ context }"
-        @input="context = $event.context"
-        :properties=`{
-          context: {
-            type: 'multiline',
-            monospace: true,
-            label: 'Mind map tree',
-            placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
-            description: 'Tab/Shift-Tab to indent/unindent lines.'
-          }
-        }`
+    template(v-if="!readonly")
+      //- Error message if the context is invalid with a suggestion to edit in plain text
+      b-alert.text-left.mt-3(
+        v-if="!isValid"
+        variant="danger"
+        show
       )
+        strong Cannot render the mind map; please edit the context below:
+        ul 
+          li Exactly one line with no tabs in the beginning
+          li Every next line indented by the same, fewer, or just one more tab than the previous line
+      
+      //- Button to edit the context in plain text
+      b-button.btn-sm.btn-light.m-1(
+        @click="editInPlainText = !editInPlainText; mixpanel.track('Switched plain text context editing ' + (editInPlainText ? 'on' : 'off'))"
+        :variant="isValid ? editInPlainText ? 'outline-success' : 'light' : 'outline-danger'"
+      )
+        | 🖉
+      //- Button to rebuild the mind map
+      b-button.btn-sm.btn-light.m-1(
+        @click="$emit('rebuild')"
+      )
+        | ↺
+
+      b-row(
+        v-show="editInPlainText || !isValid"
+        :style="isValid ? '' : 'border: 1px solid red; border-radius: 5px; padding: 10px;'"
+      )
+        EditSettings(
+          title="Edit context in plain text"
+          :value="{ context }"
+          @input="context = $event.context"
+          :properties=`{
+            context: {
+              type: 'multiline',
+              monospace: true,
+              label: 'Mind map tree',
+              placeholder: 'Main topic\\n\\tSub-topic\\n\\t\\tSub-sub-topic\\n\\tAnother sub-topic',
+              description: 'Tab/Shift-Tab to indent/unindent lines.'
+            }
+          }`
+        )
 
 </template>
 
@@ -65,7 +66,7 @@
     ]
 
     props: [
-      'value'
+      'value', 'readonly'
     ]
 
     data: ->
