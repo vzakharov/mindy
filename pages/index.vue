@@ -5,15 +5,22 @@
     @wheres-the-fucking-light-switch="turnOffDarkmode"
   )
   div(v-else)
-    b-container.p-5.vh-100(fluid)
+    b-container.px-4(
+        fluid
+      )
       b-row(
         align-v="center"
-        style="height: calc(100vh - 50px);"
+        style="height: calc(100vh - 80px);"
       )    
+        //- Fixed small shadow div if chatbox collapsed
+        div.m-1.p-2.shadow-sm.rounded-lg(
+          v-if="chatboxCollapsed"
+          @click="toggleChatboxCollapsed"
+          style="font-size: 1em; cursor: pointer; position: absolute; top: 10px; left: 10px; z-index: 1000; background-color: rgba(0, 0, 0, 0.1)"
+        ) 💬
         //- Chatbox
-        //- If `chatboxCollapsed` is `false`, the chatbox is pinned to the left of the screen
-        //- If `chatboxCollapsed` is `true`, it becomes smaller and floats in the top left corner with a shadow, allowing the user to interact with the mindmap
-        b-col.p-0(
+        b-col.pt-4(
+          v-else
           :style=`chatboxCollapsed ? {
             position: 'fixed',
             [chatboxVerticalAnchor]: chatboxVerticalAnchor === 'top' ? '10px' : '60px',
@@ -22,40 +29,32 @@
             boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.5)',
             zIndex: 1000,
           } : {
-            height: 'calc(100vh - 50px)',
+            height: wide ? 'calc(100vh - 50px)' : '55vh',
           }`
           )
           b-spinner(v-if="!messages")
           template(v-else)
-          
-            div.header.text-center.border-top.border-right.border-left(
-              @click="toggleChatboxCollapsed"
-              style="cursor: pointer"
-            )
-              div(
-                v-if="!chatboxCollapsed"
-              )
-                h1.mb-0.display-3(style="font-size: 3rem;") Mindy
-                p.lead(style="font-size: 1rem;") Brainstorm with AI
-              template(v-else)
-                //- //- Switch to change chatbox anchor position
-                //- span.text-muted(
-                //-   variant="light"
-                //-   size="sm"
-                //-   @click="rotateChatboxAnchor"
-                //-   style="cursor: pointer; position: absolute; top: 0px; right: 10px;"
-                //- ) ✢
-                
-                p.mt-3.lead(style="font-size: 1rem; cursor: pointer;") 💬
+            div.header.text-center.border-top.border-right.border-left
+              div.px-2.float-right.text-muted(
+                @click="toggleChatboxCollapsed"
+                style="cursor: pointer; position: absolute; top: 25px; left: 15px; z-index: 1000; font-size: 1.5em;"
+              ) ⤣
+              div(v-if="wide")
+                //- Fixed (top left) glyph to collapse the chatbox
+                h1.mb-0.display-3(style="font-size: 3em;") Mindy
+                p.lead(style="font-size: 1em;") Brainstorm with AI
+              div.lead(
+                v-else
+                style="font-size: 1.5em;"
+                ) Mindy · Brainstorm with AI
             div#messages.border-right.border-left(
               v-if="!chatboxCollapsed"
               :style=`{
-                height: chatboxCollapsed ? '150px' : 'calc(100vh - 400px)',
+                height: wide ? 'calc(100vh - 300px)' : 'calc(55vh - 170px)',
                 overflowY: 'scroll',
-                fontSize: chatboxCollapsed ? '0.75em' : '1em',
               }`
               )
-              div.message.pt-4.p-2(
+              div.message.p-2(
                 :id="`message-${message.id}`"
                 :ref="`message-${message.id}`"
                 v-for="(message, index) in thread", :key="index", 
@@ -97,7 +96,9 @@
                 div(v-text="message.user.name", :class="{ 'text-primary': user && message.user.name === user.name }", :style="{ fontWeight: 'bold' }")
 
                 //- If not editing, display the message content. On double-click, start editing
-                div(v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)")
+                div.message-content(
+                  v-if="editing.message !== message", v-html="$md.render(message.content)", @dblclick="edit(message)"
+                )
 
                 div(v-else)
                   //- Send on Enter -- only if this not a bot message, -- cancel on escape 
@@ -137,7 +138,7 @@
                     em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
 
                 //- Buttons with various messagem shown either if this is the routed message, if it has bookmarks, or if the user hovers over it
-                b-row(
+                b-row.pt-2(
                   v-if="message === routedMessage || message.bookmark || hoveredMessage === message",
                   align-h="between"
                 )
@@ -147,7 +148,8 @@
                     b-button(
                       v-if="message.user.isBot"
                       variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply"
-                      :size="chatboxCollapsed ? 'sm' : 'md'"
+                      size="sm"
+                      style="font-size: 0.8em;"
                     )
                       | ↺ Try again
                   
@@ -159,7 +161,7 @@
                       v-if="message.user.isBot"
                       @click="upvote(message)"
                       variant="light"
-                      :size="chatboxCollapsed ? 'sm' : 'md'"
+                      size="sm"
                       :style="!message.upvoted ? { 'filter': 'grayscale(100%)' } : {}"
                     )
                       | 👍
@@ -168,7 +170,7 @@
                     b-button.mx-1(
                       @click="bookmark(message)"
                       variant="light"
-                      :size="chatboxCollapsed ? 'sm' : 'md'"
+                      size="sm"
                       :style="message.bookmark ? { cursor: 'not-allowed'} : { filter: 'grayscale(100%)' }"
                     )
                       | 🔖
@@ -228,6 +230,7 @@
                     placeholder="Enter to send, Shift+Enter for new line"
                     :disabled="!user || sending || generatingReply"
                     @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
+                    style="font-size: 1em;"
                   )
 
                 //- Send button
@@ -236,22 +239,23 @@
                   type="submit"
                   :variant="sending ? 'outline-secondary' : 'primary'"
                   :disabled="!input || sending || generatingReply"
+                  size="sm"
                 )
                   | {{ sending ? 'Sending...' : 'Send' }}
                   b-spinner(v-if="sending", small)
               
 
         //- Context column
-        //- Use routedMessage if it has context, or the latest message that has it
-        //- b-col.col-xl-8.col-lg-7.col-sm-6
-        b-col(
-          :class="chatboxCollapsed ? 'col-12' : 'col-md-8 col-sm-10 col-12'"
+        b-col.px-4(
+          :class="chatboxCollapsed ? 'col-12' : 'col-lg-8 col-md-7 col-sm-12 col-12'"
           )
           template(
             v-if="routedMessage || messageForContext"
             )
             b-row.justify-content-center.text-center(
               v-if="messageForContext"
+              :style="narrow && 'height: calc(45vh - 50px)'"
+              align-v="center"
             )
               MindyContext(
                 v-if="messageForContext.context"
@@ -277,7 +281,8 @@
               //- Jump to the message with context or add more suggestions
               b-button.mx-1(
                 v-if="messageForContext && messageForContext.id && routedMessage !== messageForContext && !generating",
-                variant="outline-secondary"
+                variant="light"
+                size="sm"
                 :to="{ query: { id: messageForContext.id } }"
                 style="text-decoration: none; color: inherit; font-size: 1.2em"
                 title="Go to message for this mindmap"
@@ -403,6 +408,7 @@
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
+  import narrowMixin from '~/plugins/mixins/narrow'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -425,6 +431,7 @@
       tryAction
       windowMixin
       mixpanelMixin
+      narrowMixin()
     ]
 
     head: ->
@@ -531,8 +538,6 @@
         })
 
     mounted: ->
-
-      # If window width is less than 768px, collapse chatbox
 
       @mixpanel.track 'Started'
 
@@ -923,6 +928,15 @@
 </script>
 
 <style>
+
+  body {
+    font-size: 0.75em;
+  }
+
+  /* Remove margin after last child of .message-content */
+  .message-content *:last-child {
+    margin-bottom: 0;
+  }
 
   label {
     font-weight: bold;

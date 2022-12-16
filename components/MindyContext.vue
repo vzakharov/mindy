@@ -1,7 +1,6 @@
 <template lang="pug">
   //- "Context" is a sort of a canvas/workspace that visualizes the topic according to the conversation so far. It helps the user to understand the topic better while at the same time giving the bot more context to work with. Visually, the context is represented as a mind map or a similar visual aid. Under the hood, the context is plain text, with one non-indented line representing the main topic, and any following tab-indented lines representing sub-topics (think nested bullet points but with tabs instead of asterisks).
   b-col
-
     b-row#mermaid-container.justify-content-center
     template(v-if="!readonly")
       //- Error message if the context is invalid with a suggestion to edit in plain text
@@ -236,6 +235,6 @@
     font-family: monospace;
     background-color: #1e1e1e;
     color: #d4d4d4;
-    height: calc(100% - 2.5rem);
+    height: calc(100% - 2.5em);
   }
 </style>

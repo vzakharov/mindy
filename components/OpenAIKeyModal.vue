@@ -46,7 +46,7 @@
     //- Clarification that the user will be spending their own OpenAI tokens (credits)
     b-checkbox.mt-4(
       v-model="acknowledged"
-      style="font-size: 1.2rem;"
+      style="font-size: 1.2em;"
     )
       | I understand that I will be spending my own OpenAI tokens (credits) to generate texts.
 
