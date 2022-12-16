@@ -218,6 +218,7 @@
                 
               //- Message input & buttons
               b-form(
+                id="messageInputForm"
                 @submit.prevent="sendMessage()", class="mb-0"
               )
                 b-form-group(:label="user && user.name", label-for="input")
@@ -230,7 +231,12 @@
                   )
 
                 //- Send button
-                b-button(type="submit", :variant="sending ? 'outline-secondary' : 'primary'", :disabled="!input || sending || generatingReply")
+                b-button(
+                  id="sendButton"
+                  type="submit"
+                  :variant="sending ? 'outline-secondary' : 'primary'"
+                  :disabled="!input || sending || generatingReply"
+                )
                   | {{ sending ? 'Sending...' : 'Send' }}
                   b-spinner(v-if="sending", small)
               
@@ -248,39 +254,39 @@
               v-if="messageForContext"
             )
               MindyContext(
-                v-show="!!messageForContext.context"
+                v-if="messageForContext.context"
                 :key="messageForContext.id"
                 :readonly="routedMessage !== messageForContext || generatingContext"
                 v-model="messageForContext.context"
                 @rebuild="generateContext(messageForContext)"
+                @node-clicked="input = $event; $nextTick(sendMessage)"
                 :style=`{
                   filter: routedMessage && routedMessage !== messageForContext || generatingContext ? 'grayscale(25%) opacity(0.75)' : 'none',
                 }`
               )
-              //- Add a note in top right corner saying that this is a read-only context if it's not that message's context
-              div#context-readonly-popover.text-muted.text-right.text-nowrap.text-truncate.px-2(                
-                v-if="routedMessage && routedMessage !== messageForContext && !generatingContext",
-                class="position-absolute"
-                style="top: 0; right: 10px; z-index: 1"
-              )
-                nuxt-link(
-                  :to="{ query: { id: getMessageWithContext(routedMessage).id } }"
-                  style="text-decoration: none; font-size: 0.8em; color: inherit"
-                  )
-                  | » To original message
             b-row.justify-content-center.mt-2
               //- Generate context
               b-button.mx-1(
-                v-if="routedMessage && !routedMessage.context"
+                v-if="routedMessage && !routedMessage.context && routedMessage.user.isBot",
                 @click="generateContext(routedMessage)"
                 :disabled="sending || generatingReply || generatingContext"
                 :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
                 | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
+              //- Jump to the message with context or add more suggestions
+              b-button.mx-1(
+                v-if="messageForContext && messageForContext.id && routedMessage !== messageForContext && !generatingContext",
+                variant="outline-secondary"
+                :to="{ query: { id: messageForContext.id } }"
+                style="text-decoration: none; color: inherit; font-size: 1.2em"
+                title="Go to message for this mindmap"
+                )
+                | {{ tree.lineage(messageForContext).includes(routedMessage) ? '»' : '«' }}
+
           b-row.text-muted(v-else, align-h="center", justify="center")
             b-spinner.text-muted(type="grow")
-            p.mx-2.lead Hold on a sec, unwrapping the magic wand...
+            p.mx-2.lead Unwrapping the 🪄...
 
 
       OpenAIKeyModal(v-model="openAIkey" ref="openAIkeyModal")
@@ -482,11 +488,13 @@
       messageForContext: ->
         if @routedMessage
           log "Message with context for routed message #{@routedMessage.id}",
-          @getMessageWithContext(@routedMessage)
-        else if not @$route.query.id and @suggestionsContext
-          log "Message with context for suggestions",
-          id: 0
-          context: @suggestionsContext
+          messageForContext = @getMessageWithContext(@routedMessage)
+        if not messageForContext and @suggestionsContext
+          log "Using suggestions context",
+          messageForContext =
+            id: 0
+            context: @suggestionsContext
+        messageForContext
 
       context: ->
         # Take the first line of the context, if any
@@ -576,9 +584,9 @@
           log "Message with context for #{message.id} (direction: #{direction}, includeSelf: #{includeSelf})",
           switch direction
             when 'past'
-              _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
+              _.findLast @tree.lineage(message, { includeSelf }), (message) -> message.context
             when 'future'
-              _.find @tree.heritage(message, includeSelf), (message) -> message.context
+              _.find @tree.heritage(message, { includeSelf }), (message) -> message.context
             when 'both'
               @getMessageWithContext(message, { includeSelf, direction: 'past' }) or @getMessageWithContext(message, { includeSelf, direction: 'future' })
 
@@ -892,9 +900,7 @@
               @routedMessage = message
             else
               log "Message ##{id} not found"
-              @routedMessage = null
-          else
-            @routedMessage = null
+          if not @routedMessage
             await @localLoaded
             @getSuggestions()
       

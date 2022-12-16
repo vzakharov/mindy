@@ -166,6 +166,18 @@
               @chartRendered = true
               console.log 'Mermaid chart updated'
 
+              # Add a click event to every <text> within the element, unless readonly
+              element.querySelectorAll('text').forEach (element) =>
+                # Set cursor to pointer
+                element.style.cursor = 'pointer'
+                element.addEventListener 'click', () =>
+                  # Take all tspan's within and join them with a space
+                  text = Array.from(element.querySelectorAll('tspan')).map((element) -> element.textContent).join(' ')
+                  # Remove any multiple spaces
+                  text = text.replace /\s+/g, ' '
+                  # Emit a `node-clicked` event with the text
+                  @$emit 'node-clicked', log text
+
       context: ->
         if not @contextChanged
           @contextChanged = true

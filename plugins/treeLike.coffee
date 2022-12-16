@@ -60,11 +60,13 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
           []
       
       lineage: (item, { includeSelf = true } = {}) ->
+        log "Calculating lineage for #{item?.id}, includeSelf: #{includeSelf}"
         lineage = [ ...@ancestors(item) ].reverse()
         lineage.push(item) if includeSelf && item
         # remove root
         if lineage?[0] is @root
           lineage.shift()
+        log 'lineage',
         lineage
       
       heir: (item, { nested } = {}) ->
@@ -95,8 +97,6 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         lineage = @lineage(item, includeSelf: !includeSelf)
         log 'heritage',
         _.difference thread, lineage
-
-
 
     cache: {}
 
