@@ -433,7 +433,9 @@
 
     head: ->
 
-      title: if @routedMessage then "#{@routedMessage.bookmark?.name || @routedMessage.content} · Mindy" else 'Mindy · Brainstorm with AI'
+      { bookmark, content} = @routedMessage || {}
+
+      title: if @routedMessage then "#{ if bookmark?.name then "#{bookmark.name} (bookmark)" else content } · Mindy" else 'Mindy · Brainstorm with AI'
 
       meta: [
         name: 'viewport'
@@ -441,7 +443,7 @@
       ]
 
     data: ->
-      suggestionsContext: null
+      suggestions: []
       hoveredMessage: null
       fineTuningRequested: false
       chatboxCollapsed: false
@@ -477,6 +479,15 @@
       previousThread: null
 
     computed:
+
+      suggestionsContext: ->
+        # Create the suggestion context by using 'Hey Mindy!' as the root node and the others (indented by a tab) as children
+        if @suggestions.length
+          log 'Suggestion context',
+          @suggestionsContext = [
+            'Hey Mindy!'
+            ...@suggestions.map( (suggestion) -> "\t#{suggestion}" )
+          ].join('\n')
 
       messageForContext: ->
         if @routedMessage
@@ -538,40 +549,34 @@
           =>
             
             log 'Suggestions:',
-            { choices: [{ text }] } = await @polygon.run 'suggest', {}, stop: ['\n\n']
-            # The text returned contains suggestions on how the user can use Mindy in the following format:
-            # ```How can I increase customer acquisition?
-            # 2. What are some creative ways to spice up dinner?
-            # 3. What are some tips to improve my relationships?```
-            # I.e., it is an ordered list of questions, with the first question missing the number.
-            # We should
-            # a) Split them by newline
-            # b) Test every line to see if it meets the format and discard the ones that don't
-            # c) Remove the list prefix from the lines that do
-            suggestions = text
-              .split('\n')
-              .filter( (line) ->
-                # Test if the line ends with a question mark
-                line.match(/\?$/)
-              )
-              .map( (line) ->
-                # Remove the list prefix, if any
-                line.replace(/^\d+\.\s*/, '')
-              )
-            # If there are no suggestions, just use the default ones
-            if suggestions.length == 0
-              suggestions = [
-                'What are some creative ways to spice up dinner?',
-                'What are some tips to improve my relationships?',
-                'How can I increase customer acquisition?'
-              ]
-            
-            # Create the suggestion context by using 'Hey Mindy!' as the root node and the others (indented by a tab) as children
-            log 'Suggestion context',
-            @suggestionsContext = [
-              'Hey Mindy!'
-              ...suggestions.map( (suggestion) -> "\t#{suggestion}" )
-            ].join('\n')
+            suggestions = await do getSuggestions = =>
+              { choices: [{ text }] } = await @polygon.run 'suggest', {}, stop: ['\n\n'], temperature: 1
+              # The text returned contains suggestions on how the user can use Mindy in the following format:
+              # ```How can I increase customer acquisition?
+              # 2. What are some creative ways to spice up dinner?
+              # 3. What are some tips to improve my relationships?```
+              # I.e., it is an ordered list of questions, with the first question missing the number.
+              # We should
+              # a) Split them by newline
+              # b) Test every line to see if it meets the format and discard the ones that don't
+              # c) Remove the list prefix from the lines that do
+              suggestions = text
+                .split('\n')
+                .filter( (line) ->
+                  # Test if the line ends with a question mark
+                  line.match(/\?$/)
+                )
+                .map( (line) ->
+                  # Remove the list prefix, if any
+                  line.replace(/^\d+\.\s*/, '')
+                )
+
+            # Add the suggestions to @suggestions
+            @suggestions = [ ...@suggestions, ...suggestions ]
+
+            # If there's less than 3 @suggestions, get more
+            if @suggestions.length < 3
+              @$nextTick @getSuggestions
 
       getPreviousMessageWithContext: (message, { includeSelf } = {} ) -> 
         _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
@@ -865,12 +870,12 @@
           { id, user: { isBot }} = message
           # Nudge the message
           @tree.nudge message
-          # If this is not a bot message, route to the child (next message in the thread)          
-          if !isBot
-            index = @thread.indexOf(message) + 1
-            if index < @thread.length
-              @routedMessage = @thread[index]
-              return
+          # # If this is not a bot message, route to the child (next message in the thread)          
+          # if !isBot
+          #   index = @thread.indexOf(message) + 1
+          #   if index < @thread.length
+          #     @routedMessage = @thread[index]
+          #     return
           if id != parseInt @$route.query?.id
             log "Routing to message ##{id}"
             @$router.push { query: { id: message.id } }
@@ -893,6 +898,18 @@
             @routedMessage = null
             await @localLoaded
             @getSuggestions()
+      
+      '$route.query.bookmark':
+        immediate: true
+        handler: (name) ->
+          if name
+            await @localLoaded
+            message = _.find @messages, { bookmark: { name } }
+            if message
+              @routedMessage = message
+            else
+              log "Bookmark #{name} not found"
+              @routedMessage = null
 
     }
 
