@@ -65,23 +65,39 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         # remove root
         if lineage?[0] is @root
           lineage.shift()
-        console.log { item, includeSelf, lineage }
         lineage
       
       heir: (item, { nested } = {}) ->
-        log "Calculating heir for", item
+        log "Calculating heir for #{item?.id}"
         # the first among children (sorted by ...childOrder), and so on recursively
-        if @children(item).length
-          heir = @children(item)[item.heirIndex or 0]
+        log 'children',
+        children = @children(item)
+        if children.length
+          log 'heir',
+          heir = children[item.heirIndex or 0]
           if nested
             @heir(heir, nested: true)
         else
           item
-
+                
       thread: (item, includeDescendants = true) ->
         # i.e. lineage of the ultimate heir
+        log 'thread',
         @lineage( if includeDescendants then @heir(item, nested: true) else item )
-    
+
+      heritage: (item, { includeSelf = true } = {}) ->
+        # i.e. the opposite of lineage, i.e. the heir, then the heir's heir, etc. (possibly including the item itself as the first item)
+        # take thread and remove the lineage
+        log "Calculating heritage for #{item?.id}"
+        log 'thread',
+        thread = @thread(item)
+        log 'lineage',
+        lineage = @lineage(item, includeSelf: !includeSelf)
+        log 'heritage',
+        _.difference thread, lineage
+
+
+
     cache: {}
 
     # Functions to manipulate the tree

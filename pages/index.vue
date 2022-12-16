@@ -57,6 +57,7 @@
               )
               div.message.pt-4.p-2(
                 :id="`message-${message.id}`"
+                :ref="`message-${message.id}`"
                 v-for="(message, index) in thread", :key="index", 
                 :style=`{
                   'background-color': index % 2 ? '#f7f7f7' : '#fff',
@@ -168,7 +169,7 @@
                       @click="bookmark(message)"
                       variant="light"
                       :size="chatboxCollapsed ? 'sm' : 'md'"
-                      :style="!message.bookmark ? { 'filter': 'grayscale(100%)' } : {}"
+                      :style="message.bookmark ? { cursor: 'not-allowed'} : { filter: 'grayscale(100%)' }"
                     )
                       | 🔖
                       span.text-muted(
@@ -268,12 +269,12 @@
                   triggers="hover",
                   placement="bottom",
                 )
-                  p This mindmap is taken from a previous message. We’re showing it here for convenience, but you can’t edit it.
+                  p This mindmap is taken from another message. We’re showing it here for convenience, but you can’t edit it.
                   p
                   | You can either
                   ul
                     li
-                      nuxt-link(:to="{ query: { id: getPreviousMessageWithContext(routedMessage).id } }") go to the previous message  
+                      nuxt-link(:to="{ query: { id: getMessageWithContext(routedMessage).id } }") go to the message with context  
                       | and edit it there, or
                     li
                       span.text-primary(@click="generateContext(routedMessage)", style="cursor: pointer") build a new mindmap  
@@ -282,7 +283,7 @@
               //- Generate context
               b-button.mx-1(
                 v-if="routedMessage && !routedMessage.context"
-                @click="generateContext(messageForContext)"
+                @click="generateContext(routedMessage)"
                 :disabled="sending || generatingReply || generatingContext"
                 :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
               )
@@ -491,8 +492,10 @@
 
       messageForContext: ->
         if @routedMessage
-          @getPreviousMessageWithContext(@routedMessage, includeSelf: true)
+          log "Message with context for routed message #{@routedMessage.id}",
+          @getMessageWithContext(@routedMessage)
         else if not @$route.query.id and @suggestionsContext
+          log "Message with context for suggestions",
           id: 0
           context: @suggestionsContext
 
@@ -578,12 +581,23 @@
             if @suggestions.length < 3
               @$nextTick @getSuggestions
 
-      getPreviousMessageWithContext: (message, { includeSelf } = {} ) -> 
-        _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
+      getMessageWithContext: (message, { includeSelf = true, direction = 'both' } = {} ) -> 
+        # `direction` can be 'past', 'future' or 'both'. 'both' means first past, then future (not the other way around)
+        if message
+          log "Message with context for #{message.id} (direction: #{direction}, includeSelf: #{includeSelf})",
+          switch direction
+            when 'past'
+              _.findLast @tree.lineage(message, includeSelf), (message) -> message.context
+            when 'future'
+              _.find @tree.heritage(message, includeSelf), (message) -> message.context
+            when 'both'
+              @getMessageWithContext(message, { includeSelf, direction: 'past' }) or @getMessageWithContext(message, { includeSelf, direction: 'future' })
 
       bookmark: (message) ->
         if message.bookmark
-          @$set message, 'bookmark', false
+          # Prompt for deletion
+          if confirm("Delete the bookmark? THERE IS NO UNDO!")
+            @$set message, 'bookmark', false
         else
           # Show a prompt asking for a name. If no name is given, just use `true`
           if name = prompt("Bookmark this reply as what? (Leave blank to bookmark anonymously)")
@@ -766,7 +780,7 @@
             log 'Generating context for', message
 
             # Find the most recent message that has a context
-            previousMessageWithContext = @getPreviousMessageWithContext message
+            previousMessageWithContext = @getMessageWithContext message, includeSelf: false, direction: 'past'
 
             contextExists = !!previousMessageWithContext
 
@@ -782,9 +796,7 @@
               previousContext = previousMessageWithContext.context
 
               log 'Messages after previous context',
-              messagesAfterPreviousContext = @tree\
-                .lineage(message, includeSelf: true)\
-                .slice @tree.lineage(previousMessageWithContext, includeSelf: true).length
+              messagesAfterPreviousContext = @tree.heritage previousMessageWithContext, includeSelf: false
 
               log 'Conversation after previous context', 
               conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext
@@ -796,6 +808,7 @@
             }, {
               stop: '```'
               temperature: 0.5
+              n: 1
             }
 
             getIndent = ( line, tabSize = 2) => ( line.length - line.trimLeft().length ) / tabSize
@@ -870,15 +883,12 @@
           { id, user: { isBot }} = message
           # Nudge the message
           @tree.nudge message
-          # # If this is not a bot message, route to the child (next message in the thread)          
-          # if !isBot
-          #   index = @thread.indexOf(message) + 1
-          #   if index < @thread.length
-          #     @routedMessage = @thread[index]
-          #     return
           if id != parseInt @$route.query?.id
             log "Routing to message ##{id}"
             @$router.push { query: { id: message.id } }
+          # Scroll to message
+          @$nextTick =>
+            document.getElementById("message-#{id}")?.scrollIntoView()
       
       '$route.query.id':
         immediate: true
