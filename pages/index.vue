@@ -248,37 +248,26 @@
               v-if="messageForContext"
             )
               MindyContext(
-                v-show="!!messageForContext.context && !generatingContext"
+                v-show="!!messageForContext.context"
                 :key="messageForContext.id"
-                :readonly="routedMessage !== messageForContext"
+                :readonly="routedMessage !== messageForContext || generatingContext"
                 v-model="messageForContext.context"
                 @rebuild="generateContext(messageForContext)"
                 :style=`{
-                  filter: routedMessage && routedMessage !== messageForContext ? 'grayscale(25%) opacity(0.75)' : 'none',
+                  filter: routedMessage && routedMessage !== messageForContext || generatingContext ? 'grayscale(25%) opacity(0.75)' : 'none',
                 }`
               )
               //- Add a note in top right corner saying that this is a read-only context if it's not that message's context
               div#context-readonly-popover.text-muted.text-right.text-nowrap.text-truncate.px-2(                
                 v-if="routedMessage && routedMessage !== messageForContext && !generatingContext",
                 class="position-absolute"
-                style="top: 0; right: 10px; z-index: 1; cursor: help;"
+                style="top: 0; right: 10px; z-index: 1"
               )
-                | Read-only. Why?
-                b-popover(
-                  target="context-readonly-popover",
-                  triggers="hover",
-                  placement="bottom",
-                )
-                  p This mindmap is taken from another message. We’re showing it here for convenience, but you can’t edit it.
-                  p
-                  | You can either
-                  ul
-                    li
-                      nuxt-link(:to="{ query: { id: getMessageWithContext(routedMessage).id } }") go to the message with context  
-                      | and edit it there, or
-                    li
-                      span.text-primary(@click="generateContext(routedMessage)", style="cursor: pointer") build a new mindmap  
-                      | for this one.
+                nuxt-link(
+                  :to="{ query: { id: getMessageWithContext(routedMessage).id } }"
+                  style="text-decoration: none; font-size: 0.8em; color: inherit"
+                  )
+                  | » To original message
             b-row.justify-content-center.mt-2
               //- Generate context
               b-button.mx-1(
