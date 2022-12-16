@@ -256,12 +256,12 @@
               MindyContext(
                 v-if="messageForContext.context"
                 :key="messageForContext.id"
-                :readonly="routedMessage !== messageForContext || generatingContext"
+                :readonly="routedMessage !== messageForContext || generating"
                 v-model="messageForContext.context"
                 @rebuild="generateContext(messageForContext)"
                 @node-clicked="input = $event; $nextTick(sendMessage)"
                 :style=`{
-                  filter: routedMessage && routedMessage !== messageForContext || generatingContext ? 'grayscale(25%) opacity(0.75)' : 'none',
+                  filter: routedMessage && routedMessage !== messageForContext || generating ? 'grayscale(25%) opacity(0.75)' : 'none',
                 }`
               )
             b-row.justify-content-center.mt-2
@@ -269,14 +269,14 @@
               b-button.mx-1(
                 v-if="routedMessage && !routedMessage.context && routedMessage.user.isBot",
                 @click="generateContext(routedMessage)"
-                :disabled="sending || generatingReply || generatingContext"
-                :variant="generatingReply || generatingContext ? 'light' : 'outline-primary'"
+                :disabled="sending || generating"
+                :variant="generating ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
                 | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
               //- Jump to the message with context or add more suggestions
               b-button.mx-1(
-                v-if="messageForContext && messageForContext.id && routedMessage !== messageForContext && !generatingContext",
+                v-if="messageForContext && messageForContext.id && routedMessage !== messageForContext && !generating",
                 variant="outline-secondary"
                 :to="{ query: { id: messageForContext.id } }"
                 style="text-decoration: none; color: inherit; font-size: 1.2em"
@@ -475,6 +475,8 @@
       previousThread: null
 
     computed:
+
+      generating: -> @generatingContext or @generatingReply
 
       suggestionsContext: ->
         # Create the suggestion context by using 'Hey Mindy!' as the root node and the others (indented by a tab) as children
