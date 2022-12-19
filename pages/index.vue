@@ -408,7 +408,7 @@
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
-  import narrowMixin from '~/plugins/mixins/narrow'
+  import checkWidthMixin from '~/plugins/mixins/checkWidth'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -431,7 +431,7 @@
       tryAction
       windowMixin
       mixpanelMixin
-      narrowMixin()
+      checkWidthMixin()
     ]
 
     head: ->

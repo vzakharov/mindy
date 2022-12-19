@@ -4,12 +4,14 @@ export default ( breakpoint = 768 ) ->
   data: ->
     narrow: false
     wide: true
+    width: null
 
   mounted: ->
 
     do checkNarrow = =>
-      @narrow = window.innerWidth < breakpoint
+      @width = window.innerWidth
+      @narrow = @width < breakpoint
       @wide = not @narrow
-      console.log { @narrow, @wide }
+      console.log "Width changed to #{@width}"
     
     window.addEventListener 'resize', checkNarrow
