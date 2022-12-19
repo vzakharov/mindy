@@ -2,25 +2,30 @@
 
   div
     MobileNav.d-block.d-md-none(
-      v-bind="{ secondaryPaneCaption, brandMessage }"
+      v-bind="{ secondaryPaneCaption, brand, tagline }"
       v-model="visibility"
     )
     div.container-fluid.p-0
       div.row
         transition(name="slide-right")
-          div#sidebar.col-2.d-md-block.m-0.vh-100.bg-light.border-right(
+          div#sidebar.col-2.d-md-block.m-0.vh-100.bg-light.border-right.p-2.px-md-4(
               v-show="visibility.sidebar || width > 768"
             )
-            component(:is="sidebarComponent")
+            div.d-none.d-md-block.text-center
+              h2.mb-0.display-6
+                | {{ brand }}
+              p.lead(style="font-size: 1.2em")
+                | {{ tagline }}
+            slot(name="sidebar")
         div.d-md-block.border-right(
             :class="'col-' + primaryPaneCols"
           )
-          component(:is="primaryPaneComponent")
+          slot(name="primary-pane")
         transition(name="slide-left")
           div#secondary-pane.col-auto.d-md-block(
               v-show="visibility.secondaryPane || width > 768"
             )
-            component(:is="secondaryPaneComponent")
+            slot(name="secondary-pane")
     //- 
 
 </template>
@@ -31,7 +36,7 @@
 
   export default
 
-    props: ['secondaryPaneCaption', 'brandMessage', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent']
+    props: ['secondaryPaneCaption', 'brand', 'tagline', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent']
 
     mixins: [
       checkWidthMixin()

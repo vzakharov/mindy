@@ -1,11 +1,15 @@
 <template lang="pug">
 
   TwoPanesAndSidebar(
-    brandMessage="Mindy · Brainstorm with AI"
-    sidebarComponent="MindySidebar"
-    primaryPaneComponent="MindyChatSpace"
-    secondaryPaneComponent="MindyMindmapSpace"
+    brand="Mindy"
+    tagline="Brainstorm with AI"
     secondaryPaneCaption="丫"
   )
+    template(v-slot:sidebar)
+      MindySidebar
+    template(v-slot:primary-pane)
+      MindyChatSpace
+    template(v-slot:secondary-pane)
+      MindyMindmapSpace
 
 </template>

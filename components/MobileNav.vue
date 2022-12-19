@@ -11,7 +11,7 @@
           span.navbar-toggler-icon
       //- Brand
       div#mobile-brand.lead.d-inline.pl-2
-        | {{ brandMessage }}
+        | {{ brand }} · {{ tagline }}
       b-button(
         :variant="visibility.secondaryPane ? 'outline-secondary' : 'light'"
         @click="visibility.secondaryPane = !visibility.secondaryPane"
@@ -27,7 +27,7 @@
 
   export default
 
-    props: ['value', 'secondaryPaneCaption', 'brandMessage']
+    props: ['value', 'secondaryPaneCaption', 'brand', 'tagline']
 
     mixins: [
       syncValueMixin('visibility', deep: true)

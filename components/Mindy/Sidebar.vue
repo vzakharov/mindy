@@ -1,5 +1,5 @@
 <template lang="pug">
-  div This is sidebar
+  div this is sidebar
 </template>
 
 <script lang="coffee">
