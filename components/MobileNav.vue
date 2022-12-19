@@ -1,7 +1,7 @@
 <template lang="pug">
 
   div
-    nav.navbar.navbar-light.bg-light.justify-content-between.align-items-center
+    nav.navbar.navbar-light.bg-light.justify-content-between.align-items-center.border-bottom
       //- Button to toggle sidebar
       b-button.btn-light(
         :variant="show.sidebar ? 'outline-secondary' : 'light'"

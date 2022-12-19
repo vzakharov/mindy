@@ -1,6 +1,6 @@
 <template lang="pug">
   
-  div
+  div.p-2
 
     //- Ideas
     MenuItem(

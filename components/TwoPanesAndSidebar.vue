@@ -11,10 +11,10 @@
       v-model="show"
     )
     transition(name="slide-right")
-      div#sidebar.m-0.vh-minus-navbar.bg-light.border-right.p-2.justify-content-between(
+      div#sidebar.m-0.vh-minus-navbar.bg-light.border-right.justify-content-between(
           v-show="show.sidebar || width > 1200"
         )
-        div
+        div.p-2
           div.d-none.d-xl-block.text-center(
             style="height: 56.4px;"
           )
@@ -23,17 +23,18 @@
             p.lead(style="font-size: 1em")
               | {{ tagline }}
           slot(name="sidebar")
-        div.border-top.d-flex
+        div.border-top
           slot(name="sidebar-footer")
     div#main.container-fluid
       div.row.vh-minus-navbar
-        div.p-2.d-md-block.border-right(
-            :class="'col-' + primaryPaneCols"
+        div.p-2.d-md-block.col-12(
+            :class="'col-md-' + (12 - secondaryPaneCols)"
           )
           slot(name="primary-pane")
         transition(name="slide-left")
-          div#secondary-pane.p-2.col-auto.d-md-block(
+          div#secondary-pane.p-2.d-md-block.border-left(
               v-show="show.secondaryPane || width > 768"
+              :class="'col-' + secondaryPaneCols"
             )
             slot(name="secondary-pane")
     //- 
@@ -58,7 +59,7 @@
         sidebar: true
         secondaryPane: true
       
-      primaryPaneCols: 4
+      secondaryPaneCols: 8
 
 </script>
 
@@ -90,7 +91,7 @@
       top: 56px;
       left: 0;
       bottom: 0;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
       width: var(--sidebar-width);    
       z-index: 2;
     }
@@ -110,7 +111,7 @@
       right: 0;
       bottom: 0;
       background-color: #fff;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
       width: 100%;
       max-width: 90vw;
       z-index: 1;

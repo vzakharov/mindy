@@ -1,8 +1,6 @@
 <template lang="pug">
-  a.btn.btn-block.btn-light.text-left.pl-4(
+  div.btn.btn-block.btn-light.text-left.pl-4(
     type="button"
-    :class="expandable ? 'dropdown-toggle' : ''"
-    :data-toggle="expandable ? 'dropdown' : ''"
   )
     //- Icon
     b-icon(v-if="icon" v-bind="{ icon }")
@@ -11,6 +9,8 @@
       style="left: 1em; position: relative;"
     )
       | {{ caption }}
+    //- Expandable arrow
+    b-icon.float-right.pt-2(v-if="expandable" :icon="expanded ? 'chevron-up' : 'chevron-down'")
 </template>
 
 <script lang="coffee">
