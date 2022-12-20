@@ -1,9 +1,9 @@
 <template lang="pug">
 
-  div#messages.border-right.border-left(
-    style="overflow-y: scroll; height: 100vh;"
+  div#messages.vh-minus-navbar(
+    style="overflow-y: scroll;"
     )
-    div.message.p-2(
+    div.message(
       :id="`message-${message.id}`"
       :ref="`message-${message.id}`"
       v-for="(message, index) in messages", :key="index", 
@@ -14,7 +14,7 @@
       }`
       @click="routedMessage = message"
     )
-      | {{ message.user.name }}: {{ message.content }}
+      div.px-3.pb-2.pt-1 {{ message.user.name }}: {{ message.content }}
 
   //- 
 

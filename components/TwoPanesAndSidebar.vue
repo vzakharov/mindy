@@ -27,12 +27,12 @@
           slot(name="sidebar-footer")
     div#main.container-fluid
       div.row.vh-minus-navbar
-        div.p-2.d-md-block.col-12(
+        div.d-md-block.col-12.p-0(
             :class="'col-md-' + (12 - secondaryPaneCols)"
           )
           slot(name="primary-pane")
         transition(name="slide-left")
-          div#secondary-pane.p-2.d-md-block.border-left(
+          div#secondary-pane.d-md-block.border-left.p-0(
               v-show="show.secondaryPane || width > 768"
               :class="'col-' + secondaryPaneCols"
             )
