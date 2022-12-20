@@ -12,7 +12,7 @@
       MindySidebarFooter
     template(v-slot:primary-pane)
       MindyChatSpace(
-        v-model="chat"
+        v-bind.sync="chat"
       )
     template(v-slot:secondary-pane)
       MindyMindmapSpace

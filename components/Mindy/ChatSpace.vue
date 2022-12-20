@@ -5,7 +5,7 @@
     div.header.px-3.py-4.d-flex.justify-content-between
       div.d-flex
         //- Chat space title
-        h4.mb-0 {{ chat.title }}
+        h4.mb-0 {{ title }}
         //- Edit icon, gray
         button.btn.btn-light.btn-sm.lightgray
           b-icon-pencil.icon-sm
@@ -49,7 +49,7 @@
   import TreeLike from '~/plugins/treeLike'
   import log from '~/plugins/log'
 
-  import syncValueMixin from '~/plugins/mixins/syncValue'
+  import updatePropsMixin from '~/plugins/mixins/updateProps'
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
@@ -65,18 +65,16 @@
 
   export default
 
-    props: [ 'value' ]
+    props: [ 'messages', 'routedMessageId', 'title' ]
 
     mixins: [
-      syncValueMixin( 'chat', unfold: true )
+      updatePropsMixin
       tryAction
       windowMixin
       mixpanelMixin
     ]
 
     data: ->
-      messages: []
-      routedMessageId: null
       previousThread: null
 
     computed:
@@ -96,7 +94,7 @@
 
       routedMessage:
         get: -> _.find @messages, id: @routedMessageId
-        set: (message) -> @routedMessageId = message?.id
+        set: (message) -> @updated.routedMessageId = message?.id
 
 
 </script>
