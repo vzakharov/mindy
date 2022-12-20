@@ -1,20 +1,40 @@
 <template lang="pug">
 
-  div#messages.vh-minus-navbar(
-    style="overflow-y: scroll;"
-    )
-    div.message(
-      :id="`message-${message.id}`"
-      :ref="`message-${message.id}`"
-      v-for="(message, index) in messages", :key="index", 
-      :style=`{
-        'background-color': index % 2 ? '#f7f7f7' : '#fff',
-        'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
-        'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
-      }`
-      @click="routedMessage = message"
-    )
-      div.px-3.pb-2.pt-1 {{ message.user.name }}: {{ message.content }}
+  div.h-100
+    //- Chat space header
+    div.header.px-3.py-4.d-flex.justify-content-between
+      div.d-flex
+        //- Chat space title
+        h4.mb-0 {{ chat.title }}
+        //- Edit icon, gray
+        button.btn.btn-light.btn-sm.lightgray
+          b-icon-pencil.icon-sm
+      div.d-flex
+        //- Bookmark button
+        button.btn.btn-outline-secondary.btn-sm(
+        )
+          b-icon.pr-2(icon="bookmark")
+          | Save
+        //- Settings button (no caption)
+        button.btn.btn-light.btn-sm.ml-2.lightgray
+          b-icon(icon="gear")
+    //- Messages
+    div#messages(
+      style="overflow-y: scroll; height: 100%;"
+      )
+      div.message(
+        :id="`message-${message.id}`"
+        v-for="(message, index) in thread", :key="`${index}-${routedMessageId}`"
+        :style=`{
+          'background-color': index % 2 ? '#f7f7f7' : '#fff',
+          'border': '1px solid ' + (message === routedMessage ? '#007bff' : '#fff'),
+          'cursor': 'pointer'
+        }`
+        @click="routedMessage = message"
+      )
+        div.px-3.pb-2.pt-1
+          strong {{ message.user.name }}
+          | : {{ message.content }}
 
   //- 
 
@@ -56,13 +76,27 @@
 
     data: ->
       messages: []
-      messageId: null
+      routedMessageId: null
+      previousThread: null
 
     computed:
 
+      tree: ->
+        new TreeLike(@messages, vm: @)
+
+      thread: ->
+        # If the existing thread includes the routed message, use that
+        if not @routedMessage
+          []
+        else
+          if @previousThread?.includes(@routedMessage)
+            @previousThread
+          else
+            @previousThread = @tree.thread(@routedMessage or @tree.root)
+
       routedMessage:
-        get: -> _.find @messages, { id: @messageId }
-        set: (message) -> @messageId = message?.id
+        get: -> _.find @messages, id: @routedMessageId
+        set: (message) -> @routedMessageId = message?.id
 
 
 </script>
@@ -71,6 +105,14 @@
 
   body {
     font-size: 0.75em;
+  }
+
+  .lightgray {
+    color: #bbb;
+  }
+
+  .icon-sm {
+    font-size: 100%!important;
   }
 
   /* Remove margin after last child of .message-content */

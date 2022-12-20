@@ -2,7 +2,7 @@
   div
     style
       | :root {
-      |   --navbar-height: {{ width > 1200 ? '0px' : '56.4px'}};
+      |   --navbar-height: {{ width > 1200 ? '0px' : '50px'}};
       |   --sidebar-width: 200px;
       |   --sidebar-height: calc(100vh - var(--navbar-height));
       | }
@@ -10,34 +10,35 @@
       v-bind="{ secondaryPaneCaption, brand, tagline }"
       v-model="show"
     )
-    transition(name="slide-right")
-      div#sidebar.m-0.vh-minus-navbar.bg-light.border-right.justify-content-between(
-          v-show="show.sidebar || width > 1200"
-        )
-        div.p-2
-          div.d-none.d-xl-block.text-center(
-            style="height: 56.4px;"
+    div.vh-minus-navbar
+      transition(name="slide-right")
+        div#sidebar.vh-minus-navbar.m-0.bg-light.border-right.justify-content-between.overflow-auto(
+            v-show="show.sidebar || width > 1200"
           )
-            h2.mb-0.display-6(style="font-size: 1.2em")
-              | {{ brand }}
-            p.lead(style="font-size: 1em")
-              | {{ tagline }}
-          slot(name="sidebar")
-        div.border-top
-          slot(name="sidebar-footer")
-    div#main.container-fluid
-      div.row.vh-minus-navbar
-        div.d-md-block.col-12.p-0(
-            :class="'col-md-' + (12 - secondaryPaneCols)"
-          )
-          slot(name="primary-pane")
-        transition(name="slide-left")
-          div#secondary-pane.d-md-block.border-left.p-0(
-              v-show="show.secondaryPane || width > 768"
-              :class="'col-' + secondaryPaneCols"
+          div.p-2
+            div.d-none.d-xl-block.text-center(
+              style="height: 56.4px;"
             )
-            slot(name="secondary-pane")
-    //- 
+              h2.mb-0.display-6(style="font-size: 1.2em")
+                | {{ brand }}
+              p.lead(style="font-size: 1em")
+                | {{ tagline }}
+            slot(name="sidebar")
+          div.border-top
+            slot(name="sidebar-footer")
+      div#main.h-100.container-fluid
+        div.row.h-100
+          div.d-md-block.col-12.p-0.h-100(
+              :class="'col-md-' + (12 - secondaryPaneCols)"
+            )
+            slot(name="primary-pane")
+          transition(name="slide-left")
+            div#secondary-pane.d-md-block.border-left.p-0.h-100(
+                v-show="show.secondaryPane || width > 768"
+                :class="'col-' + secondaryPaneCols"
+              )
+              slot(name="secondary-pane")
+      //- 
 
 </template>
 
@@ -56,7 +57,7 @@
     data: ->
 
       show:
-        sidebar: true
+        sidebar: false
         secondaryPane: true
       
       secondaryPaneCols: 8
@@ -88,7 +89,7 @@
 
     #sidebar {
       position: fixed;
-      top: 56px;
+      top: var(--navbar-height);
       left: 0;
       bottom: 0;
       box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
@@ -106,7 +107,7 @@
 
     #secondary-pane {
       position: fixed;
-      top: 56px;
+      top: var(--navbar-height);
       left: auto;
       right: 0;
       bottom: 0;

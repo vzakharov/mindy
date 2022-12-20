@@ -43,6 +43,7 @@ export default ( key, { unfold, deep, save = identity, load = identity } = {} ) 
             # Throw an error if there is no data with that key
             if key not of @
               throw new Error "Component #{@$options.name} does not have a data key `#{subKey}`, which is required because `unfold` is set to true."
+            console.debug "Setting #{subKey} to", value
             @[subKey] = value
             # Create new watcher
             @syncValue.watchers.push @$watch subKey, (value) ->

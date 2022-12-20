@@ -22,6 +22,7 @@
 <script lang="coffee">
 
   import syncLocal from '~/plugins/mixins/syncLocal'
+  import log from '~/plugins/log'
 
   export default
 
@@ -48,6 +49,17 @@
     data: ->
       chat:
         messages: []
-        messageId: 3
+        routedMessageId: 3
+        title: 'Mindy tutorial'
+    
+    # watch:
+
+    #   '$route.query.id':
+    #     immediate: true
+    #     handler: (id) ->
+    #       log "Navigating to message ##{id}"
+    #       if id
+    #         await @syncLocal.promise
+    #         @chat.routedMessageId = id
 
 </script>

@@ -3,7 +3,7 @@
   div
     nav.navbar.navbar-light.bg-light.justify-content-between.align-items-center.border-bottom
       //- Button to toggle sidebar
-      b-button.btn-light(
+      b-button.btn-light.btn-sm(
         :variant="show.sidebar ? 'outline-secondary' : 'light'"
         @click="show.sidebar = !show.sidebar"
       )
