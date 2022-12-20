@@ -49,17 +49,21 @@
     data: ->
       chat:
         messages: []
-        routedMessageId: 3
+        routedMessageId: null
         title: 'Mindy tutorial'
     
-    # watch:
+    watch:
 
-    #   '$route.query.id':
-    #     immediate: true
-    #     handler: (id) ->
-    #       log "Navigating to message ##{id}"
-    #       if id
-    #         await @syncLocal.promise
-    #         @chat.routedMessageId = id
+      '$route.query.id':
+        immediate: true
+        handler: (id) ->
+          log "Navigating to message ##{id}"
+          if id
+            await @syncLocal.promise
+            console.log 'syncLocal.promise resolved'
+            @$set(@chat, 'routedMessageId', parseInt(id))
+      
+      'chat.routedMessageId': (id) ->
+        @$router.push query: { id }
 
 </script>
