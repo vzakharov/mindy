@@ -1,12 +1,12 @@
 # Exports:
 #  log: (args...) -> logs the args and returns the last arg, using console.debug
-#  log.always: (args...) -> same, but using console.log
+#  log.log: (args...) -> same, but using console.log
 #  log.breakpoint: (args...) -> same as log, but adds a breakpoint (debugger statement) right after logging 
 
 
-_log = ({ args, callback, logOrDebug = 'debug' } = {}) =>
+_log = ({ args, callback, method = 'debug' } = {}) =>
 
-  console[logOrDebug] ...args
+  console[method] ...args
   callback?()
   args[args.length - 1]
 
@@ -18,9 +18,10 @@ log.breakpoint = (...args) =>
 
   _log({ args, callback: => debugger })
 
-log.always = (...args) =>
+[ 'log', 'warn', 'debug', 'error' ].forEach ( method ) ->
 
-  _log({ args, logOrDebug: 'log' })
+  log[method] = (...args) =>
 
+    _log({ args, method })
 
 export default log

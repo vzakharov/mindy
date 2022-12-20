@@ -91,7 +91,7 @@
             @mixpanel.track 'Context fixed'
           return true
         catch e
-          console.error e
+          console.warn e
           if not @wasInvalid
             @wasInvalid = true
             @mixpanel.track 'Invalid context'

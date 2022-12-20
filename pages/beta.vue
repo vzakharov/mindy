@@ -12,7 +12,7 @@
       MindySidebarFooter
     template(v-slot:primary-pane)
       MindyChatSpace(
-        v-model="chat.messages"
+        v-model="chat"
       )
     template(v-slot:secondary-pane)
       MindyMindmapSpace
@@ -48,7 +48,6 @@
     data: ->
       chat:
         messages: []
-
-
+        messageId: 3
 
 </script>

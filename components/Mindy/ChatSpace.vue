@@ -1,5 +1,23 @@
 <template lang="pug">
-  div(v-text="JSON.stringify(messages)")
+
+  div#messages.border-right.border-left(
+    style="overflow-y: scroll; height: 100vh;"
+    )
+    div.message.p-2(
+      :id="`message-${message.id}`"
+      :ref="`message-${message.id}`"
+      v-for="(message, index) in messages", :key="index", 
+      :style=`{
+        'background-color': index % 2 ? '#f7f7f7' : '#fff',
+        'border': message === routedMessage && message !== lastMessage ? '1px solid #ccc' : 'none',
+        'cursor': message !== routedMessage && message.user.isBot ? 'pointer' : 'default',
+      }`
+      @click="routedMessage = message"
+    )
+      | {{ message.user.name }}: {{ message.content }}
+
+  //- 
+
 </template>
 
 <script lang="coffee">
@@ -30,11 +48,22 @@
     props: [ 'value' ]
 
     mixins: [
-      syncValueMixin('messages')      
+      syncValueMixin( 'chat', unfold: true )
       tryAction
       windowMixin
       mixpanelMixin
     ]
+
+    data: ->
+      messages: []
+      messageId: null
+
+    computed:
+
+      routedMessage:
+        get: -> _.find @messages, { id: @messageId }
+        set: (message) -> @messageId = message?.id
+
 
 </script>
 

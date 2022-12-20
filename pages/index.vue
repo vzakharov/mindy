@@ -203,7 +203,7 @@
                       | 👍 {{ settings.allowFineTuning ? 'Upvote and send to servers' : 'Just upvote' }}
 
               div#scrollToBottom(ref="scrollToBottom")
-
+            //- 
             div.footer.p-2.border-bottom.border-right.border-left(
               v-if="!chatboxCollapsed"
               )
