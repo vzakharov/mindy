@@ -854,7 +854,7 @@
 
       ..._.transform defaultSettings, (result, value, key) ->
         result["settings.#{key}"] = (value) ->
-          if !@watchersToIgnore?.includes 'settings'
+          if !@syncLocal.ignoreWatchers?.includes 'settings'
             @mixpanel.track {
               allowFineTuning: if value then 'Fine tuning enabled' else 'Fine tuning disabled'
               autoBuildContext: if value then 'Auto context enabled' else 'Auto context disabled'
@@ -863,7 +863,7 @@
             }[key], if !_.isBoolean value then { [key]: value } else undefined
 
       usdSpent: ( usdSpent, oldUsdSpent ) ->
-        if !@watchersToIgnore?.includes 'usdSpent'
+        if !@syncLocal.ignoreWatchers?.includes 'usdSpent'
           console.log 'USD spent', usdSpent, oldUsdSpent
           @mixpanel.track 'USD spent',
             total: usdSpent
@@ -899,7 +899,7 @@
         handler: (id) ->
           log "Navigating to message ##{id}"
           if id
-            await @localLoaded
+            await @syncLocal.promise
             if id == 'last'
               { id } = _.last @messages
             message = @tree.find parseInt id
@@ -908,14 +908,14 @@
             else
               log "Message ##{id} not found"
           if not @routedMessage
-            await @localLoaded
+            await @syncLocal.promise
             @getSuggestions()
       
       '$route.query.bookmark':
         immediate: true
         handler: (name) ->
           if name
-            await @localLoaded
+            await @syncLocal.promise
             message = _.find @messages, { bookmark: { name } }
             if message
               @routedMessage = message

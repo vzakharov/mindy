@@ -18,7 +18,8 @@ export default ( key, { deep, save = identity, load = identity } = {} ) ->
 
     [key]: {
       deep
-      handler: (value) -> @$emit 'input', save.call @, value
+      handler: (value) ->
+        @$emit 'input', save.call @, value
     }
 
     value: {

@@ -1,17 +1,18 @@
 <template lang="pug">
 
   TwoPanesAndSidebar(
-    brand="Mindy"
-    tagline="Brainstorm with AI"
-    secondaryPaneCaption="丫"
-  )
+      v-if="syncLocal.loaded"
+      brand="Mindy"
+      tagline="Brainstorm with AI"
+      secondaryPaneCaption="丫"
+    )
     template(v-slot:sidebar)
       MindySidebar
     template(v-slot:sidebar-footer)
       MindySidebarFooter
     template(v-slot:primary-pane)
       MindyChatSpace(
-        v-model="messages"
+        v-model="chat.messages"
       )
     template(v-slot:secondary-pane)
       MindyMindmapSpace
@@ -24,14 +25,30 @@
 
   export default
 
+    head: ->
+
+      { bookmark, content} = @routedMessage || {}
+
+      title: if @routedMessage then "#{ if bookmark?.name then "#{bookmark.name} (bookmark)" else content } · Mindy" else 'Mindy · Brainstorm with AI'
+
+    meta: [
+      name: 'viewport'
+      content: 'width=device-width, initial-scale=1, user-scalable=no'
+    ]
+
     mixins: [
       syncLocal
-        keys: [ 'messages' ]
+        keys: [
+          [ 'messages', dataPath: 'chat' ]
+        ]
         format: 'yaml'
         prefix: 'mindy'
     ]
 
     data: ->
-      messages: []
+      chat:
+        messages: []
+
+
 
 </script>

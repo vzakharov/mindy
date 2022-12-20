@@ -4,6 +4,8 @@ import _ from 'lodash'
 
 export default ({ prefix, keys, format = 'json' } = {}) ->
 
+  log "Exporting syncLocal mixin with arguments: #{JSON.stringify(arguments[0])}"
+
   # parsing/dumping; format can be 'json' or 'yaml'
   if format is 'yaml'
     parse = yaml.load
@@ -12,10 +14,7 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
     parse = JSON.parse
     dump = JSON.stringify
 
-  loaded = false
   resolve = null
-
-  getLocalKey = (key) -> if prefix then "#{prefix}.#{key}" else key
 
   asSameTypeAs = ( value, defaultValue ) ->
 
@@ -29,33 +28,65 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
       if typeof value is 'boolean' then value else value is 'true'
     else
       value or null
+  
+  pathify = ( ...args ) -> args.filter(_.identity).join('.')
+
+  log 'Using data paths:',
+  dataPaths = keys.reduce ( paths, key ) ->
+
+      if _.isArray(key)
+        [ key, { dataPath } ] = key
+      
+      Object.assign paths, { [key]: pathify(dataPath, key) }
+
+    , {}
+  # (we'll be using this to understand where to put the data synced from local storage, and what to watch)
+
+  log 'Converted keys back to plain strings:',
+  keys = keys.map ( key ) -> if _.isArray(key) then key[0] else key
+  # (converting keys to plain string after we've parsed all the options)
+
+  log 'Using local keys:',
+  localKeys = keys.reduce ( keys, key ) ->
+      Object.assign keys, { [key]: pathify(prefix, key) }
+    , {}
 
   data: ->
 
-    localLoaded: new Promise ( res ) -> resolve = res
-    watchersToIgnore: []
+    syncLocal:
+      promise: new Promise ( res ) -> resolve = res
+      values: null
+      loaded: false
+      ignoreWatchers: []
 
   mounted: ->
 
     keys.forEach ( key ) =>
 
-      localValue = localStorage.getItem(getLocalKey(key))
-      defaultValue = @[key]
+      log "Syncing key #{key} from local storage for component #{@$options.name}"
+
+      log 'Local value:',
+      localValue = window.localStorage.getItem(localKeys[key])
+      dataPath = dataPaths[key]
+      defaultValue = _.get( @, dataPath )
+      if defaultValue is undefined then throw new Error "Default value for key `#{key}` does not exist at `#{dataPath}`"
 
       console.log key: key, localValue: localValue, defaultValue: defaultValue
 
       localValue = asSameTypeAs localValue, defaultValue
 
-      @[key] = if _.isObject(defaultValue) and not _.isArray(defaultValue)
+      _.set @, dataPath,
+      log "Setting #{key} at #{dataPath} to:",
+      if _.isObject(defaultValue) and not _.isArray(defaultValue)
         {...defaultValue, ...localValue}
       else
         localValue or defaultValue
 
-      console.log @[key]
-
     @$nextTick =>
-      loaded = true
-      resolve keys.reduce ( obj, key ) => Object.assign obj, [key]: @[key], {}
+      Object.assign @syncLocal,
+        values: _.mapValues dataPaths, ( dataPath ) => _.get @, dataPath
+        loaded: true
+      resolve @syncLocal.values
 
   watch: {
 
@@ -65,13 +96,13 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
         [key]:
           deep: true
           handler: (value) ->
-            if !loaded
-              @watchersToIgnore.push key
+            if !@syncLocal.loaded
+              @syncLocal.ignoreWatchers.push key
             else
-              localKey = getLocalKey(key)
-              localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
+              localKey = localKeys[key]
+              window.localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
               log "Saved #{key} to local storage as #{localKey}"
-              @watchersToIgnore = _.without @watchersToIgnore, key
+              @syncLocal.ignoreWatchers = _.without @syncLocal.ignoreWatchers, key
 
     , {}
 
