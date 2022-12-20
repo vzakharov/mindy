@@ -10,8 +10,28 @@
     template(v-slot:sidebar-footer)
       MindySidebarFooter
     template(v-slot:primary-pane)
-      MindyChatSpace
+      MindyChatSpace(
+        v-model="messages"
+      )
     template(v-slot:secondary-pane)
       MindyMindmapSpace
 
 </template>
+
+<script lang="coffee">
+
+  import syncLocal from '~/plugins/mixins/syncLocal'
+
+  export default
+
+    mixins: [
+      syncLocal
+        keys: [ 'messages' ]
+        format: 'yaml'
+        prefix: 'mindy'
+    ]
+
+    data: ->
+      messages: []
+
+</script>

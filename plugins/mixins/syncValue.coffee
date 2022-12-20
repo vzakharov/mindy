@@ -7,6 +7,11 @@ export default ( key, { deep, save = identity, load = identity } = {} ) ->
   # debugger
 
   data: ->
+    # Make sure `value` is a prop
+
+    if not @$options.propsData.value?
+      throw new Error "Component #{@$options.name} requires a `value` prop. Make sure to use :value or v-model in the parent component to represent `#{key}`."
+
     [key]: null
 
   watch:

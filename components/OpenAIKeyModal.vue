@@ -57,7 +57,7 @@
   import axios from 'axios'
   import tryAction from '~/plugins/tryAction'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
-  import syncLocalMixin from '~/plugins/syncLocal'
+  import syncLocalMixin from '~/plugins/mixins/syncLocal'
 
   export default
 

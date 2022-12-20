@@ -27,7 +27,7 @@
 
   import PolygonClient from '~/plugins/polygonClient'
   import log from '~/plugins/log'
-  import syncLocalMixin from '~/plugins/syncLocal'
+  import syncLocalMixin from '~/plugins/mixins/syncLocal'
 
   export default
 

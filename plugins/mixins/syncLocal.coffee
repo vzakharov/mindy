@@ -51,9 +51,11 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
       else
         localValue or defaultValue
 
-      @$nextTick ->
-        loaded = true
-        resolve()
+      console.log @[key]
+
+    @$nextTick =>
+      loaded = true
+      resolve keys.reduce ( obj, key ) => Object.assign obj, [key]: @[key], {}
 
   watch: {
 

@@ -403,7 +403,7 @@
   import TreeLike from '~/plugins/treeLike'
   import log from '~/plugins/log'
 
-  import syncLocal from '~/plugins/syncLocal'
+  import syncLocal from '~/plugins/mixins/syncLocal'
   import exposeVM from '~/plugins/exposeVM'
   import tryAction from '~/plugins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
