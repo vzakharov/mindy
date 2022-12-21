@@ -78,7 +78,7 @@
     left: 0;
     bottom: 0;
     width: var(--sidebar-width);
-    z-index: 2;
+    z-index: 20;
   }
 
   #main {
@@ -94,7 +94,7 @@
       bottom: 0;
       box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
       width: var(--sidebar-width);    
-      z-index: 2;
+      z-index: 20;
     }
 
     #main {
@@ -115,7 +115,7 @@
       box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
       width: 100%;
       max-width: 90vw;
-      z-index: 1;
+      z-index: 10;
     }
 
   }

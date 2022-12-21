@@ -20,7 +20,8 @@
           b-icon(icon="gear")
     //- Messages
     div#messages(
-      style="overflow-y: scroll; height: 100%;"
+      ref="messages"
+      style="overflow-y: auto; height: 100%;"
       )
       div.message(
         :id="`message-${message.id}`"
@@ -35,6 +36,18 @@
         div.px-3.pb-2.pt-1
           strong {{ message.user.name }}
           | : {{ message.content }}
+    //- Message input
+    div.input-group.p-3.bg-light.border-top(ref="input")
+      input.form-control(
+        type="text"
+        placeholder="Shift+Enter for new line"
+        v-model="updated.newMessage"
+      )
+      div.input-group-append
+        button.btn.btn-outline-secondary(
+          type="button"
+        )
+          b-icon.pl-2(icon="arrow-right")
 
   //- 
 
@@ -53,6 +66,7 @@
   import tryAction from '~/plugins/mixins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
+  import autoHeightMixin from '~/plugins/mixins/autoHeight'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -72,6 +86,7 @@
       tryAction
       windowMixin
       mixpanelMixin
+      autoHeightMixin 'messages', footerRef: 'input'
     ]
 
     data: ->
