@@ -18,6 +18,8 @@
         //- Settings button (no caption)
         button.btn.btn-light.btn-sm.ml-2.lightgray
           b-icon(icon="gear")
+    //- 
+
     //- Messages
     div#messages(
       ref="messages"
@@ -36,6 +38,8 @@
         div.px-3.pb-2.pt-1
           strong {{ message.user.name }}
           | : {{ message.content }}
+    //- 
+
     //- Message input
     div.input-group.p-3.bg-light.border-top(ref="input")
       b-textarea.form-control(
@@ -44,13 +48,21 @@
         v-model="newMessage"
         rows="1"
         max-rows="10"
-        :style="'overflow: auto; ' + ( isMultiline ? '' : 'height: 2.5rem' )"
+        :style=`{
+          overflow: 'auto',
+          ...isMultiline ? {
+            fontSize: '1em',
+          } : {
+            height: '2.5em'
+          },
+        }`
       )
       div.input-group-append
-        button.btn.btn-outline-secondary(
+        button.btn.btn-primary(
           type="button"
         )
-          b-icon.pl-2(icon="arrow-right")
+          SendIcon
+    //- 
 
   //- 
 
