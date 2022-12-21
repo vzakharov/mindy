@@ -7,10 +7,10 @@
     )
     //- Spinner taking up all the parent container and making the background semi-transparent if loading
     b-spinner(v-show="rendering")
-    NodePopover(
+    NodeManipulation(
       v-for="box in boxes"
       :key="box.id"
-      v-bind="{ box }"
+      v-bind.sync="box"
       @expand="expand(box)"
       @createSibling="createSibling(box)"
     )
@@ -91,15 +91,20 @@
                 text = Array.from(element.querySelectorAll('tspan')).map((element) -> element.textContent.replace /\s{2,}/g, ' ').join ' '
 
                 # Create a virtual box with the same dimensions and position
-                @boxes.push {
+                box = {
                   element
                   id
                   text
+                  editing: false
                   index: index++
                 }
+                @boxes.push box
 
                 # Assign the id to the element
                 element.id = "box-#{id}"
+
+                # On double click, set the box's editing property to true
+                element.ondblclick = => box.editing = true
       # 
 
     watch:
