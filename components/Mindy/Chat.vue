@@ -11,9 +11,9 @@
           b-icon-pencil.icon-sm
       div.d-flex
         //- Bookmark button
-        button.btn.btn-outline-secondary.btn-sm(
+        button.btn.btn-outline-secondary(
         )
-          b-icon.pr-2(icon="bookmark")
+          b-icon.px-1(icon="bookmark")
           | Save
         //- Settings button (no caption)
         button.btn.btn-light.btn-sm.ml-2.lightgray
@@ -61,7 +61,7 @@
         button.btn.btn-primary(
           type="button"
         )
-          SendIcon
+          Icon(icon="send")
     //- 
 
   //- 

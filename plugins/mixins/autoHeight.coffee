@@ -3,24 +3,26 @@
 import _ from 'lodash'
 import log from '~/plugins/log'
 
+# log.disable()
+
 export default ( ref, { footerRef } = {} ) ->
 
   fit = ( element, footer ) ->
 
     # Get the element's top
-    log "Offset of", element, "is",
+    # log "Offset of", element, "is",
     offset = element.getBoundingClientRect().top
 
     # Get the footer's height
-    log "Height of", footer, "is",
+    # log "Height of", footer, "is",
     footerHeight = footer?.getBoundingClientRect().height || 0
 
     # Get the window's height
-    log "Height of window is",
+    # log "Height of window is",
     windowHeight = window.innerHeight
 
     # Set the element's height
-    log "Setting height of", element, "to",
+    # log "Setting height of", element, "to",
     element.style.height = "#{windowHeight - offset - footerHeight - 1}px"
 
   data: ->

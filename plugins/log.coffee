@@ -3,11 +3,13 @@
 #  log.log: (args...) -> same, but using console.log
 #  log.breakpoint: (args...) -> same as log, but adds a breakpoint (debugger statement) right after logging 
 
+disable = false
 
 _log = ({ args, callback, method = 'debug' } = {}) =>
 
-  console[method] ...args
-  callback?()
+  if not disable
+    console[method] ...args
+    callback?()
   args[args.length - 1]
 
 log = (...args) =>
@@ -23,5 +25,7 @@ log.breakpoint = (...args) =>
   log[method] = (...args) =>
 
     _log({ args, method })
+
+log.disable = -> disable = true
 
 export default log
