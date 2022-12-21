@@ -44,7 +44,7 @@
       @keydown.enter.exact="commitAnd"
       @keydown.tab.prevent="commitAnd('expand')"
       @keydown.shift.enter="commitAnd('createSibling')"
-      style="height: 100%; width: 100%; font-size: 1.2em; font-family: inherit; min-width: 100px;"
+      :style="'height: 100%; width: 100%; font-size: 1.2em; font-family: inherit;' + ( text ? '' : 'min-width: 100px;' )"
     )
 </template>
 
