@@ -81,9 +81,16 @@
 
       remove: (index) ->
 
-        # Remove the line at the box's index in code
+        # Show a confirmation dialog
+        if !window.confirm "Are you sure you want to delete this box and all its descendants? THERE IS NO UNDO!"
+          return
+          
+        # Remove the line at the box's index in code, as well as all further lines with higher indentation levels
         lines = @lines
-        lines.splice index, 1
+        for lastDescendantIndex in [index + 1...lines.length]
+          if @getLevel(lastDescendantIndex) <= @getLevel(index)
+            break
+        lines.splice index, lastDescendantIndex - index
         @lines = lines
       
       updateText: (index, [ text, method ]) ->
