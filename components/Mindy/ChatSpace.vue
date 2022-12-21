@@ -38,10 +38,13 @@
           | : {{ message.content }}
     //- Message input
     div.input-group.p-3.bg-light.border-top(ref="input")
-      input.form-control(
+      b-textarea.form-control(
         type="text"
         placeholder="Shift+Enter for new line"
-        v-model="updated.newMessage"
+        v-model="newMessage"
+        rows="1"
+        max-rows="10"
+        :style="'overflow: auto; ' + ( isMultiline ? '' : 'height: 2.5rem' )"
       )
       div.input-group-append
         button.btn.btn-outline-secondary(
@@ -91,11 +94,15 @@
 
     data: ->
       previousThread: null
+      newMessage: ''
 
     computed:
 
       tree: ->
         new TreeLike(@messages, vm: @)
+      
+      isMultiline: ->
+        @newMessage.includes('\n')
 
       thread: ->
         # If the existing thread includes the routed message, use that

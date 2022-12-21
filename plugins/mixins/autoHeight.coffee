@@ -43,7 +43,7 @@ export default ( ref, { footerRef } = {} ) ->
     @autoHeight.observer = new MutationObserver doFit
 
     [ element, footer ].filter(_.identity).forEach ( element ) =>
-      @autoHeight.observer.observe element, attributes: true, attributeFilter: [ 'offsetTop' ]
+      @autoHeight.observer.observe element, attributes: true, childList: true, characterData: true, subtree: true
 
 
 
