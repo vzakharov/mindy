@@ -25,7 +25,9 @@
         )
           b-icon-diagram-2
         //- Delete
-        button.btn.btn-light.btn-sm
+        button.btn.btn-light.btn-sm(
+          @click="$emit('remove')"
+        )
           b-icon-trash
         //- Auto-expand
         button.btn.btn-outline-primary.btn-sm
@@ -33,12 +35,16 @@
     //- 
 
     //- Input to edit the box
+    //- Enter commits, tab commits then emits 'expand', shift+enter commits then emits 'createSibling'
     b-textarea.p-1.text-center(
       ref="editBox"
       v-if="editing"
-      v-model="updated.text"
-      @blur="updated.editing = false"
-      style="height: 100%; width: 100%; font-size: 1.2em; font-family: inherit;"
+      v-model="editedText"
+      @blur="commitAnd"
+      @keydown.enter.exact="commitAnd"
+      @keydown.tab.prevent="commitAnd('expand')"
+      @keydown.shift.enter="commitAnd('createSibling')"
+      style="height: 100%; width: 100%; font-size: 1.2em; font-family: inherit; min-width: 100px;"
     )
 </template>
 
@@ -52,11 +58,27 @@
 
     props: ['id', 'element', 'text', 'editing']
 
-    mixins: [ updatePropsMixin ]
+    mixins: [
+      updatePropsMixin
+    ]
 
     data: ->
 
       clonedStyle: {}
+      editedText: @text
+
+    methods:
+
+      commitAnd: (method) ->
+        # Remove any newlines from the text, as well as multiple spaces, and trim
+        @editedText = @editedText.replace(/\n/g, '').replace(/ {2,}/g, ' ').trim()
+        # If there's no text, set text to 'tba'
+        if not @editedText
+          @editedText = 'tba'
+
+        @$emit('commit', [ @editedText, method ])
+
+        @updated.editing = false
 
     watch:
       editing:

@@ -8,11 +8,13 @@
     //- Spinner taking up all the parent container and making the background semi-transparent if loading
     b-spinner(v-show="rendering")
     NodeManipulation(
-      v-for="box in boxes"
+      v-for="box, index in boxes"
       :key="box.id"
       v-bind.sync="box"
-      @expand="expand(box)"
-      @createSibling="createSibling(box)"
+      @expand="expand(index)"
+      @createSibling="createSibling(index)"
+      @remove="remove(index)"
+      @commit="updateText(index, $event)"
     )
         
 </template>
@@ -48,21 +50,49 @@
         log "Mermaid string computed:",
         'mindmap\n' + @code.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
       
-      lines: ->
-        @code.split '\n'
+      lines:
+        get: -> @code.split '\n'
+        set: (lines) -> @code = lines.join '\n'
       
     methods:
 
-      addNode: ( index, levelDelta = 0 ) ->
-
-        # Add a line after the box's index in code, add levelDelta more indentation levels (tabs), and set the text to "[ ]" (so that it's an empty node)
-        { lines } = @
-        level = (lines[index].match /\t/g)?.length || 0
-        lines.splice index + 1, 0, "\t".repeat(level + levelDelta) + "[ ]"
-        @code = lines.join '\n'
+      getLevel: (index) -> (@lines[index].match /\t/g)?.length || 0
       
-      expand: (box) -> @addNode box.index, 1
-      createSibling: (box) -> @addNode box.index, 0
+      indent: (text, level) -> "\t".repeat(level) + text
+
+      expand: (index) ->
+
+        # Add a line after the index in code, add levelDelta more indentation levels (tabs)
+        lines = @lines
+        lines.splice index + 1, 0, @indent("[ ]", @getLevel(index) + 1)
+        @lines = lines
+
+      createSibling: (index) ->
+
+        # Add a line after the box's index in code, add levelDelta less indentation levels (tabs)
+        lines = @lines
+        # Find a line with the same indentation level as the one at index
+        for siblingIndex in [index + 1...lines.length]
+          if @getLevel(siblingIndex) <= @getLevel(index)
+            break
+        lines.splice siblingIndex, 0, @indent("[ ]", @getLevel(index))
+        log "Lines after creating sibling:",
+        @lines = lines
+
+      remove: (index) ->
+
+        # Remove the line at the box's index in code
+        lines = @lines
+        lines.splice index, 1
+        @lines = lines
+      
+      updateText: (index, [ text, method ]) ->
+
+        { lines } = @
+        lines[index] = @indent text, @getLevel(index)
+        @lines = lines
+        @[method]?(index)
+
 
       render: ->
 
@@ -117,5 +147,5 @@
           if code
             console.log "Updating mermaid chart"
             @render()
-        
+
 </script>

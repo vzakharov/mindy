@@ -16,7 +16,7 @@ export default
           @$emit "update:#{prop}", value
           console.debug "Emitted `update:#{prop}` event with value", value
       }
-      console.debug "Created `updated.#{prop}=...` setter"
+      # console.debug "Created `updated.#{prop}=...` setter"
       
       # Define property @update to Object.assign the value of the prop and emit an `update:<property>` event with the new value
       @update[prop] = (value) =>

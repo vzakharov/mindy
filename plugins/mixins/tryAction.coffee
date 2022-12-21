@@ -3,11 +3,11 @@ export default
 
   data: ->
 
-    actionPromises: {}
+    whilst: {}
 
   methods:
 
-    actionPromise: (stateKey) -> @actionPromises[stateKey] ? Promise.resolve()
+    actionPromise: (stateKey) -> @whilst[stateKey] ? Promise.resolve()
 
     try: ( stateKey, action, { errorMessage, except, track = true, mixpanelProps } = {} ) ->
       
@@ -17,13 +17,13 @@ export default
       @[stateKey] = true
       resolve = null
       reject = null
-      @actionPromises[stateKey] = new Promise (res, rej) ->
+      @whilst[stateKey] = new Promise (res, rej) ->
         resolve = res
         reject = rej
       try
         console.log "Started #{stateKey}"
         mixpanel?.track "#{stateKey} started", mixpanelProps
-        resolve result = await action()
+        resolve result = await action.call(@)
         mixpanel?.track "#{stateKey} succeeded", mixpanelProps
         return result
       catch error
