@@ -58,7 +58,7 @@
 
       show:
         sidebar: false
-        secondaryPane: true
+        secondaryPane: false
       
       secondaryPaneCols: 8
 

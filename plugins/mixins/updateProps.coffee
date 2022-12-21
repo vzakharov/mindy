@@ -11,5 +11,6 @@ export default
         get: => throw new Error "The `update` property is write-only; use just `#{prop}` instead"
         set: (value) =>
           @$emit "update:#{prop}", value
+          console.debug "Emitted `update:#{prop}` event with value", value
       }
       console.debug "Created `updated.#{prop}=...` setter"

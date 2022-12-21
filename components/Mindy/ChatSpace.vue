@@ -24,13 +24,13 @@
       )
       div.message(
         :id="`message-${message.id}`"
-        v-for="(message, index) in thread", :key="`${index}-${routedMessageId}`"
+        v-for="(message, index) in thread", :key="`${index}-${routedMessage.id}`"
         :style=`{
           'background-color': index % 2 ? '#f7f7f7' : '#fff',
           'border': '1px solid ' + (message === routedMessage ? '#007bff' : '#fff'),
           'cursor': 'pointer'
         }`
-        @click="routedMessage = message"
+        @click="updated.routedMessage = message"
       )
         div.px-3.pb-2.pt-1
           strong {{ message.user.name }}
@@ -50,7 +50,7 @@
   import log from '~/plugins/log'
 
   import updatePropsMixin from '~/plugins/mixins/updateProps'
-  import tryAction from '~/plugins/tryAction'
+  import tryAction from '~/plugins/mixins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
 
@@ -65,7 +65,7 @@
 
   export default
 
-    props: [ 'messages', 'routedMessageId', 'title' ]
+    props: [ 'messages', 'routedMessage', 'title' ]
 
     mixins: [
       updatePropsMixin
@@ -91,11 +91,6 @@
             @previousThread
           else
             @previousThread = @tree.thread(@routedMessage or @tree.root)
-
-      routedMessage:
-        get: -> _.find @messages, id: @routedMessageId
-        set: (message) -> @updated.routedMessageId = message?.id
-
 
 </script>
 

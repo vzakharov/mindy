@@ -405,7 +405,7 @@
 
   import syncLocal from '~/plugins/mixins/syncLocal'
   import exposeVM from '~/plugins/exposeVM'
-  import tryAction from '~/plugins/tryAction'
+  import tryAction from '~/plugins/mixins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
   import checkWidthMixin from '~/plugins/mixins/checkWidth'

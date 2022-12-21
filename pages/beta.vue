@@ -15,7 +15,11 @@
         v-bind.sync="chat"
       )
     template(v-slot:secondary-pane)
-      MindyMindmapSpace
+      MindyMindmapSpace(
+        v-bind.sync="mindmap"
+      )
+  div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
+    b-spinner
 
 </template>
 
@@ -23,6 +27,7 @@
 
   import syncLocal from '~/plugins/mixins/syncLocal'
   import log from '~/plugins/log'
+  import computedData from '~/plugins/mixins/computedData'
 
   export default
 
@@ -44,14 +49,22 @@
         ]
         format: 'yaml'
         prefix: 'mindy'
+
+      computedData
+        'chat.title': -> @mindmap.code?.split('\n')[0]?.trim()
+        'mindmap.code': -> @chat.routedMessage?.context
+
     ]
 
     data: ->
+
       chat:
         messages: []
-        routedMessageId: null
-        title: 'Mindy tutorial'
-    
+        routedMessage: null
+        title: null
+      mindmap:
+        code: null
+
     watch:
 
       '$route.query.id':
@@ -61,9 +74,15 @@
           if id
             await @syncLocal.promise
             console.log 'syncLocal.promise resolved'
-            @$set(@chat, 'routedMessageId', parseInt(id))
+            @chat.routedMessage = @chat.messages.find (message) -> String(message.id) is String(id)
       
-      'chat.routedMessageId': (id) ->
-        @$router.push query: { id }
+      'chat.routedMessage': (message) ->
+        
+        if message
+
+          { id } = message
+
+          if @$route.query.id isnt id
+            @$router.push query: { id }
 
 </script>

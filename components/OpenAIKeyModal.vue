@@ -55,7 +55,7 @@
 <script lang="coffee">
 
   import axios from 'axios'
-  import tryAction from '~/plugins/tryAction'
+  import tryAction from '~/plugins/mixins/tryAction'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
   import syncLocalMixin from '~/plugins/mixins/syncLocal'
 
