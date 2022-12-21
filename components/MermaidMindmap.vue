@@ -8,9 +8,11 @@
     //- Spinner taking up all the parent container and making the background semi-transparent if loading
     b-spinner(v-show="rendering")
     NodePopover(
-      v-for="box, index in boxes"
+      v-for="box in boxes"
       :key="box.id"
       v-bind="{ box }"
+      @expand="expand(box)"
+      @createSibling="createSibling(box)"
     )
         
 </template>
@@ -46,7 +48,21 @@
         log "Mermaid string computed:",
         'mindmap\n' + @code.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
       
+      lines: ->
+        @code.split '\n'
+      
     methods:
+
+      addNode: ( index, levelDelta = 0 ) ->
+
+        # Add a line after the box's index in code, add levelDelta more indentation levels (tabs), and add "New node" after it
+        { lines } = @
+        level = (lines[index].match /\t/g)?.length || 0
+        lines.splice index + 1, 0, "\t".repeat(level + levelDelta) + "New node"
+        @code = lines.join '\n'
+      
+      expand: (box) -> @addNode box.index, 1
+      createSibling: (box) -> @addNode box.index, 0
 
       render: ->
 
@@ -84,6 +100,7 @@
 
                 # Assign the id to the element
                 element.id = "box-#{id}"
+      # 
 
     watch:
     

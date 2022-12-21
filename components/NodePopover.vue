@@ -15,10 +15,14 @@
         )
           b-icon-pencil
         //- Expand
-        button.btn.btn-light.btn-sm
+        button.btn.btn-light.btn-sm(
+          @click="$emit('expand')"
+        )
           b-icon-plus
         //- Create sibling
-        button.btn.btn-light.btn-sm
+        button.btn.btn-light.btn-sm(
+          @click="$emit('createSibling')"
+        )
           b-icon-diagram-2
         //- Delete
         button.btn.btn-light.btn-sm
