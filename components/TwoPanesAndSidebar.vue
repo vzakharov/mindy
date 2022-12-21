@@ -2,12 +2,12 @@
   div
     style
       | :root {
-      |   --navbar-height: {{ width > 1200 ? '0px' : '50px'}};
+      |   --navbar-height: {{ width > 1200 ? '0px' : '55px'}};
       |   --sidebar-width: 200px;
       |   --sidebar-height: calc(100vh - var(--navbar-height));
       | }
     MobileNav.d-block.d-xl-none(
-      v-bind="{ secondaryPaneCaption, brand, tagline }"
+      v-bind="{ secondaryPaneIcon, brand, tagline }"
       v-model="show"
     )
     div.vh-minus-navbar
@@ -48,7 +48,7 @@
 
   export default
 
-    props: ['secondaryPaneCaption', 'brand', 'tagline', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent']
+    props: ['secondaryPaneIcon', 'brand', 'tagline', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent']
 
     mixins: [
       checkWidthMixin()

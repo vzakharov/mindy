@@ -4,18 +4,18 @@
       v-if="syncLocal.loaded"
       brand="Mindy"
       tagline="Brainstorm with AI"
-      secondaryPaneCaption="丫"
+      secondaryPaneIcon="layout-sidebar"
     )
     template(v-slot:sidebar)
       MindySidebar
     template(v-slot:sidebar-footer)
       MindySidebarFooter
     template(v-slot:primary-pane)
-      MindyChatSpace(
+      MindyChat(
         v-bind.sync="chat"
       )
     template(v-slot:secondary-pane)
-      MindyMindmapSpace(
+      MindyWorkspace(
         v-bind.sync="mindmap"
       )
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)

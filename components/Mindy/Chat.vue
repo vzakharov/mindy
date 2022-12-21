@@ -2,7 +2,7 @@
 
   div.h-100
     //- Chat space header
-    div.header.px-3.py-4.d-flex.justify-content-between
+    div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-between
       div.d-flex
         //- Chat space title
         h4.mb-0 {{ title }}

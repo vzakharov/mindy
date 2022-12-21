@@ -16,7 +16,7 @@
         :variant="show.secondaryPane ? 'outline-secondary' : 'light'"
         @click="show.secondaryPane = !show.secondaryPane"
       )
-        | {{ secondaryPaneCaption }}
+        b-icon.text-muted(:icon="secondaryPaneIcon")
     //- 
 
 </template>
@@ -27,7 +27,7 @@
 
   export default
 
-    props: ['value', 'secondaryPaneCaption', 'brand', 'tagline']
+    props: ['value', 'secondaryPaneIcon', 'brand', 'tagline']
 
     mixins: [
       syncValueMixin('show', deep: true)

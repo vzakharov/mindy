@@ -30,7 +30,7 @@ export default ( ref, { footerRef } = {} ) ->
 
   mounted: ->
 
-    { [ref]: element, [footerRef]: footer } = @$refs ? {}
+    { [ref]: element, [footerRef]: footer } = _.mapValues( @$refs, ( ref ) -> ref.$el ? ref )
 
     # Fit the element to the window
     do doFit = -> fit element, footer
