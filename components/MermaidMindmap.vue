@@ -55,10 +55,10 @@
 
       addNode: ( index, levelDelta = 0 ) ->
 
-        # Add a line after the box's index in code, add levelDelta more indentation levels (tabs), and add "New node" after it
+        # Add a line after the box's index in code, add levelDelta more indentation levels (tabs), and set the text to "[ ]" (so that it's an empty node)
         { lines } = @
         level = (lines[index].match /\t/g)?.length || 0
-        lines.splice index + 1, 0, "\t".repeat(level + levelDelta) + "New node"
+        lines.splice index + 1, 0, "\t".repeat(level + levelDelta) + "[ ]"
         @code = lines.join '\n'
       
       expand: (box) -> @addNode box.index, 1
@@ -95,9 +95,11 @@
                   element
                   id
                   text
-                  editing: false
+                  editing: !text
                   index: index++
                 }
+                # (We set the editing property to true if the text is empty so that the user can start typing right away. It also helps when we're creating a new box, as this will make it editable right away.)
+
                 @boxes.push box
 
                 # Assign the id to the element
