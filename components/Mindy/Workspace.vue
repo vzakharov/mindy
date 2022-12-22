@@ -3,20 +3,20 @@
     //- Header: buttons to edit in plain text, pick colors, settings, ideas, etc.
     div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-end
       //- Ideas
-      button.btn.btn-light.btn-sm.ml-2.lightgray
+      button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-lightbulb(
           @click="show.ideas = !show.ideas"
           :class="show.ideas ? 'text-primary' : ''"
         )
       //- Settings
-      button.btn.btn-light.btn-sm.ml-2.lightgray
+      button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-gear
       //- Download
-      button.btn.btn-outline-secondary.btn-sm.mx-2.px-3
+      button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
         b-icon-download.mr-2
         | Download
       //- Help
-      button.btn.btn-light.btn-sm.ml-2.lightgray
+      button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-question-circle
     //- 
 

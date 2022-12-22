@@ -800,7 +800,7 @@
               previousContext = previousMessageWithContext.context
 
               log 'Messages after previous context',
-              messagesAfterPreviousContext = @tree.heritage previousMessageWithContext, includeSelf: false
+              messagesAfterPreviousContext = @tree.lineage(message, includeSelf: true,  breakAt: previousMessageWithContext)
 
               log 'Conversation after previous context', 
               conversationAfterPreviousContext = @getConversation messagesAfterPreviousContext

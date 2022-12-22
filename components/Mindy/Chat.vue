@@ -2,21 +2,21 @@
 
   div.h-100
     //- Chat space header
-    div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-between
+    div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-between.align-items-center
       div.d-flex
         //- Chat space title
         h4.mb-0 {{ title }}
         //- Edit icon, gray
-        button.btn.btn-light.btn-sm.lightgray
-          b-icon-pencil.icon-sm
+        button.btn.btn-light.btn-sm.pl-2.lightgray
+          b-icon-pencil.icon-sm.pb-1
       div.d-flex
         //- Bookmark button
-        button.btn.btn-outline-secondary(
+        button.btn.btn-outline-secondary.btn-sm.mx-1.px-2(
         )
           b-icon.px-1(icon="bookmark")
           | Save
         //- Settings button (no caption)
-        button.btn.btn-light.btn-sm.ml-2.lightgray
+        button.btn.btn-light.btn-sm.mx-1.lightgray
           b-icon(icon="gear")
     //- 
 

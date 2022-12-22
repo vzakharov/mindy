@@ -53,29 +53,30 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
       prevSibling: (item) ->
         @sibling(item, -1)
 
-      ancestors: (item) ->
-        if item?.parentId
-          [ @parent(item), ...@ancestors(@parent(item)) ]
+      ancestors: (item, { breakAt } = {}) ->
+        # log "Ancestors of #{item?.id}, breakAt: #{breakAt?.id}:",
+        if item?.parentId and item.parentId isnt breakAt?.id
+          [ @parent(item), ...@ancestors(@parent(item), { breakAt }) ]
         else
           []
       
-      lineage: (item, { includeSelf = true } = {}) ->
-        log "Calculating lineage for #{item?.id}, includeSelf: #{includeSelf}"
-        lineage = [ ...@ancestors(item) ].reverse()
+      lineage: (item, { includeSelf = true, breakAt } = {}) ->
+        # log "Calculating lineage for #{item?.id}, includeSelf: #{includeSelf}, breakAt: #{breakAt?.id}"
+        lineage = [ ...@ancestors(item, { breakAt }) ].reverse()
         lineage.push(item) if includeSelf && item
         # remove root
         if lineage?[0] is @root
           lineage.shift()
-        log 'lineage',
+        # log 'lineage',
         lineage
       
       heir: (item, { nested } = {}) ->
-        log "Calculating heir for #{item?.id}"
+        # log "Calculating heir for #{item?.id}"
         # the first among children (sorted by ...childOrder), and so on recursively
-        log 'children',
+        # log 'children',
         children = @children(item)
         if children.length
-          log 'heir',
+          # log 'heir',
           heir = children[item.heirIndex or 0]
           if nested
             @heir(heir, nested: true)
