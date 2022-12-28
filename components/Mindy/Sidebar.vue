@@ -10,7 +10,15 @@
 
     div.pt-3
 
-    //- Saved chats
-    MindySavedChats
+    //- List of chats
+    MindyChatList(v-bind="{ chats }")
 
 </template>
+
+<script lang="coffee">
+
+  export default
+
+    props: [ 'chats' ]
+
+</script>

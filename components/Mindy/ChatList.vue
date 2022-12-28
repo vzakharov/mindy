@@ -8,28 +8,26 @@
         @click.native="expanded = !expanded"
       )
       ul.list-group(v-show="expanded")
-        li.list-group-item(
+        nuxt-link.list-group-item(
+          tag="li"
           v-for="chat in chats" :key="chat.id"
           style="cursor: pointer;"
+          :to="{ query: { id: chat.id } }"
           )
           b-icon.pr-2(icon="chat")
-          | {{ chat.name }}
+          span(v-text="`Chat #${chat.id}`")
+          //- Todo: compute chat title
 </template>
 
 <script lang="coffee">
 
   export default
 
+    props: [ 'chats' ]
+
     data: ->
 
       expanded: false
-
-      # Dummy chats for now
-      chats: [
-        { id: 1, name: 'Mindy tutorial' }
-        { id: 2, name: 'BMX' }
-        { id: 3, name: 'Cats' }
-      ]
 
       hoveredChat: null
 

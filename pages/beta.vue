@@ -7,7 +7,9 @@
       secondaryPaneIcon="layout-sidebar"
     )
     template(v-slot:sidebar)
-      MindySidebar
+      MindySidebar(
+        v-bind="{ chats }"
+      )
     template(v-slot:sidebar-footer)
       MindySidebarFooter
     template(v-slot:primary-pane)
@@ -28,6 +30,7 @@
   import syncLocal from '~/plugins/mixins/syncLocal'
   import log from '~/plugins/log'
   import computedData from '~/plugins/mixins/computedData'
+  import TreeLike from '~/plugins/treeLike'
 
   export default
 
@@ -52,7 +55,8 @@
 
       computedData
         'chat.title': -> @mindmap.code?.split('\n')[0]?.trim()
-        'mindmap.code': -> @chat.routedMessage?.context
+        'chat.tree' : -> new TreeLike(@chat.messages, vm: @)
+        'mindmap.code': -> @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
 
     ]
 
@@ -60,11 +64,16 @@
 
       chat:
         messages: []
+        tree: {}
         routedMessage: null
         title: null
       mindmap:
         code: null
+    
+    computed:
 
+      chats: -> @chat.tree.children(@chat.tree.root)
+          
     watch:
 
       '$route.query.id':
@@ -73,8 +82,8 @@
           log "Navigating to message ##{id}"
           if id
             await @syncLocal.promise
-            console.log 'syncLocal.promise resolved'
-            @chat.routedMessage = @chat.messages.find (message) -> String(message.id) is String(id)
+            log 'Route changed, finding message',            
+            @chat.routedMessage = @chat.messages.find (message) => String(message.id) is String(id)
       
       'chat.routedMessage': (message) ->
         
@@ -82,7 +91,7 @@
 
           { id } = message
 
-          if @$route.query.id isnt id
+          if @$route.query.id isnt String(id)
             @$router.push query: { id }
 
 </script>

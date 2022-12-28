@@ -106,6 +106,6 @@ export default {
   },
 
   server: {
-    port: process.env.PORT || 1250,
+    port: process.env.PORT || 12500,
   },
 }

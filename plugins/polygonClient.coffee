@@ -1,5 +1,6 @@
 # Client for Polygon, a GPT-3 prompt management framework
 import Axios from 'axios'
+import _ from 'lodash'
 
 import log from '~/plugins/log'
 
@@ -38,6 +39,22 @@ export default ({
           vm[vmKey] = @spent
         data
     
+    generate: ( outputKeys, input ) ->
+
+      console.log 'Generating', outputKeys, input
+
+      if not _.isArray(outputKeys)
+        outputKeys = [ outputKeys ]
+
+      { data } = await axios.post '/generate', {
+        outputKeys
+        input
+        openAIkey
+      }
+
+      log 'Generated:',
+      data
+
     upvote: ( generationId ) ->
 
       console.log 'Upvoting', generationId

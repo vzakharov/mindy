@@ -8,6 +8,20 @@
           @click="show.ideas = !show.ideas"
           :class="show.ideas ? 'text-primary' : ''"
         )
+      //- Theme
+      button.btn.btn-light.btn-sm.mx-1.lightgray(
+        v-b-modal.theme-modal
+      )
+        b-icon-palette
+      b-modal#theme-modal(
+        ref="themeModal"
+        title="Pick a theme"
+        centered
+      )
+        ThemePicker(
+          @input="pickTheme"
+        )
+        b-icon-palette
       //- Settings
       button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-gear
@@ -62,5 +76,13 @@
 
       show:
         ideas: false
+
+    methods:
+
+      pickTheme: (theme) ->
+        console.log theme
+        # hide the modal
+        @$refs.themeModal.hide()
+
 
 </script>

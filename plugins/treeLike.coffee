@@ -84,9 +84,10 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
           item
                 
       thread: (item, includeDescendants = true) ->
-        # i.e. lineage of the ultimate heir
-        log 'thread',
-        @lineage( if includeDescendants then @heir(item, nested: true) else item )
+        if item
+          # i.e. lineage of the ultimate heir
+          log 'thread',
+          @lineage( if includeDescendants then @heir(item, nested: true) else item )
 
       heritage: (item, { includeSelf = true } = {}) ->
         # i.e. the opposite of lineage, i.e. the heir, then the heir's heir, etc. (possibly including the item itself as the first item)
