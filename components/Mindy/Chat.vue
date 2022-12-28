@@ -108,7 +108,7 @@
 
   export default
 
-    props: [ 'messages', 'routedMessage', 'title', 'tree' ]
+    props: [ 'messages', 'routedMessage', 'title', 'tree', 'thread' ]
 
     mixins: [
       updatePropsMixin
@@ -126,16 +126,6 @@
 
       isMultiline: ->
         @newMessage.includes('\n')
-
-      thread: ->
-        # If the existing thread includes the routed message, use that
-        if not @routedMessage
-          []
-        else
-          if @previousThread?.includes(@routedMessage)
-            @previousThread
-          else
-            @previousThread = @tree.thread(@routedMessage or @tree.root)
 
 </script>
 

@@ -7,14 +7,18 @@
       secondaryPaneIcon="layout-sidebar"
     )
     template(v-slot:sidebar)
-      MindySidebar(
-        v-bind="{ chats }"
+      //- New chat button
+      button.btn.btn-outline-primary.btn-lg.btn-block(
       )
+        b-icon.pr-2(icon="chat")
+        | New chat
+      div.pt-3
+        MindyChatList(v-bind="{ chats, routedMessage }")
     template(v-slot:sidebar-footer)
       MindySidebarFooter
     template(v-slot:primary-pane)
       MindyChat(
-        v-bind.sync="chat"
+        v-bind="chat"
       )
     template(v-slot:secondary-pane)
       MindyWorkspace(
@@ -31,6 +35,7 @@
   import log from '~/plugins/log'
   import computedData from '~/plugins/mixins/computedData'
   import TreeLike from '~/plugins/treeLike'
+  import Chat from '~/plugins/chat'
 
   export default
 
@@ -48,31 +53,29 @@
     mixins: [
       syncLocal
         keys: [
-          [ 'messages', dataPath: 'chat' ]
+          'messages'
         ]
         format: 'yaml'
         prefix: 'mindy'
 
       computedData
-        'chat.title': -> @mindmap.code?.split('\n')[0]?.trim()
-        'chat.tree' : -> new TreeLike(@chat.messages, vm: @)
         'mindmap.code': -> @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
 
     ]
 
     data: ->
 
-      chat:
-        messages: []
-        tree: {}
-        routedMessage: null
-        title: null
+      messages: []
+      routedMessage: null
+
       mindmap:
         code: null
     
     computed:
 
-      chats: -> @chat.tree.children(@chat.tree.root)
+      chat: -> new Chat @messages, @routedMessage, @
+
+      chats: -> @messages.filter( (message) -> !message.parentId ).map( (message) => new Chat @messages, message, @ )
           
     watch:
 
@@ -83,9 +86,9 @@
           if id
             await @syncLocal.promise
             log 'Route changed, finding message',            
-            @chat.routedMessage = @chat.messages.find (message) => String(message.id) is String(id)
+            @routedMessage = @messages.find (message) => String(message.id) is String(id)
       
-      'chat.routedMessage': (message) ->
+      'routedMessage': (message) ->
         
         if message
 
