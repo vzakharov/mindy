@@ -31,7 +31,7 @@
         v-for="(message, index) in thread", :key="`${index}-${routedMessage.id}`"
         :style=`{
           'background-color': index % 2 ? '#f7f7f7' : '#fff',
-          'border': '1px solid ' + (message === routedMessage ? '#007bff' : '#fff'),
+          'border': '1px solid ' + (message === routedMessage && routedMessage != thread[thread.length - 1] ? '#007bff' : '#fff'),
           'cursor': 'pointer'
         }`
         :to="{ query: { id: message.id } }"
@@ -47,7 +47,7 @@
               | /
               nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
                 v-text="`${tree.numSiblings(message)} >`"
-              )        div.px-3.pb-2.pt-1
+              )
           strong {{ message.user.name }}
           | :
           div(v-html="$md.render(message.content)")
