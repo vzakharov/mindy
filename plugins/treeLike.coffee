@@ -27,6 +27,10 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
           .filter (child) -> if item then child.parentId is item.id else not child.parentId
           .orderBy childOrder
           .value()
+
+      descendants: (item, includeSelf = true) ->
+        # log "Descendants of #{item?.id}, includeSelf: #{includeSelf}:",
+        [ ...( if includeSelf then [item] else [] ), ..._.flatMap(@children(item), (child) => @descendants(child)) ]
       
       siblings: (item, includeSelf = true) ->
         _.orderBy(
@@ -139,6 +143,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
 
   _.forEach @getters, ( getter, name ) =>
     @[name] = (item, ...args) ->
+      # log "Getting #{name} for #{item?.id}"
       path = [ item?.id ? 'undefined', name, JSON.stringify(args) ]      
       if not _.has @cache, path
         _.set @cache, path, getter.apply(@, [ item, ...args ])

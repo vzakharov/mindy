@@ -59,7 +59,7 @@
         prefix: 'mindy'
 
       computedData
-        'mindmap.code': -> @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
+        'mindmap.code': -> @chat.routedMessage?.context ? @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
 
     ]
 

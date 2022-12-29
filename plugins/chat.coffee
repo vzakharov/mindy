@@ -10,10 +10,12 @@ export default ( messages, routedMessage, vm ) ->
 
   @rootMessage = @thread?[0]
 
-  @firstMessageWithContext = @thread?.find (m) -> m.context
+  @messages = @tree.descendants( @rootMessage )
+
+  @lastMessageWithContext = _.findLast @thread, (m) -> m.context
 
   @id = @rootMessage?.id
 
-  @title = @firstMessageWithContext?.context.split('\n')[0]?.trim() ? "Chat #{ @id }"
+  @title = @lastMessageWithContext?.context.split('\n')[0]?.trim() ? "Chat #{ @id }"
 
-  return @
+  console.debug "Created Chat with:", @
