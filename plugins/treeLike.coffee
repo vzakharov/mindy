@@ -81,7 +81,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         children = @children(item)
         if children.length
           # log 'heir',
-          heir = children[item.heirIndex or 0]
+          heir = children[item.heirIndex ? 0]
           if nested
             @heir(heir, nested: true)
         else
@@ -131,7 +131,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
       # Make the item the heir of its parent
       if parent = @parent(item)
       # (= is not a typo)
-        log "Nudging item #{item.id} to be the heir of its parent #{parent.id}" 
+        log "Nudging item #{item.id} to be the heir of its parent #{parent.id}" ,
         heirIndex = @siblingIndex(item)
         if vm
           vm.$set parent, 'heirIndex', heirIndex

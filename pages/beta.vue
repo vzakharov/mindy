@@ -73,9 +73,11 @@
     
     computed:
 
-      chat: -> new Chat @messages, @routedMessage, @
+      chat: -> new Chat @tree, @routedMessage
+      
+      tree: -> new TreeLike @messages, vm: @
 
-      chats: -> @messages.filter( (message) -> !message.parentId ).map( (message) => new Chat @messages, message, @ )
+      chats: -> @messages.filter( (message) -> !message.parentId ).map( (message) => new Chat @tree, message )
           
     watch:
 
@@ -93,6 +95,8 @@
         if message
 
           { id } = message
+          @tree.nudge message
+          @messages = [ ...@messages]
 
           if @$route.query.id isnt String(id)
             @$router.push query: { id }

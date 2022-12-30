@@ -26,7 +26,8 @@
           :to="{ query: { id: chat.id } }"
         )
           b-icon.pr-2(icon="chat")
-          span.lead(style="font-size: 1em;") {{ chat.title }}
+          span.lead(:style="{ fontWeight: chat.messages.includes(routedMessage) ? 'bold' : 'normal', fontSize: '0.9em', color: 'black' }")
+            | {{ chat.title }}
 </template>
 
 <script lang="coffee">
