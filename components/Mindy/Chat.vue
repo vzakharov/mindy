@@ -99,7 +99,6 @@
 
   import PolygonClient from '~/plugins/polygonClient'
 
-
   defaultSettings =
     allowFineTuning: true
     autoBuildContext: true
@@ -108,7 +107,7 @@
 
   export default
 
-    props: [ 'messages', 'routedMessage', 'title', 'tree', 'thread' ]
+    props: [ 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessageWithContext' ]
 
     mixins: [
       updatePropsMixin

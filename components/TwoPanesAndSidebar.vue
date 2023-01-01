@@ -11,7 +11,10 @@
       v-model="show"
     )
     div.vh-minus-navbar
-      transition(name="slide-right")
+      component(
+          :is="width > 1200 ? 'div' : 'transition'"
+          name="slide-right"
+        )
         div#sidebar.vh-minus-navbar.m-0.bg-light.border-right.justify-content-between.overflow-auto(
             v-show="show.sidebar || width > 1200"
           )
@@ -27,17 +30,23 @@
           div.border-top
             slot(name="sidebar-footer")
       div#main.h-100.container-fluid
-        div.row.h-100
-          div.d-md-block.col-12.p-0.h-100(
-              :class="'col-md-' + (12 - secondaryPaneCols)"
+        component.p-0.h-100(
+            :is="wide ? 'multipane' : 'div'"
+            layout="vertical"
+          )
+          div.h-100(
+              :style="{ width: wide ? '400px' : '100%', 'min-width': wide ? '300px' : '0px' }"
             )
             slot(name="primary-pane")
+          MultipaneResizer
           transition(name="slide-left")
             div#secondary-pane.d-md-block.border-left.p-0.h-100(
-                v-show="show.secondaryPane || width > 768"
-                :class="'col-' + secondaryPaneCols"
+                v-show="show.secondaryPane || wide"
+                style="flex-grow: 1; min-width: 400px;"
               )
               slot(name="secondary-pane")
+          //- div
+          //-   slot(name="secondary-pane")
       //- 
 
 </template>
@@ -82,7 +91,8 @@
   }
 
   #main {
-    padding-left: calc(var(--sidebar-width) + 15px);
+    padding-left: calc(var(--sidebar-width));
+    padding-right: 0;
   }
 
   @media (max-width: 1200px) {
@@ -98,7 +108,7 @@
     }
 
     #main {
-      padding-left: 15px;
+      padding-left: 0px;
     }
 
   }  
@@ -131,6 +141,5 @@
   .slide-right-enter, .slide-right-leave-to {
     transform: translateX(-100%);
   }
-
 
 </style>
