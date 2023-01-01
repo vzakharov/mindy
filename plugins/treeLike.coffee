@@ -79,7 +79,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         # the first among children (sorted by ...childOrder), and so on recursively
         # log 'children',
         children = @children(item)
-        if children.length
+        if item && children.length
           # log 'heir',
           heir = children[item.heirIndex ? 0]
           if nested
