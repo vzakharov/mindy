@@ -674,14 +674,17 @@
           continued = true
 
           # Also combine all the previous messages in the thread as `previousConversation`, in the format "user1:\nmessage1\n\nuser2:\nmessage2\n\n..."
-          previousConversation = @tree
-            .lineage(
-              parent, !retrying
-            )
-            .map(({ user: { isBot }, content }) -> "#{if isBot then 'Mindy' else 'User'}:\n#{content}")
+          log 'Previous messages:', 
+          previousMessages =
+            @tree
+              .lineage(
+                parent, !retrying
+              )
+              .map(({ user: { isBot }, content }) -> { isBot, content })
+          
+          previousConversation = previousMessages
+            .map(({ isBot, content }) -> "#{if isBot then 'Mindy' else 'User'}:\n#{content}")
             .join('\n\n')
-
-          console.log {previousConversation}
 
         # else
         #   slug = 'first'

@@ -30,7 +30,6 @@
     "sass-loader": "^13.2.0",
     "vovas-notion": "^1.0.0",
     "vue": "^2.6.14",
-    "vue-multipane": "^0.9.5",
     "vue-server-renderer": "^2.6.14",
     "vue-template-compiler": "^2.6.14",
     "webpack": "^4.46.0"

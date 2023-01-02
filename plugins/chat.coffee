@@ -17,6 +17,6 @@ export default ( tree, routedMessage ) ->
 
   @id = @rootMessage?.id
 
-  @title = @lastMessageWithContext?.context.split('\n')[0]?.trim() ? "Chat #{ @id }"
+  @title = @lastMessageWithContext?.context.split('\n')[0]?.trim() ? if @id then "Chat ##{@id}" else "New chat"
 
   console.debug "Created Chat with:", @

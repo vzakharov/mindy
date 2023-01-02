@@ -31,14 +31,14 @@
             slot(name="sidebar-footer")
       div#main.h-100.container-fluid
         component.p-0.h-100(
-            :is="wide ? 'multipane' : 'div'"
+            :is="wide ? 'my-multipane' : 'div'"
             layout="vertical"
           )
-          div.h-100(
+          div.h-100.d-block(
               :style="{ width: wide ? '400px' : '100%', 'min-width': wide ? '300px' : '0px' }"
             )
             slot(name="primary-pane")
-          MultipaneResizer
+          div.multipane-resizer
           transition(name="slide-left")
             div#secondary-pane.d-md-block.border-left.p-0.h-100(
                 v-show="show.secondaryPane || wide"

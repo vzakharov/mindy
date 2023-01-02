@@ -108,7 +108,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
 
     # Functions to manipulate the tree
 
-    createChild: (item, child) ->
+    createChild: (item, child = {}) ->
       # Note that this does NOT add the child to the items array, it just creates a child object:
       log { item }, Object.assign child,
         parentId: item?.id

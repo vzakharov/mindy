@@ -7,7 +7,7 @@
         //- Chat space title
         h4.mb-0 {{ title }}
         //- Edit icon, gray
-        button.btn.btn-light.btn-sm.pl-2.lightgray
+        button.btn.btn-light.btn-sm.pl-2.lightgray(v-if="id")
           b-icon-pencil.icon-sm.pb-1
       div.d-flex
         //- Bookmark button
@@ -107,7 +107,7 @@
 
   export default
 
-    props: [ 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessageWithContext' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessageWithContext' ]
 
     mixins: [
       updatePropsMixin

@@ -8,7 +8,9 @@
     )
     template(v-slot:sidebar)
       //- New chat button
-      button.btn.btn-outline-primary.btn-lg.btn-block(
+      b-button.btn-lg.btn-block(
+        variant="outline-primary"
+        :to="{ query: { id: undefined } }"
       )
         b-icon.pr-2(icon="chat")
         | New chat
@@ -89,6 +91,8 @@
             await @syncLocal.promise
             log 'Route changed, finding message',            
             @routedMessage = @messages.find (message) => String(message.id) is String(id)
+          else
+            @routedMessage &&= null
       
       'routedMessage': (message) ->
         
