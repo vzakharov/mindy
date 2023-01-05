@@ -9,7 +9,11 @@ export default
 
     actionPromise: (stateKey) -> @whilst[stateKey] ? Promise.resolve()
 
-    try: ( stateKey, action, { errorMessage, except, track = true, mixpanelProps } = {} ) ->
+    try: ( stateKey, action, { oneAtATime, errorMessage, except, track = true, mixpanelProps } = {} ) ->
+
+      if oneAtATime and @whilst[stateKey]
+        console.warn "Already #{stateKey}; skipping"
+        return @whilst[stateKey]
       
       if track
         { mixpanel } = @
@@ -37,6 +41,7 @@ export default
         reject error
       finally
         @[stateKey] = false
+        delete @whilst[stateKey] 
         console.log "Finished #{stateKey}"
 
     alert: (errorMessage='Something went wrong.') ->

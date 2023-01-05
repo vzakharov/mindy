@@ -7,18 +7,7 @@
         :expanded="expanded"
         @click.native="expanded = !expanded"
       )
-      //- ul.list-group(v-show="expanded")
-      //-   li.list-group-item(
-      //-       v-for="chat in chats" :key="chat.id"
-      //-       :style="{ fontWeight: chat.messages.includes(routedMessage) ? 'bold' : 'normal' }"
-      //-     )
-      //-     nuxt-link.d-block(
-      //-       :to="{ query: { id: chat.id } }"
-      //-       style="color: inherit;"
-      //-     )
-      //-       b-icon.mr-2(icon="chat")
-      //-       | {{ chat.title }}
-      div(v-if="expanded")
+      div.border(v-if="expanded" style="height: 300px; overflow: auto;")
         b-button.d-block.text-left(
           v-for="chat in chats" :key="chat.id"
           :variant="chat.messages.includes(routedMessage) ? 'outline-secondary' : 'light'"

@@ -24,9 +24,12 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
 
       children: (item) ->
         _(items)
-          .filter (child) -> if item then child.parentId is item.id else not child.parentId
+          .filter (child) -> if item?.id then child.parentId is item.id else not child.parentId
           .orderBy childOrder
           .value()
+      
+      orphans: ->
+        @children(@root)
 
       descendants: (item, includeSelf = true) ->
         # log "Descendants of #{item?.id}, includeSelf: #{includeSelf}:",

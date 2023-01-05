@@ -20,7 +20,8 @@
       MindySidebarFooter
     template(v-slot:primary-pane)
       MindyChat(
-        v-bind="chat"
+        v-bind.sync="chat"
+        @newMessage="sendMessage"
       )
     template(v-slot:secondary-pane)
       MindyWorkspace(
@@ -38,6 +39,8 @@
   import computedData from '~/plugins/mixins/computedData'
   import TreeLike from '~/plugins/treeLike'
   import Chat from '~/plugins/chat'
+  import Magic from 'almostmagic'
+  import tryActionMixin from '~/plugins/mixins/tryAction'
 
   export default
 
@@ -53,9 +56,12 @@
     ]
 
     mixins: [
+      tryActionMixin
       syncLocal
         keys: [
           'messages'
+          'usdSpent'
+          'openaiKey'
         ]
         format: 'yaml'
         prefix: 'mindy'
@@ -69,19 +75,40 @@
 
       messages: []
       routedMessage: null
+      openaiKey: null
+      usdSpent: 0
+      namingChats: false
+      idsOfChatsBeingNamed: []
 
       mindmap:
         code: null
     
     computed:
-
-      chat: -> new Chat @tree, @routedMessage
       
       tree: -> new TreeLike @messages, vm: @
 
-      chats: -> @messages.filter( (message) -> !message.parentId ).map( (message) => new Chat @tree, message )
+      chat: -> new Chat @, @routedMessage
+
+      chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
+
+      magic: -> new Magic {
+        apiUrl: process.env.MAGIC_API_URL
+        @openaiKey
+        externalCostContainer: @
+      }
           
     watch:
+
+      chats: (chats) ->
+        # For all untitled chats, derivet the title using magic
+        @try 'namingChats', =>
+          await Promise.all chats.map (chat) =>
+            # log 'Naming chat',
+            { title, content, id } = chat.firstMessage || {}
+            if content and not title
+              chat.firstMessage.title = await @magic.generate('Title in max. 3 words', { content })
+              @messages = [ ...@messages ]
+        , oneAtATime: true
 
       '$route.query.id':
         immediate: true
@@ -104,5 +131,18 @@
 
           if @$route.query.id isnt String(id)
             @$router.push query: { id }
+    # 
+
+    methods:
+
+      sendMessage: ({ content, parent }) ->
+        log 'Sending message', content, parent
+        @messages = [
+          ...@messages
+          @routedMessage = @tree.createChild parent, {
+            content
+            user: isBot: false
+          }
+        ]
 
 </script>

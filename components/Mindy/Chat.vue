@@ -48,34 +48,35 @@
               nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
                 v-text="`${tree.numSiblings(message)} >`"
               )
-          strong {{ message.user.name }}
+          strong {{ message.user.name || 'you' }}
           | :
           div(v-html="$md.render(message.content)")
 
     //- 
 
     //- Message input
-    div.input-group.p-3.bg-light.border-top(ref="input")
-      b-textarea.form-control(
-        type="text"
-        placeholder="Shift+Enter for new line"
-        v-model="newMessage"
-        rows="1"
-        max-rows="10"
-        :style=`{
-          overflow: 'auto',
-          ...isMultiline ? {
-            fontSize: '1em',
-          } : {
-            height: '2.5em'
-          },
-        }`
-      )
-      div.input-group-append
-        button.btn.btn-primary(
-          type="button"
+    b-form( @submit.prevent="$emit('newMessage', { content: newMessage, parent: lastMessage })" )
+      div.input-group.p-3.bg-light.border-top(ref="input")
+        b-textarea.form-control(
+          type="text"
+          placeholder="Shift+Enter for new line"
+          v-model="newMessage"
+          rows="1"
+          max-rows="10"
+          :style=`{
+            overflow: 'auto',
+            ...isMultiline ? {
+              fontSize: '1em',
+            } : {
+              height: '2.5em'
+            },
+          }`
         )
-          Icon(icon="send")
+        div.input-group-append
+          button.btn.btn-primary(
+            type="submit"
+          )
+            Icon(icon="send")
     //- 
 
   //- 
@@ -107,7 +108,7 @@
 
   export default
 
-    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessageWithContext' ]
+    props: [ 'newMessage', 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'lastMessageWithContext' ]
 
     mixins: [
       updatePropsMixin
@@ -119,8 +120,6 @@
 
     data: ->
       previousThread: null
-      newMessage: ''
-
     computed:
 
       isMultiline: ->

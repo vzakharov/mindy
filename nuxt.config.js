@@ -28,8 +28,8 @@ export default {
     POLYGON_UPVOTES_DB_ID: process.env.POLYGON_UPVOTES_DB_ID ||
       'ecdca719f95b4eeab4c86118e44d162c',
 
-    POLYGON_API_URL: process.env.POLYGON_API_URL ||
-      baseUrl + 'polygon/',
+    MAGIC_API_URL: process.env.MAGIC_API_URL ||
+      baseUrl + 'polygon',
 
     MIXPANEL_TOKEN: process.env.MIXPANEL_TOKEN ||
       'f9ed5012981005142ed33251c919eb41',

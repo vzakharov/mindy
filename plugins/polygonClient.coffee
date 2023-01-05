@@ -5,7 +5,7 @@ import _ from 'lodash'
 import log from '~/plugins/log'
 
 export default ({
-  polygonAPIurl = process.env.POLYGON_API_URL
+  polygonAPIurl = process.env.MAGIC_API_URL
   templatesDatabaseId = process.env.POLYGON_TEMPLATES_DB_ID
   upvotesDatabaseId = process.env.POLYGON_UPVOTES_DB_ID
   openAIkey = process.env.OPENAI_KEY

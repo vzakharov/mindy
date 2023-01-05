@@ -4,7 +4,7 @@ import _ from 'lodash'
 
 export default ({ prefix, keys, format = 'json' } = {}) ->
 
-  log "Exporting syncLocal mixin with arguments: #{JSON.stringify(arguments[0])}"
+  # log "Exporting syncLocal mixin with arguments: #{JSON.stringify(arguments[0])}"
 
   # parsing/dumping; format can be 'json' or 'yaml'
   if format is 'yaml'
@@ -31,7 +31,7 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
   
   pathify = ( ...args ) -> args.filter(_.identity).join('.')
 
-  log 'Using data paths:',
+  # log 'Using data paths:',
   dataPaths = keys.reduce ( paths, key ) ->
 
       if _.isArray(key)
@@ -42,11 +42,11 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
     , {}
   # (we'll be using this to understand where to put the data synced from local storage, and what to watch)
 
-  log 'Converted keys back to plain strings:',
+  # log 'Converted keys back to plain strings:',
   keys = keys.map ( key ) -> if _.isArray(key) then key[0] else key
   # (converting keys to plain string after we've parsed all the options)
 
-  log 'Using local keys:',
+  # log 'Using local keys:',
   localKeys = keys.reduce ( keys, key ) ->
       Object.assign keys, { [key]: pathify(prefix, key) }
     , {}
@@ -63,15 +63,15 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
 
     keys.forEach ( key ) =>
 
-      log "Syncing key #{key} from local storage for component #{@$options.name}"
+      # log "Syncing key #{key} from local storage for component #{@$options.name}"
 
-      log 'Local value:',
+      # log 'Local value:',
       localValue = window.localStorage.getItem(localKeys[key])
       dataPath = dataPaths[key]
       defaultValue = _.get( @, dataPath )
       if defaultValue is undefined then throw new Error "Default value for key `#{key}` does not exist at `#{dataPath}`"
 
-      console.log key: key, localValue: localValue, defaultValue: defaultValue
+      # log key: key, localValue: localValue, defaultValue: defaultValue
 
       localValue = asSameTypeAs localValue, defaultValue
 
@@ -101,7 +101,7 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
             else
               localKey = localKeys[key]
               window.localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
-              log "Saved #{key} to local storage as #{localKey}"
+              # log "Saved #{key} to local storage as #{localKey}"
               @syncLocal.ignoreWatchers = _.without @syncLocal.ignoreWatchers, key
 
     , {}

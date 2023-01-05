@@ -1,22 +1,29 @@
 import TreeLike from '~/plugins/treeLike'
 
-export default ( tree, routedMessage ) ->
+export default ( vm, routedMessage ) ->
 
-  console.debug "Creating Chat with tree:", tree, "and routedMessage:", routedMessage
-  @tree = tree
+  console.debug "Creating Chat for vm", vm, "with routedMessage", routedMessage
+
+  chat = @
+  
+  @tree = vm.tree
 
   @routedMessage = routedMessage
 
   @thread = @tree.thread?( @routedMessage )
 
-  @rootMessage = @thread?[0]
+  @firstMessage = _.first @thread
+  
+  @lastMessage = _.last @thread
 
-  @messages = @tree.descendants( @rootMessage )
+  @messages = @tree.descendants( @firstMessage )
+
+  @id = @firstMessage?.id
+
+  @title = @firstMessage?.title ? if @id then "Chat ##{@id}" else "New Chat"
+
+  @newMessage = ''
 
   @lastMessageWithContext = _.findLast @thread, (m) -> m.context
-
-  @id = @rootMessage?.id
-
-  @title = @lastMessageWithContext?.context.split('\n')[0]?.trim() ? if @id then "Chat ##{@id}" else "New chat"
 
   console.debug "Created Chat with:", @
