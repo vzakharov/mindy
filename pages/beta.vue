@@ -148,20 +148,41 @@
             ]
           else @chat.exchanges
         # 
-        validateOutput: (output) ->
-          # log 'Validating output', output
-          if not output
-            throw new Error 'No output'
-          [ 'reply', 'mindmap', 'thoughts' ].forEach (key) ->
-            if not output[key]
-              throw new Error "No #{key}"
-            if not _.isString output[key]
-              throw new Error "#{key} is not a string"
-          # Mindmap must be valid YAML
-          try
-            yaml.load output.mindmap
-          catch err
-            throw new Error "Mindmap is not valid YAML"
+        # validateOutput: (output) ->
+        #   # log 'Validating output', output
+        #   if not output
+        #     throw new Error 'No output'
+        #   [ 'reply', 'mindmap', 'thoughts' ].forEach (key) ->
+        #     if not output[key]
+        #       throw new Error "No #{key}"
+        #     if not _.isString output[key]
+        #       throw new Error "#{key} is not a string"
+        #   # Mindmap must be valid YAML
+        #   try
+        #     yaml.load output.mindmap
+        #   catch err
+        #     throw new Error "Mindmap is not valid YAML"
+        postprocess: (output) ->
+          # log 'Postprocessing output', output
+          # Make sure all outputs are present and not strings
+          for key, value of output
+            throw new Error "Ouput #{key} is missing" if not value
+            throw new Error "Output #{key} is not a string" if not _.isString value
+          # Convert mindmap from YAML to an array
+          # log "Converted mindmap from YAML",
+          output.mindmap = yaml.load output.mindmap
+          # The mindmap can only contain arrays or strings. For objects, we need to convert them to arrays, each item being a string in the `key: value` format.
+          # log "Cleaned up mindmap",
+          output.mindmap = do walk = (node = output.mindmap) ->
+            if _.isArray node
+              node.map walk
+            else if _.isObject node
+              for key, value of node
+                "#{key}: #{value}"
+            else
+              node
+          # log "Postprocessed output",
+          output
 
       }
           
@@ -238,7 +259,6 @@
             log "Choices",
             await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
           ).forEach ({ reply, mindmap, thoughts }) =>
-            mindmap = yaml.load mindmap
             @messages = [
               ...@messages
               @routedMessage = @tree.createChild message, {
