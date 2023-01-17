@@ -98,17 +98,18 @@
       
       tree: -> new TreeLike @messages, vm: @
 
-      chat: -> window.chat = new Chat @, @routedMessage
+      chat: ->
+        window.chat = new Chat @, @routedMessage
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
 
-      magic: -> new Magic {
+      magic: -> window.magic = new Magic {
         apiUrl: process.env.MAGIC_API_URL
         @openaiKey
         externalCostContainer: @
       }
 
-      mindy: -> new Magic {
+      mindy: -> window.mindy = new Magic {
         ...@magic.config
         parameters:
           n: 3
@@ -117,26 +118,16 @@
           outputKeys:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
             reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
-            # mindmap: "A nested array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
             mindmap: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
-        examples: 
+        examples:
           # If no exchanges in the chat, use a default example
           if !@chat.exchanges.length
             [
               {
-                input: { query: 'Three laws of robotics', continued: false }
+                input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
                 output:
                   thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
                   reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
-                  # mindmap: [
-                  #   'Asimov’s three laws of robotics',
-                  #   [
-                  #     'Protect humans',
-                  #     'Obey humans',
-                  #     'Protect oneself',
-                  #     [ 'Unless it conflicts with the first two' ]
-                  #   ]
-                  # ]
                   mindmap: """
                   - Asimov’s three laws of robotics
                   - - Protect humans
@@ -146,22 +137,19 @@
                   """
               }
             ]
-          else @chat.exchanges
-        # 
-        # validateOutput: (output) ->
-        #   # log 'Validating output', output
-        #   if not output
-        #     throw new Error 'No output'
-        #   [ 'reply', 'mindmap', 'thoughts' ].forEach (key) ->
-        #     if not output[key]
-        #       throw new Error "No #{key}"
-        #     if not _.isString output[key]
-        #       throw new Error "#{key} is not a string"
-        #   # Mindmap must be valid YAML
-        #   try
-        #     yaml.load output.mindmap
-        #   catch err
-        #     throw new Error "Mindmap is not valid YAML"
+          else _.map @chat.exchanges, ( { query, response }, index ) =>
+            # Only include the mindmap for the last exchange that has a mindmap
+            buildMindmap = response is @chat.lastMessageWith('context.mindmap')
+            input: {
+              query: query.content
+              continued: index > 0
+              buildMindmap
+            }
+            output: {
+              thoughts: response.context.thoughts
+              reply: response.content
+              ...( if buildMindmap then mindmap: yaml.dump(response.context.mindmap) else {} )
+            }
         postprocess: (output) ->
           # log 'Postprocessing output', output
           # Make sure all outputs are present and not strings
@@ -186,12 +174,6 @@
 
       }
           
-    mounted: ->
-
-      Object.assign window, {
-        @magic, @mindy
-      }
-
     watch:
 
       chat: -> @layout.resetLayout = true
@@ -203,10 +185,10 @@
             # log 'Naming chat',
             { title, content, id } = chat.firstMessage || {}
             if content and not title
-              { title, isGibberish } = await @magic.generate(['title', 'isGibberish'], { content },
+              { topic: title, isGibberish } = await @magic.generate(['topic', 'isGibberish'], { content },
                 specs:
-                  title: 'A short, succint title summarizing the content. Required.'
-                  isGibberish: 'Whether the title is gibberish. Required.'
+                  topic: 'What is the content about? Required.'
+                  isGibberish: 'Whether the content is gibberish. Required.'
               )
               if isGibberish
                 title = chat.title # I.e. "Chat #..."
@@ -257,7 +239,7 @@
 
           (
             log "Choices",
-            await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
+            await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length, buildMindmap: true })
           ).forEach ({ reply, mindmap, thoughts }) =>
             @messages = [
               ...@messages

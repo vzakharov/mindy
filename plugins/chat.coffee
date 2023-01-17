@@ -14,14 +14,10 @@ export default ( vm, routedMessage ) ->
   # Like thread, but has an "input" from the user and an "output" from the bot
   # Do not include "bare" messages, i.e. ones without a response yet
   @exchanges = @thread?.filter ({ user: { isBot }, id }) => not isBot and @tree.hasChildren({ id })
-    .map (message) =>
-      response = @thread?.find (m) => @tree.parent(m) is message
-
-      input: { query: message.content }
-      output:
-        thoughts: response?.context?.thoughts
-        reply: response?.content
-        mindmap: yaml.dump response?.context?.mindmap ? response?.context
+    .map (query) => {
+      query
+      response: @thread?.find (m) => @tree.parent(m) is query
+    }
   
   @exchanges ?= []
 
@@ -35,6 +31,6 @@ export default ( vm, routedMessage ) ->
 
   @title = @firstMessage?.title ? if @id then "Chat ##{@id}" else "New Chat"
 
-  @lastMessageWithContext = _.findLast @thread, (m) -> m.context
+  @lastMessageWith = (path) -> _.findLast @thread, (message) -> _.has message, path
 
   @

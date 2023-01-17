@@ -111,7 +111,7 @@
 
   export default
 
-    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'lastMessageWithContext', 'bot' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'bot' ]
 
     mixins: [
       updatePropsMixin
