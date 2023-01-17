@@ -27,6 +27,9 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
           .filter (child) -> if item?.id then child.parentId is item.id else not child.parentId
           .orderBy childOrder
           .value()
+
+      hasChildren: (item) ->
+        @children(item).length > 0
       
       orphans: ->
         @children(@root)
@@ -93,18 +96,18 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
       thread: (item, includeDescendants = true) ->
         if item
           # i.e. lineage of the ultimate heir
-          log 'thread',
+          # log 'thread',
           @lineage( if includeDescendants then @heir(item, nested: true) else item )
 
       heritage: (item, { includeSelf = true } = {}) ->
         # i.e. the opposite of lineage, i.e. the heir, then the heir's heir, etc. (possibly including the item itself as the first item)
         # take thread and remove the lineage
-        log "Calculating heritage for #{item?.id}"
-        log 'thread',
+        # log "Calculating heritage for #{item?.id}"
+        # log 'thread',
         thread = @thread(item)
-        log 'lineage',
+        # log 'lineage',
         lineage = @lineage(item, includeSelf: !includeSelf)
-        log 'heritage',
+        # log 'heritage',
         _.difference thread, lineage
 
     cache: {}

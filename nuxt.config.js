@@ -1,7 +1,7 @@
 const baseUrl = process.env.BASE_URL ||
-  'https://ideality.app/api/'
+  // 'https://ideality.app/api/'
   // uncomment ^^ for production
-  // 'http://localhost:3700/api/'
+  'http://localhost:3700/api/'
   // uncomment ^^ for development
 
 export default {

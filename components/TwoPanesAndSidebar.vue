@@ -57,7 +57,7 @@
 
   export default
 
-    props: ['secondaryPaneIcon', 'brand', 'tagline', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent']
+    props: ['secondaryPaneIcon', 'brand', 'tagline', 'sidebarComponent', 'primaryPaneComponent', 'secondaryPaneComponent', 'resetLayout']
 
     mixins: [
       checkWidthMixin()
@@ -70,6 +70,15 @@
         secondaryPane: false
       
       secondaryPaneCols: 8
+    
+    watch:
+      
+      resetLayout: (reset) ->
+        if reset
+          log 'resetting layout'
+          @show.sidebar = false
+          @show.secondaryPane = false
+          @$emit('update:resetLayout', false)
 
 </script>
 

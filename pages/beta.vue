@@ -2,6 +2,7 @@
 
   TwoPanesAndSidebar(
       v-if="syncLocal.loaded"
+      v-bind.sync="layout"
       brand="Mindy"
       tagline="Brainstorm with AI"
       secondaryPaneIcon="layout-sidebar"
@@ -25,7 +26,7 @@
       )
     template(v-slot:secondary-pane)
       MindyWorkspace(
-        v-bind.sync="mindmap"
+        v-bind.sync="workspace"
       )
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
     b-spinner
@@ -67,7 +68,9 @@
         prefix: 'mindy'
 
       computedData
-        'mindmap.code': -> @chat.routedMessage?.context ? @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
+        'workspace.context': -> @chat.routedMessage?.context ? @chat.tree.thread?(@chat.routedMessage)?.find((message) -> message.context)?.context
+        'workspace.chat': -> @chat
+        'bot.replying': -> @replying
 
     ]
 
@@ -79,15 +82,22 @@
       usdSpent: 0
       namingChats: false
       idsOfChatsBeingNamed: []
+      replying: false
 
-      mindmap:
-        code: null
+      layout:
+        resetLayout: false
+
+      workspace:
+        context: null
+      
+      bot:
+        replying: false
     
     computed:
       
       tree: -> new TreeLike @messages, vm: @
 
-      chat: -> new Chat @, @routedMessage
+      chat: -> window.chat = new Chat @, @routedMessage
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
 
@@ -96,17 +106,84 @@
         @openaiKey
         externalCostContainer: @
       }
+
+      mindy: -> new Magic {
+        ...@magic.config
+        parameters:
+          n: 3
+        specs:
+          description: 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems. Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic.'
+          outputKeys:
+            thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
+            reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
+            # mindmap: "A nested array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+            mindmap: "Lines summarizing the conversation, first line is not indented, others are indented according to their depth.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+        examples: 
+          # If no exchanges in the chat, use a default example
+          if !@chat.exchanges.length
+            [
+              {
+                input: { query: 'Three laws of robotics', continued: false }
+                output:
+                  thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
+                  reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
+                  # mindmap: [
+                  #   'Asimov’s three laws of robotics',
+                  #   [
+                  #     'Protect humans',
+                  #     'Obey humans',
+                  #     'Protect oneself',
+                  #     [ 'Unless it conflicts with the first two' ]
+                  #   ]
+                  # ]
+                  mindmap: """
+                    Asimov’s three laws of robotics
+                      Protect humans
+                      Obey humans
+                      Protect oneself
+                        Unless it conflicts with the first two
+                  """
+              }
+            ]
+          else @chat.exchanges
+        # 
+        validateOutput: (output) ->
+          # log 'Validating output', output
+          if not output
+            throw new Error 'No output'
+          [ 'reply', 'mindmap', 'thoughts' ].forEach (key) ->
+            if not output[key]
+              throw new Error "No #{key}"
+            if not _.isString output[key]
+              throw new Error "#{key} is not a string"
+
+      }
           
+    mounted: ->
+
+      Object.assign window, {
+        @magic, @mindy
+      }
+
     watch:
 
+      chat: -> @layout.resetLayout = true
+
       chats: (chats) ->
-        # For all untitled chats, derivet the title using magic
+        # For all untitled chats, derive the title using magic
         @try 'namingChats', =>
           await Promise.all chats.map (chat) =>
             # log 'Naming chat',
             { title, content, id } = chat.firstMessage || {}
             if content and not title
-              chat.firstMessage.title = await @magic.generate('Title in max. 3 words', { content })
+              { title, isGibberish } = await @magic.generate(['title', 'isGibberish'], { content },
+                specs:
+                  title: 'A short, succint title summarizing the content. Required.'
+                  isGibberish: 'Whether the title is gibberish. Required.'
+              )
+              if isGibberish
+                title = chat.title # I.e. "Chat #..."
+              _.assign chat.firstMessage, { title }
               @messages = [ ...@messages ]
         , oneAtATime: true
 
@@ -131,11 +208,22 @@
 
           if @$route.query.id isnt String(id)
             @$router.push query: { id }
+      
+      # 'chat.thread': (thread) ->
+      #   # If last message is not from the bot, generate a reply
+      #   if thread.length
+      #     lastMessage = _.last thread
+      #     if not lastMessage.user.isBot
+      #       @try 'replying', =>
+      #         { reply, mindmap } = await @mindy.generate({ query: lastMessage.content })
+      #         @sendMessage { content: reply, context: mindmap, parent: lastMessage, isBot: true }
+      #       , oneAtATime: true
     # 
 
     methods:
 
       sendMessage: ({ content, parent }) ->
+
         log 'Sending message', content, parent
         @messages = [
           ...@messages
@@ -144,5 +232,39 @@
             user: isBot: false
           }
         ]
+
+        @$nextTick => @reply @routedMessage
+      
+      reply: (message) ->
+
+        @try 'replying', =>
+
+          # { thoughts, reply, mindmap } = await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
+          # @messages = [
+          #   ...@messages
+          #   @routedMessage = @tree.createChild message, {
+          #     content: reply
+          #     context: {
+          #       mindmap, thoughts
+          #     }
+          #     user: isBot: true
+          #   }
+          # ]
+          (
+            log "Choices",
+            await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
+          ).forEach ({ reply, mindmap, thoughts }) =>
+            @messages = [
+              ...@messages
+              @routedMessage = @tree.createChild message, {
+                content: reply
+                context: {
+                  mindmap, thoughts
+                }
+                user: isBot: true
+              }
+            ]
+
+
 
 </script>

@@ -48,29 +48,32 @@
               nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
                 v-text="`${tree.numSiblings(message)} >`"
               )
-          strong {{ message.user.name || 'you' }}
+          strong {{ message.user.name || message.user.isBot ? 'mindy' : 'you' }}
           | :
-          div(v-html="$md.render(message.content)")
+          div(
+            v-html="$md.render(message.content)"
+            :title="message.context && message.context.thoughts ? `💭 ${message.context.thoughts}` : ''"
+          )
+      //- 
+
+      div.p-2(v-if="bot.replying", class="text-muted")
+        em mindy is thinking
+          MovingEllipsis
 
     //- 
 
     //- Message input
     b-form( @submit.prevent="$emit('newMessage', { content: newMessage, parent: lastMessage })" )
       div.input-group.p-3.bg-light.border-top(ref="input")
-        b-textarea.form-control(
+        TextareaAutosize.form-control(
+          ref="input"
           type="text"
           placeholder="Shift+Enter for new line"
           v-model="newMessage"
           rows="1"
-          max-rows="10"
-          :style=`{
-            overflow: 'auto',
-            ...isMultiline ? {
-              fontSize: '1em',
-            } : {
-              height: '2.5em'
-            },
-          }`
+          :max-height="300"
+          :font-size-if-multiline="'1em'"
+          @keydown.enter.native.prevent="$emit('newMessage', { content: newMessage, parent: lastMessage })"
         )
         div.input-group-append
           button.btn.btn-primary(
@@ -108,7 +111,7 @@
 
   export default
 
-    props: [ 'newMessage', 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'lastMessageWithContext' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'lastMessageWithContext', 'bot' ]
 
     mixins: [
       updatePropsMixin
@@ -120,10 +123,25 @@
 
     data: ->
       previousThread: null
+      newMessage: ''
+
     computed:
 
       isMultiline: ->
         @newMessage.includes('\n')
+    
+    # watch:
+
+    #   newMessage: ->
+    #     log 'newMessage', @newMessage
+    #     { input } = @$refs
+    #     { scrollHeight } = input
+    #     height = parseInt window.getComputedStyle(input).height.replace 'px', ''
+    #     log 'scrollHeight', scrollHeight, 'height', height
+    #     if scrollHeight > height
+    #       @inputHeight = "#{scrollHeight}px"
+    #     else
+    #       @inputHeight = '2.5em'
 
 </script>
 

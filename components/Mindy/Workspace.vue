@@ -37,8 +37,8 @@
     //- Mindmap
     div.d-flex.justify-content-center(ref="mindmap")
       MermaidMindmap.overflow-auto(
-        v-show="code"
-        :code="code"
+        v-show="mindmap"
+        :code="mindmapCode"
       )
 
     //- Footer: ideas, if enabled
@@ -65,7 +65,7 @@
 
   export default
 
-    props: ['code']
+    props: ['context', 'chat']
 
     mixins: [
       updatePropsMixin
@@ -76,6 +76,37 @@
 
       show:
         ideas: false
+    
+    computed:
+
+      mindmap: ->
+
+        # If context has a 'mindmap' key, return it. Otherwise, return the context itself (for backwards compatibility)
+        @context?.mindmap ? @context
+
+      mindmapCode: ->
+
+        { mindmap } = @
+
+        # If code is a string, give it
+        if typeof mindmap is "string"
+          mindmap
+        # If it's an array, convert it to a string
+        else if Array.isArray mindmap
+          # Make sure there's only one root (i.e. only one, the first item, which is not an array)
+          if mindmap.slice(1).find (item) -> !Array.isArray item
+            # Create a new root and put all the items in it. Use the chat's title as the root string
+            mindmap = [ chat.title, mindmap ]
+
+          # Go through each item and increase indent recursively if the line is an array too
+          do convert = (lines = mindmap, indent = 0) ->
+            lines
+              .map (line) ->
+                if Array.isArray line
+                  convert line, indent + 1
+                else
+                  "#{'  '.repeat indent}#{line}"
+              .join "\n"
 
     methods:
 
