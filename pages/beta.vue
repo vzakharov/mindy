@@ -1,36 +1,57 @@
 <template lang="pug">
-
-  TwoPanesAndSidebar(
-      v-if="syncLocal.loaded"
-      v-bind.sync="layout"
-      brand="Mindy"
-      tagline="Brainstorm with AI"
-      secondaryPaneIcon="layout-sidebar"
+  
+  div(v-if="syncLocal.loaded")
+    TwoPanesAndSidebar(
+        v-bind.sync="layout"
+        brand="Mindy"
+        tagline="Brainstorm with AI"
+        secondaryPaneIcon="layout-sidebar"
+      )
+      template(v-slot:sidebar)
+        //- New chat button
+        b-button.btn-lg.btn-block(
+          variant="outline-primary"
+          :to="{ query: { id: undefined } }"
+        )
+          b-icon.pr-2(icon="chat")
+          | New chat
+        div.pt-3
+          MindyChatList(v-bind="{ chats, routedMessage }")
+      template(v-slot:sidebar-footer)
+        MindySidebarFooter
+      template(v-slot:primary-pane)
+        MindyChat(
+          v-bind.sync="chat"
+          :query="query"
+          @query="sendMessage"
+          @editMessage="({ message, content }) => $set(message, 'content', content)"
+        )
+      template(v-slot:secondary-pane)
+        MindyWorkspace(
+          v-bind.sync="workspace"
+          v-on="{ randomQuery, elaborate, summarize }"
+        )
+    //- 
+    
+    //- Sumary modal
+    b-modal#summary-modal(
+      ref="summaryModal"
+      :title="`Summary ${summary.format}`"
+      size="lg"
+      centered
+      v-model="summary.show"
     )
-    template(v-slot:sidebar)
-      //- New chat button
-      b-button.btn-lg.btn-block(
-        variant="outline-primary"
-        :to="{ query: { id: undefined } }"
-      )
-        b-icon.pr-2(icon="chat")
-        | New chat
-      div.pt-3
-        MindyChatList(v-bind="{ chats, routedMessage }")
-    template(v-slot:sidebar-footer)
-      MindySidebarFooter
-    template(v-slot:primary-pane)
-      MindyChat(
-        v-bind.sync="chat"
-        :query="query"
-        @query="sendMessage"
-        @editMessage="({ message, content }) => $set(message, 'content', content)"
-      )
-    template(v-slot:secondary-pane)
-      MindyWorkspace(
-        v-bind.sync="workspace"
-        v-on="{ randomQuery, elaborate }"
-      )
+      div.d-flex.flex-column.flex-grow-1
+        div.flex-grow-1(v-if="summarizing")
+          div.text-center
+            b-spinner
+          div.text-center
+            | Generating summary...
+        div(v-else)
+          h2(v-text="summary.headline")
+          em(v-text="summary.intro")
+          div(v-html="$md.render(summary.body || '')")
+
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
     b-spinner
 
@@ -97,6 +118,15 @@
       idsOfChatsBeingNamed: []
       replying: false
       generatingRandomQuery: false
+      summarizing: false
+
+      summary:
+        format: ''
+        headline: ''
+        intro: ''
+        body: ''
+        show: false
+
       query: ''
 
       layout:
@@ -256,6 +286,28 @@
             @$router.push query: { id }
       
     methods:
+
+      summarize: ->
+
+        @try 'summarizing', =>
+
+          conversation = @chat.exchangeContents
+          { context: { mindmap }} = @chat.lastMessageWith('context.mindmap')
+          format = window.prompt 'What format do you want to use (e.g. blog post, email, landing page, etc.)?', 'blog post'
+          if format isnt null
+            @summary.show = true
+            Object.assign @summary, {
+              format
+              ...(await @magic.generate(['headline', 'intro', 'body'], { conversation, mindmap, format },
+                specs:
+                  description: "Generates a markdown-formatted summary in the given format based on a given conversation and mindmap."
+                  outputKeys:
+                    headline: 'Top-level headline for the summary. Required.'
+                    intro: 'Introductory paragraph for the summary. Required.'
+                    body: 'Body of the summary, in markdown format. Required.'
+              ))
+            }
+
 
       elaborate: (topic) ->
         @$nextTick =>

@@ -25,6 +25,12 @@
       //- Settings
       button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-gear
+      //- Summarize
+      button.btn.btn-outline-primary.btn-sm.mx-1.px-2(
+          @click="$emit('summarize')"
+        )
+        b-icon-file-earmark-text.mr-2
+        | Summarize
       //- Download
       button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
         b-icon-download.mr-2

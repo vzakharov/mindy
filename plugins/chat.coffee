@@ -19,6 +19,11 @@ export default ( vm, routedMessage ) ->
       response: @thread?.find (m) => @tree.parent(m) is query
     }
   
+  @exchangeContents = @exchanges?.map ({ query, response }) => {
+    query: query?.content
+    response: response?.content
+  }
+  
   @exchanges ?= []
 
   @firstMessage = _.first @thread
