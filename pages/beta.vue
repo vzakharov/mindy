@@ -29,7 +29,7 @@
     template(v-slot:secondary-pane)
       MindyWorkspace(
         v-bind.sync="workspace"
-        v-on="{ randomQuery }"
+        v-on="{ randomQuery, elaborate }"
       )
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
     b-spinner
@@ -137,9 +137,8 @@
             reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
             mindmapYaml: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples:
-          # If less than 3 exchanges, use the default example
           [
-            ...if @chat.exchanges.length < 3 then [
+            ...if @chat.exchanges.length < 1 then [
               {
                 input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
                 output:
@@ -257,6 +256,12 @@
             @$router.push query: { id }
       
     methods:
+
+      elaborate: (topic) ->
+        @$nextTick =>
+          @sendMessage
+            content: "#{topic}?"
+            parent: @chat.lastMessage
 
       randomQuery: ->
 

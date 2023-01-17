@@ -156,13 +156,15 @@
 
                 # Assign the id to the element
                 element.id = "box-#{id}"
+                element.style.cursor = 'pointer'
 
                 if @actionBoxes?[index]
-                  element.addEventListener 'click', @actionBoxes[index]
-                  element.style.cursor = 'pointer'
+                  element.onclick = @actionBoxes[index]
                 else
-                  # On double click, set the box's editing property to true
-                  element.ondblclick = => box.editing = true
+                  # # On double click, set the box's editing property to true
+                  # element.ondblclick = => box.editing = true
+                  # On click, emit a "request to elaborate"
+                  element.onclick = => @$emit 'elaborate', box.text
       # 
 
     watch:

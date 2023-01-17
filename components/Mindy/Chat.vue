@@ -64,7 +64,7 @@
     //- 
 
     //- Message input
-    MovingDots(v-if="bot.generatingRandomQuery" @refresh="dots = $event")
+    MovingDots(v-if="bot.generatingRandomQuery" @refresh="dots = $event" v-show="false")
     b-form( @submit.prevent="$emit('query', { content: query, parent: lastMessage })" )
       div.input-group.p-3.bg-light.border-top(ref="input")
         TextareaAutosize.form-control(
