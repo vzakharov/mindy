@@ -42,6 +42,7 @@
   import Chat from '~/plugins/chat'
   import Magic from 'almostmagic'
   import tryActionMixin from '~/plugins/mixins/tryAction'
+  import yaml from 'js-yaml'
 
   export default
 
@@ -117,7 +118,7 @@
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
             reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
             # mindmap: "A nested array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
-            mindmap: "Lines summarizing the conversation, first line is not indented, others are indented according to their depth.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+            mindmap: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples: 
           # If no exchanges in the chat, use a default example
           if !@chat.exchanges.length
@@ -137,11 +138,11 @@
                   #   ]
                   # ]
                   mindmap: """
-                    Asimov’s three laws of robotics
-                      Protect humans
-                      Obey humans
-                      Protect oneself
-                        Unless it conflicts with the first two
+                  - Asimov’s three laws of robotics
+                  - - Protect humans
+                    - Obey humans
+                    - Protect oneself
+                    - - Unless it conflicts with the first two
                   """
               }
             ]
@@ -156,6 +157,11 @@
               throw new Error "No #{key}"
             if not _.isString output[key]
               throw new Error "#{key} is not a string"
+          # Mindmap must be valid YAML
+          try
+            yaml.load output.mindmap
+          catch err
+            throw new Error "Mindmap is not valid YAML"
 
       }
           
@@ -209,17 +215,6 @@
           if @$route.query.id isnt String(id)
             @$router.push query: { id }
       
-      # 'chat.thread': (thread) ->
-      #   # If last message is not from the bot, generate a reply
-      #   if thread.length
-      #     lastMessage = _.last thread
-      #     if not lastMessage.user.isBot
-      #       @try 'replying', =>
-      #         { reply, mindmap } = await @mindy.generate({ query: lastMessage.content })
-      #         @sendMessage { content: reply, context: mindmap, parent: lastMessage, isBot: true }
-      #       , oneAtATime: true
-    # 
-
     methods:
 
       sendMessage: ({ content, parent }) ->
@@ -239,21 +234,11 @@
 
         @try 'replying', =>
 
-          # { thoughts, reply, mindmap } = await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
-          # @messages = [
-          #   ...@messages
-          #   @routedMessage = @tree.createChild message, {
-          #     content: reply
-          #     context: {
-          #       mindmap, thoughts
-          #     }
-          #     user: isBot: true
-          #   }
-          # ]
           (
             log "Choices",
             await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length })
           ).forEach ({ reply, mindmap, thoughts }) =>
+            mindmap = yaml.load mindmap
             @messages = [
               ...@messages
               @routedMessage = @tree.createChild message, {

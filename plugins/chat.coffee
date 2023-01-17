@@ -1,4 +1,5 @@
 import TreeLike from '~/plugins/treeLike'
+import yaml from 'js-yaml'
 
 export default ( vm, routedMessage ) ->
 
@@ -18,8 +19,9 @@ export default ( vm, routedMessage ) ->
 
       input: { query: message.content }
       output:
+        thoughts: response?.context?.thoughts
         reply: response?.content
-        mindmap: response?.context?.mindmap ? response?.context
+        mindmap: yaml.dump response?.context?.mindmap ? response?.context
   
   @exchanges ?= []
 
