@@ -109,7 +109,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         lineage = @lineage(item, includeSelf: !includeSelf)
         # log 'heritage',
         _.difference thread, lineage
-
+      
     cache: {}
 
     # Functions to manipulate the tree

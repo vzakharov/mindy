@@ -47,8 +47,23 @@
     computed:
 
       mermaidString: ->
-        log "Mermaid string computed:",
-        'mindmap\n' + @code.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
+        # log "Mermaid string computed:",
+        if @code
+          'mindmap\n' + @code.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
+        else
+          """
+          mindmap
+          This is your workspace
+            Start by asking questions in the chat
+            Mindy will automatically create a mindmap for you
+            Unsure what to ask? Click here
+          """
+      
+      actionBoxes: ->
+        # log "Special boxes computed:",
+        if !@code
+          4: => @$emit 'randomQuery'
+          # (This is the one that says "Click here"; the indexing starts at 1)
       
       lines:
         get: -> @code.split '\n'
@@ -142,8 +157,12 @@
                 # Assign the id to the element
                 element.id = "box-#{id}"
 
-                # On double click, set the box's editing property to true
-                element.ondblclick = => box.editing = true
+                if @actionBoxes?[index]
+                  element.addEventListener 'click', @actionBoxes[index]
+                  element.style.cursor = 'pointer'
+                else
+                  # On double click, set the box's editing property to true
+                  element.ondblclick = => box.editing = true
       # 
 
     watch:
@@ -151,7 +170,7 @@
       code:
         immediate: true
         handler: (code) ->
-          if code
+          # if code
             console.log "Updating mermaid chart"
             @render()
 

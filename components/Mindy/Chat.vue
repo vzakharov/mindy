@@ -53,27 +53,29 @@
           div(
             v-html="$md.render(message.content)"
             :title="message.context && message.context.thoughts ? `💭 ${message.context.thoughts}` : ''"
+            @dblclick="editMessage(message)"
           )
       //- 
 
       div.p-2(v-if="bot.replying", class="text-muted")
         em mindy is thinking
-          MovingEllipsis
+          MovingDots
 
     //- 
 
     //- Message input
-    b-form( @submit.prevent="$emit('newMessage', { content: newMessage, parent: lastMessage })" )
+    MovingDots(v-if="bot.generatingRandomQuery" @refresh="dots = $event")
+    b-form( @submit.prevent="$emit('query', { content: query, parent: lastMessage })" )
       div.input-group.p-3.bg-light.border-top(ref="input")
         TextareaAutosize.form-control(
           ref="input"
           type="text"
-          placeholder="Shift+Enter for new line"
-          v-model="newMessage"
+          :placeholder="bot.generatingRandomQuery ? `Generating random query${dots}` : 'Shift+Enter for new line'"
+          v-model="query"
           rows="1"
           :max-height="300"
           :font-size-if-multiline="'1em'"
-          @keydown.enter.native.prevent="$emit('newMessage', { content: newMessage, parent: lastMessage })"
+          @keydown.enter.native.prevent="$emit('query', { content: query, parent: lastMessage })"
         )
         div.input-group-append
           button.btn.btn-primary(
@@ -111,7 +113,7 @@
 
   export default
 
-    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'bot' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'bot', 'query' ]
 
     mixins: [
       updatePropsMixin
@@ -123,17 +125,30 @@
 
     data: ->
       previousThread: null
-      newMessage: ''
+      dots: ''
 
     computed:
 
       isMultiline: ->
-        @newMessage.includes('\n')
+        @query.includes('\n')
+      
+    
+    methods:
+    
+      editMessage: (message) ->
+        if content = window.prompt('Edit message:', message.content)
+          if message.user.isBot
+            # Just change the message content
+            @$emit 'editMessage', { message, content }
+          else
+            # Send a new message with the same parent
+            @$emit 'query', { content, parent: @tree.parent(message) }
+
     
     # watch:
 
-    #   newMessage: ->
-    #     log 'newMessage', @newMessage
+    #   query: ->
+    #     log 'query', @query
     #     { input } = @$refs
     #     { scrollHeight } = input
     #     height = parseInt window.getComputedStyle(input).height.replace 'px', ''

@@ -37,8 +37,8 @@
     //- Mindmap
     div.d-flex.justify-content-center(ref="mindmap")
       MermaidMindmap.overflow-auto(
-        v-show="mindmap"
         :code="mindmapCode"
+        v-on="$listeners"
       )
 
     //- Footer: ideas, if enabled

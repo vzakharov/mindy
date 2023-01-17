@@ -1,5 +1,5 @@
 <template lang="pug">
-  span {{ '.'.repeat(count + 1) }}
+  span {{ dots }}
 </template>
 
 <script lang="coffee">
@@ -7,8 +7,19 @@
   export default
 
     data: ->
-      count: 0
+      count: 2
       interval: null
+
+    computed:
+
+      dots: ->
+        '.'.repeat @count + 1
+
+    watch:
+
+      dots:
+        handler: -> @$emit 'refresh', @dots
+        immediate: true
 
     mounted: ->
       @interval = setInterval =>
