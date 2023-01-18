@@ -25,6 +25,7 @@
           :query="query"
           @query="sendMessage"
           @editMessage="({ message, content }) => $set(message, 'content', content)"
+          @deleteChat="deleteChat"
         )
       template(v-slot:secondary-pane)
         MindyWorkspace(
@@ -74,7 +75,7 @@
 
       { bookmark, content} = @routedMessage || {}
 
-      title: if @routedMessage then "#{ if bookmark?.name then "#{bookmark.name} (bookmark)" else content } · Mindy" else 'Mindy · Brainstorm with AI'
+      title: "#{@chat.title} · Mindy"
 
     meta: [
       name: 'viewport'
@@ -143,8 +144,9 @@
       
       tree: -> new TreeLike @messages, vm: @
 
-      chat: ->
-        window.chat = new Chat @, @routedMessage
+      chat: 
+        get: -> window.chat = new Chat @, @routedMessage
+        set: (chat) -> @routedMessage = chat?.lastMessage
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
 
@@ -286,6 +288,13 @@
             @$router.push query: { id }
       
     methods:
+
+      deleteChat: ->
+        # Ask for confirmation, then delete
+        if window.confirm "Are you sure you want to delete the chat \"#{chat.title}\"? THERE IS NO UNDO!"
+          chatIndex = @chats.indexOf @chat
+          @messages = @tree.delete @chat.firstMessage
+          @chat = @chats[chatIndex] || @chats[chatIndex - 1] || null
 
       summarize: ->
 
