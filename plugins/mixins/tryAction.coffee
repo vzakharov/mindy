@@ -5,36 +5,37 @@ export default
 
   data: ->
 
+    busy: {}
     whilst: {}
 
   methods:
 
-    actionPromise: (statePath) -> _.get @whilst, statePath, Promise.resolve()
+    actionPromise: (gerund) -> _.get @whilst, gerund, Promise.resolve()
 
-    try: ( statePath, action, { oneAtATime, errorMessage, except, track = true, mixpanelProps } = {} ) ->
+    try: ( gerund, action, { oneAtATime, errorMessage, except, track = true, mixpanelProps } = {} ) ->
 
-      if oneAtATime and _.get(@whilst, statePath)
-        console.warn "Already #{statePath}; skipping"
-        return _.get(@whilst, statePath)
+      if oneAtATime and _.get(@whilst, gerund)
+        console.warn "Already #{gerund}; skipping"
+        return _.get(@whilst, gerund)
       
       if track
         { mixpanel } = @
 
-      _.set @, statePath, true
+      @$set @busy, gerund, true
       resolve = null
       reject = null
-      _.set @, statePath, new Promise (res, rej) ->
+      _.set @whilst, gerund, new Promise (res, rej) ->
         resolve = res
         reject = rej
       try
-        console.log "Started #{statePath}"
-        mixpanel?.track "#{statePath} started", mixpanelProps
+        console.log "Started #{gerund}"
+        mixpanel?.track "#{gerund} started", mixpanelProps
         resolve result = await action.call(@)
-        mixpanel?.track "#{statePath} succeeded", mixpanelProps
+        mixpanel?.track "#{gerund} succeeded", mixpanelProps
         return result
       catch error
-        console.error "Error while #{statePath}: #{error}"
-        mixpanel?.track "#{statePath} failed", { error: error.message, ...mixpanelProps }
+        console.error "Error while #{gerund}: #{error}"
+        mixpanel?.track "#{gerund} failed", { error: error.message, ...mixpanelProps }
         # If errorMessage is a function, call it with the error as argument
         if typeof errorMessage is 'function'
           errorMessage = errorMessage(error)
@@ -42,9 +43,9 @@ export default
         except? error
         reject error
       finally
-        _.set @, statePath, false
-        _.unset @, statePath
-        console.log "Finished #{statePath}"
+        @$set @busy, gerund, false
+        _.unset @whilst, gerund
+        console.log "Finished #{gerund}"
 
     alert: (errorMessage='Something went wrong.') ->
       @$bvToast.toast 'See console for error details.',
