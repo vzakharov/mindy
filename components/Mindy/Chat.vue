@@ -6,9 +6,15 @@
       div.d-flex
         //- Chat space title
         h4.mb-0 {{ title }}
-        //- Edit icon, gray
-        button.btn.btn-light.btn-sm.pl-2.lightgray(v-if="id")
-          b-icon-pencil.icon-sm.pb-1
+        template(v-if="id")
+          //- Edit icon, gray
+          button.btn.btn-light.btn-sm.pl-2.lightgray
+            b-icon-pencil.icon-sm.pb-1
+          //- Delete icon, gray
+          button.btn.btn-light.btn-sm.lightgray(
+              @click="$emit('deleteChat')"  
+            )
+            b-icon-trash.icon-sm.pb-1
       div.d-flex
         //- Bookmark button
         button.btn.btn-outline-secondary.btn-sm.mx-1.px-2(
@@ -58,19 +64,17 @@
       //- 
 
       div.p-2(v-if="bot.replying", class="text-muted")
-        em mindy is thinking
-          MovingDots
+        em mindy is thinking{{ movingDots }}
 
     //- 
 
     //- Message input
-    MovingDots(v-if="bot.generatingRandomQuery" @refresh="dots = $event" v-show="false")
     b-form( @submit.prevent="$emit('query', { content: query, parent: lastMessage })" )
       div.input-group.p-3.bg-light.border-top(ref="input")
         TextareaAutosize.form-control(
           ref="input"
           type="text"
-          :placeholder="bot.generatingRandomQuery ? `Generating random query${dots}` : 'Shift+Enter for new line'"
+          :placeholder="bot.generatingRandomQuery ? `Generating random query${movingDots}` : 'Shift+Enter for new line'"
           v-model="query"
           rows="1"
           :max-height="300"
@@ -102,6 +106,7 @@
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
   import autoHeightMixin from '~/plugins/mixins/autoHeight'
+  import movingDotsMixin from '~/plugins/mixins/movingDots'
 
   import PolygonClient from '~/plugins/polygonClient'
 
@@ -121,6 +126,7 @@
       windowMixin
       mixpanelMixin
       autoHeightMixin 'messages', footerRef: 'input'
+      movingDotsMixin
     ]
 
     data: ->
