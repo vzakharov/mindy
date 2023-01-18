@@ -5,7 +5,7 @@
     div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-between.align-items-center
       div.d-flex
         //- Chat space title
-        h4.mb-0 {{ title }}
+        h4.mb-0 {{ title }}{{ busy.namingChats ? movingDots : '' }}
         template(v-if="id")
           //- Edit icon, gray
           button.btn.btn-light.btn-sm.pl-2.lightgray
@@ -63,7 +63,7 @@
           )
       //- 
 
-      div.p-2(v-if="bot.replying", class="text-muted")
+      div.p-2(v-if="busy.replying", class="text-muted")
         em mindy is thinking{{ movingDots }}
 
     //- 
@@ -74,7 +74,7 @@
         TextareaAutosize.form-control(
           ref="input"
           type="text"
-          :placeholder="bot.generatingRandomQuery ? `Generating random query${movingDots}` : 'Shift+Enter for new line'"
+          :placeholder="busy.generatingRandomQuery ? `Generating random query${movingDots}` : 'Shift+Enter for new line'"
           v-model="query"
           rows="1"
           :max-height="300"
@@ -102,7 +102,6 @@
   import log from '~/plugins/log'
 
   import updatePropsMixin from '~/plugins/mixins/updateProps'
-  import tryAction from '~/plugins/mixins/tryAction'
   import windowMixin from '~/plugins/mixins/window'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
   import autoHeightMixin from '~/plugins/mixins/autoHeight'
@@ -118,11 +117,10 @@
 
   export default
 
-    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'bot', 'query' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'busy', 'query' ]
 
     mixins: [
       updatePropsMixin
-      tryAction
       windowMixin
       mixpanelMixin
       autoHeightMixin 'messages', footerRef: 'input'
