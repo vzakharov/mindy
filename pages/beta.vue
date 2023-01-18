@@ -23,6 +23,7 @@
         MindyChat(
           v-bind.sync="chat"
           :query="query"
+          :busy="busy"
           @query="sendMessage"
           @editMessage="({ message, content }) => $set(message, 'content', content)"
           @deleteChat="deleteChat"
@@ -43,7 +44,7 @@
       v-model="summary.show"
     )
       div.d-flex.flex-column.flex-grow-1
-        div.flex-grow-1(v-if="summarizing")
+        div.flex-grow-1(v-if="busy.summarizing")
           div.text-center
             b-spinner
           div.text-center
@@ -104,8 +105,6 @@
             (message) -> message.context?.mindmap
           )?.context
         'workspace.chat': -> @chat
-        'bot.replying': -> @replying
-        'bot.generatingRandomQuery': -> @generatingRandomQuery
 
     ]
 
@@ -115,11 +114,7 @@
       routedMessage: null
       openaiKey: null
       usdSpent: 0
-      namingChats: false
       idsOfChatsBeingNamed: []
-      replying: false
-      generatingRandomQuery: false
-      summarizing: false
 
       summary:
         format: ''
@@ -135,11 +130,7 @@
 
       workspace:
         context: null
-      
-      bot:
-        replying: false
-        generatingRandomQuery: false
-    
+          
     computed:
       
       tree: -> new TreeLike @messages, vm: @
@@ -166,7 +157,7 @@
           description: @mindyDescription
           returns:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
-            reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
+            reply: 'A succinct, useful reply to the user’s question or topic. Required.'
             mindmapYaml: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples:
           [
@@ -215,19 +206,24 @@
           # b) see if this line has a whitespace at that index
           # c) if yes, replace the whitespace with a dash
 
-          log "Fixing YAML formatting",
-          mindmapYaml = mindmapYaml.split('\n').map((line, index, lines) ->
-            if index > 0
-              previousLine = lines[index - 1]
-              dashIndex = previousLine.indexOf '-'
-              if dashIndex > -1
-                if line[dashIndex] is ' '
-                  line = line.slice(0, dashIndex) + '-' + line.slice(dashIndex + 1)
-            line
-          ).join('\n')
+          # log "Fixing YAML formatting",
+          # mindmapYaml = mindmapYaml.split('\n').map((line, index, lines) ->
+          #   if index > 0
+          #     previousLine = lines[index - 1]
+          #     dashIndex = previousLine.indexOf '-'
+          #     if dashIndex > -1
+          #       if line[dashIndex] is ' '
+          #         line = line.slice(0, dashIndex) + '-' + line.slice(dashIndex + 1)
+          #   line
+          # ).join('\n')
 
           # log "Converted mindmap from YAML",
           output.mindmap = yaml.load mindmapYaml
+
+          # The mindmap list must contain strictly two items: the root and the first level of children. Therefore if there's another number of items, or if the first item is not a string, or if the second item is not an array, we reject the mindmap.
+          if output.mindmap.length isnt 2 or not _.isString(output.mindmap[0]) or not _.isArray(output.mindmap[1])
+            throw new Error "Mindmap is invalid: #{mindmapYaml}"
+
           # The mindmap can only contain arrays or strings. For objects, we need to convert them to arrays, each item being a string in the `key: value` format.
           # log "Cleaned up mindmap",
           output.mindmap = do walk = (node = output.mindmap) ->
@@ -338,7 +334,7 @@
             specs:
               description: @mindyDescription
               returns:
-                query: 'An example query to start a conversation with Mindy. Required.'
+                query: 'An example input to start a conversation with Mindy. Should be wow-worthy.'
             examples:
               # If there are more than 5 chats already, pick 2 random chats and use their first messages as queries
               if @chats.length > 5
@@ -379,7 +375,12 @@
 
           (
             # log "Choices",
-            await @mindy.generate({ query: message.content, continued: !!@chat.exchanges.length, buildMindmap: true })
+            await @mindy.generate(
+              query: message.content
+              continued: !!@chat.exchanges.length
+              buildMindmap: true
+              reminder: "Mindy cannot 'look up' information as she is not connected to the Internet and only has general knowledge."
+            )
           ).forEach ({ reply, mindmap, thoughts }) =>
             @messages = [
               ...@messages
