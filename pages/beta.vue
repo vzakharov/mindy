@@ -162,7 +162,7 @@
           n: 3
         specs:
           description: @mindyDescription
-          outputKeys:
+          returns:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
             reply: 'A succinct, ironic reply to the user’s question or topic. Required.'
             mindmapYaml: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
@@ -301,7 +301,7 @@
               ...(await @magic.generate(['headline', 'intro', 'body'], { conversation, mindmap, format },
                 specs:
                   description: "Generates a markdown-formatted summary in the given format based on a given conversation and mindmap."
-                  outputKeys:
+                  returns:
                     headline: 'Top-level headline for the summary. Required.'
                     intro: 'Introductory paragraph for the summary. Required.'
                     body: 'Body of the summary, in markdown format. Required.'
@@ -328,7 +328,7 @@
               temperature: 1
             specs:
               description: @mindyDescription
-              outputKeys:
+              returns:
                 query: 'An example query to start a conversation with Mindy. Required.'
             examples:
               # If there are more than 5 chats already, pick 2 random chats and use their first messages as queries

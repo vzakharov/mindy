@@ -75,7 +75,7 @@
           rows="1"
           :max-height="300"
           :font-size-if-multiline="'1em'"
-          @keydown.enter.native.prevent="$emit('query', { content: query, parent: lastMessage })"
+          @keydown.enter.native.exact.prevent="$emit('query', { content: query, parent: lastMessage })"
         )
         div.input-group-append
           button.btn.btn-primary(
