@@ -1,12 +1,21 @@
 <template lang="pug">
   div.w-100.d-flex.flex-column.justify-content-center.align-items-center
-    //- Mindmap container, invisible if the vm is not mounted
+    //- Mindmap container, invisible if the vm is not mounted or if there's no code
     div#mermaid-container.w-100.d-flex.flex-column.justify-content-center.align-items-center(
       ref="container"
-      v-show="!rendering"
+      v-show="!busy.rendering && code"
+      v-html="svg"
     )
     //- Spinner taking up all the parent container and making the background semi-transparent if loading
-    b-spinner(v-show="rendering")
+    b-spinner(v-show="busy.rendering")
+    div(v-show="!code")
+      h2.display-6 This is your workspace
+      ul.lead
+        li Start by asking questions in the chat
+        li Mindy will automatically create a mindmap for you
+        li Unsure what to ask? 
+          span.text-primary(@click="$emit('randomQuery')" style="cursor: pointer;") Click here
+          | .
     NodeManipulation(
       v-for="box, index in boxes"
       :key="box.id"
@@ -41,8 +50,10 @@
 
     data: ->
 
-      rendering: false
+      busy:
+        rendering: false
       boxes: []
+      svg: ''
     
     computed:
 
@@ -120,60 +131,63 @@
 
         @try 'rendering', =>
 
-          mermaid.renderAsync "mermaid-svg", @mermaidString, (svg) =>
-
-            { container } = @$refs
-            container.innerHTML = svg
-
-            do makeBoxes = =>
-
-              @boxes = []
-              index = 0
-
-              # Go through every .mindmap-node element within the SVG and create boxes for them
-              container.querySelectorAll('.mindmap-node').forEach (element) =>
-
-                # Get the element's bounding box
-                box = element.getBoundingClientRect()
-
-                # Come up with a random ID for the box
-                id = Math.random().toString(36).substr(2, 9)
-
-                # Take all tspan's within and join them with a space
-                text = Array.from(element.querySelectorAll('tspan')).map((element) -> element.textContent.replace /\s{2,}/g, ' ').join ' '
-
-                # Create a virtual box with the same dimensions and position
-                box = {
-                  element
-                  id
-                  text
-                  editing: !text
-                  index: index++
-                }
-                # (We set the editing property to true if the text is empty so that the user can start typing right away. It also helps when we're creating a new box, as this will make it editable right away.)
-
-                @boxes.push box
-
-                # Assign the id to the element
-                element.id = "box-#{id}"
-                element.style.cursor = 'pointer'
-
-                if @actionBoxes?[index]
-                  element.onclick = @actionBoxes[index]
-                else
-                  # # On double click, set the box's editing property to true
-                  # element.ondblclick = => box.editing = true
-                  # On click, emit a "request to elaborate"
-                  element.onclick = => @$emit 'elaborate', box.text
+          if @code
+            mermaid.renderAsync "mermaid-svg", @mermaidString, (svg) => @svg = svg
       # 
 
     watch:
+
+      svg: ->
+
+        container = document.getElementById 'mermaid-container'
+
+        @boxes = []
+        index = 0
+
+        # Go through every .mindmap-node element within the SVG and create boxes for them
+        container.querySelectorAll('.mindmap-node').forEach (element) =>
+
+          # Get the element's bounding box
+          box = element.getBoundingClientRect()
+
+          # Come up with a random ID for the box
+          id = Math.random().toString(36).substr(2, 9)
+
+          # Take all tspan's within and join them with a space
+          text = Array.from(element.querySelectorAll('tspan')).map((element) -> element.textContent.replace /\s{2,}/g, ' ').join ' '
+
+          # Create a virtual box with the same dimensions and position
+          box = {
+            element
+            id
+            text
+            editing: !text
+            index: index++
+          }
+          # (We set the editing property to true if the text is empty so that the user can start typing right away. It also helps when we're creating a new box, as this will make it editable right away.)
+
+          @boxes.push box
+
+          # Assign the id to the element
+          element.id = "box-#{id}"
+          element.style.cursor = 'pointer'
+
+          if @actionBoxes?[index]
+            element.onclick = @actionBoxes[index]
+          else
+            # # On double click, set the box's editing property to true
+            # element.ondblclick = => box.editing = true
+            # On click, emit a "request to elaborate"
+            element.onclick = => @$emit 'elaborate', box.text
     
       code:
         immediate: true
         handler: (code) ->
-          # if code
+          if code
             console.log "Updating mermaid chart"
             @render()
+          else
+            console.log "Clearing mermaid chart"
+            @svg = ''
 
 </script>

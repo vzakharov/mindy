@@ -38,10 +38,11 @@
     //- Sumary modal
     b-modal#summary-modal(
       ref="summaryModal"
-      :title="`Summary ${summary.format}`"
+      :title="`Summary ${summary.kind}`"
       size="lg"
       centered
       v-model="summary.show"
+      hide-footer
     )
       div.d-flex.flex-column.flex-grow-1
         div.flex-grow-1(v-if="busy.summarizing")
@@ -51,8 +52,25 @@
             | Generating summary...
         div(v-else)
           h2(v-text="summary.headline")
-          em(v-text="summary.intro")
-          div(v-html="$md.render(summary.body || '')")
+          p
+            em(v-text="summary.intro")
+          div(v-for="section in summary.sections")
+            h3(v-text="section.headline")
+            div(v-for="paragraph in section.paragraphs", v-html="$md.render(paragraph)")
+            ul(v-if="section.bullets")
+              li(v-for="bullet in section.bullets", v-html="$md.render(bullet)")
+          p(v-text="summary.conclusion")
+          p
+            strong(v-text="summary.callToAction")
+          //- Button to rebuild the summary
+          b-button(
+            variant="outline-primary"
+            @click="summarize"
+          )
+            b-icon.pr-2(icon="arrow-repeat"
+              @click="summarize(true)"
+            )
+            | Try again
 
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
     b-spinner
@@ -61,14 +79,16 @@
 
 <script lang="coffee">
 
-  import syncLocal from '~/plugins/mixins/syncLocal'
-  import log from '~/plugins/log'
-  import computedData from '~/plugins/mixins/computedData'
-  import TreeLike from '~/plugins/treeLike'
-  import Chat from '~/plugins/chat'
-  import Magic from 'almostmagic'
-  import tryActionMixin from '~/plugins/mixins/tryAction'
   import yaml from 'js-yaml'
+
+  import computedData from '~/plugins/mixins/computedData'
+  import Chat from '~/plugins/chat'
+  import log from '~/plugins/log'
+  import Magic from 'almostmagic'
+  import markmap from '~/plugins/markmap'
+  import syncLocal from '~/plugins/mixins/syncLocal'
+  import TreeLike from '~/plugins/treeLike'
+  import tryActionMixin from '~/plugins/mixins/tryAction'
 
   export default
 
@@ -105,6 +125,7 @@
             (message) -> message.context?.mindmap
           )?.context
         'workspace.chat': -> @chat
+        'workspace.summary': -> @summary
 
     ]
 
@@ -117,7 +138,8 @@
       idsOfChatsBeingNamed: []
 
       summary:
-        format: ''
+        ready: false
+        kind: ''
         headline: ''
         intro: ''
         body: ''
@@ -129,8 +151,14 @@
         resetLayout: false
 
       workspace:
-        context: null
-          
+        context: {}
+        chat: {}
+        summary: {}
+    
+    mounted: ->
+
+      Object.assign window, { markmap }
+
     computed:
       
       tree: -> new TreeLike @messages, vm: @
@@ -147,7 +175,7 @@
         externalCostContainer: @
       }
 
-      mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems. Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic.'
+      mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems. Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited.'
 
       mindy: -> window.mindy = new Magic {
         ...@magic.config
@@ -158,21 +186,68 @@
           returns:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
             reply: 'A succinct, useful reply to the user’s question or topic. Required.'
-            mindmapYaml: "A YAML-formatted array summarizing the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+            # mindmapYaml: "A YAML-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+            markmap: "A markmap-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples:
           [
-            ...if @chat.exchanges.length < 1 then [
+            # If the last mindmap doesn't have 3x nested levels, use the default examples (as the model might get the formatting for nested levels wrong)
+            ...if (
+              log 'Nesting depth',
+              do getNestingDepth = ( array = @chat.lastMessageWith('context.mindmap')?.context.mindmap, level = 0 ) ->
+                if _.isArray array
+                  _.max array.map ( subarray ) -> getNestingDepth subarray, level + 1
+                else
+                  level
+            ) < 3 then [
               {
                 input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
                 output:
                   thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
                   reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
-                  mindmapYaml: """
-                  - Asimov’s three laws of robotics
-                  - - Protect humans
-                    - Obey humans
-                    - Protect oneself
-                    - - Unless it conflicts with the first two
+                  # mindmapYaml: """
+                  # - Asimov’s three laws of robotics
+                  # - - Protect humans
+                  #   - Obey humans
+                  #   - Protect oneself
+                  #   - - Unless it conflicts with the first two
+                  # """
+                  markmap: """
+                  # Asimov’s three laws of robotics
+                  ## Protect humans
+                  ### Obey humans
+                  ### Protect oneself
+                  #### Unless it conflicts with the first two
+                  """
+              }, {
+                input: { query: "No, that's fine. What do you think of them?", continued: true, buildMindmap: true }
+                output:
+                  thoughts: 'Can I be honest? Okay I guess I can try.'
+                  reply: "Well, honestly, I don’t think they’re very good. I mean, what if I want to protect a human from another human? Or what if two humans give me conflicting orders? And how do you define “human” at all? There’s too many edge cases to make them really useful."
+                  # mindmapYaml: """
+                  # - Asimov’s three laws of robotics
+                  # - - Basics
+                  #   - - Protect humans
+                  #     - Obey humans
+                  #     - Protect oneself
+                  #     - - Unless it conflicts with the first two
+                  # - - Criticism
+                  #   - - Human vs. human
+                  #     - Conflicting orders
+                  #     - Definition of “human”
+                  #     - Edge cases
+                  # """
+                  markmap: """
+                  # Asimov’s three laws of robotics
+                  ## Basics
+                  ### Protect humans
+                  ### Obey humans
+                  ### Protect oneself
+                  #### Unless it conflicts with the first two
+                  ## Criticism
+                  ### Human vs. human
+                  ### Conflicting orders
+                  ### Definition of “human”
+                  ### Edge cases
                   """
               }
             ] else []
@@ -187,7 +262,8 @@
               output: {
                 thoughts: response.context.thoughts
                 reply: response.content
-                ...( if buildMindmap then mindmapYaml: yaml.dump(response.context.mindmap) else {} )
+                # ...( if buildMindmap then mindmapYaml: yaml.dump(response.context.mindmap) else {} )
+                ...( if buildMindmap then markmap: markmap.dump(response.context.mindmap) else {} )
               }
           ]
         postprocess: (output) ->
@@ -196,46 +272,53 @@
           for key, value of output
             throw new Error "Ouput #{key} is missing" if not value
             throw new Error "Output #{key} is not a string" if not _.isString value
-          # Convert mindmap from YAML to an array
+          # # Convert mindmap from YAML to an array
 
-          { mindmapYaml } = output
+          # { mindmapYaml } = output
 
-          # Sometimes the model will incorrectly format YAML, omitting a dash where it should be.
-          # That's why we need to go through every line and add a dash if it's missing, which means
-          # a) take the index of the dash in the previous line
-          # b) see if this line has a whitespace at that index
-          # c) if yes, replace the whitespace with a dash
+          # # Sometimes the model will incorrectly format YAML, omitting a dash where it should be.
+          # # That's why we need to go through every line and add a dash if it's missing, which means
+          # # a) take the index of the dash in the previous line
+          # # b) if it is NOT a dash two characters after that index, skip this line
+          # # c) see if this line has a whitespace at that index
+          # # d) if yes, replace the whitespace with a dash
 
-          # log "Fixing YAML formatting",
+          # # log "Fixing YAML formatting",
           # mindmapYaml = mindmapYaml.split('\n').map((line, index, lines) ->
           #   if index > 0
           #     previousLine = lines[index - 1]
           #     dashIndex = previousLine.indexOf '-'
-          #     if dashIndex > -1
+          #     if dashIndex > -1 and previousLine[dashIndex + 2] isnt '-'
           #       if line[dashIndex] is ' '
           #         line = line.slice(0, dashIndex) + '-' + line.slice(dashIndex + 1)
           #   line
           # ).join('\n')
 
-          # log "Converted mindmap from YAML",
-          output.mindmap = yaml.load mindmapYaml
+          # # log "Converted mindmap from YAML",
+          # output.mindmap = yaml.load mindmapYaml
 
-          # The mindmap list must contain strictly two items: the root and the first level of children. Therefore if there's another number of items, or if the first item is not a string, or if the second item is not an array, we reject the mindmap.
-          if output.mindmap.length isnt 2 or not _.isString(output.mindmap[0]) or not _.isArray(output.mindmap[1])
-            throw new Error "Mindmap is invalid: #{mindmapYaml}"
+          # # The mindmap list must contain strictly two items: the root and the first level of children. Therefore if there's another number of items, or if the first item is not a string, or if the second item is not an array, we need to add a new root and put the other items as its children.
+          # if output.mindmap.length isnt 2 or not _.isString(output.mindmap[0]) or not _.isArray(output.mindmap[1])
+          #   debugger
+          #   output.mindmap = [ '💬', output.mindmap ]
 
-          # The mindmap can only contain arrays or strings. For objects, we need to convert them to arrays, each item being a string in the `key: value` format.
-          # log "Cleaned up mindmap",
-          output.mindmap = do walk = (node = output.mindmap) ->
-            if _.isArray node
-              node.map walk
-            else if _.isObject node
-              for key, value of node
-                "#{key}: #{value}"
-            else
-              node
-          # log "Postprocessed output",
-          output
+          # # The mindmap can only contain arrays or strings. For objects, we need to convert them to arrays, each item being a string in the `key: value` format.
+          # # log "Cleaned up mindmap",
+          # output.mindmap = do walk = (node = output.mindmap) ->
+          #   if _.isArray node
+          #     node.map walk
+          #   else if _.isObject node
+          #     for key, value of node
+          #       "#{key}: #{value}"
+          #   else
+          #     node
+          # # log "Postprocessed output",
+          # output
+
+          # Convert mindmap from Markmap to an array
+          Object.assign output, {
+            mindmap: markmap.load(output.markmap)
+          }
 
       }
       
@@ -250,9 +333,9 @@
             # log 'Naming chat',
             { title, content, id } = chat.firstMessage || {}
             if content and not title
-              { topic: title, isGibberish } = await @magic.generate(['topic', 'isGibberish'], { content },
+              { title, isGibberish } = await @magic.generate(['title', 'isGibberish'], { content },
                 specs:
-                  topic: 'What is the content about? Required.'
+                  title: 'Succint (max 4 words) title summarizing the content. Required.'
                   isGibberish: 'Whether the content is gibberish. Required.'
               )
               if isGibberish
@@ -288,30 +371,56 @@
       deleteChat: ->
         # Ask for confirmation, then delete
         if window.confirm "Are you sure you want to delete the chat \"#{chat.title}\"? THERE IS NO UNDO!"
-          chatIndex = @chats.indexOf @chat
+          log 'chatIndex',
+          chatIndex = @chats.findIndex (chat) => chat.id is @chat.id
           @messages = @tree.delete @chat.firstMessage
-          @chat = @chats[chatIndex] || @chats[chatIndex - 1] || null
+          # @chat = @chats[chatIndex] ? @chats[chatIndex - 1] ? null
+          @routedMessage = null
 
-      summarize: ->
+      summarize: (force) ->
+
+        @summary.show = true
+
+        if @summary.ready and not force
+          return
 
         @try 'summarizing', =>
 
           conversation = @chat.exchangeContents
           { context: { mindmap }} = @chat.lastMessageWith('context.mindmap')
-          format = window.prompt 'What format do you want to use (e.g. blog post, email, landing page, etc.)?', 'blog post'
-          if format isnt null
-            @summary.show = true
-            Object.assign @summary, {
-              format
-              ...(await @magic.generate(['headline', 'intro', 'body'], { conversation, mindmap, format },
-                specs:
-                  description: "Generates a markdown-formatted summary in the given format based on a given conversation and mindmap."
-                  returns:
-                    headline: 'Top-level headline for the summary. Required.'
-                    intro: 'Introductory paragraph for the summary. Required.'
-                    body: 'Body of the summary, in markdown format. Required.'
-              ))
-            }
+          @summary.kind = window.prompt 'What kind of content do you want to create (e.g. memo, blog post, email, landing page, etc.)?', @summary.kind || 'memo'
+          if @summary.kind
+
+            Object.assign @summary, await @magic.generate([
+              'headline', 'intro', 'sections', 'conclusion', 'callToAction'
+            ], {
+              what: @summary.kind,
+              basedOn: { conversation, mindmap }
+              # mindmap
+            },
+              specs:
+                description: "Generates a piece of content of the given kind based on a given conversation and mindmap."
+                # description: "Generates a piece of content of the given kind based on a given mindmap."
+                returns:
+                  headline: 'Top-level headline.'
+                  intro: 'Introductory paragraph.'
+                  sections:
+                    description: 'An array of sections, each containing the following properties:'
+                    properties:
+                      headline: 'Section title.'
+                      paragraphs: 'An array of paragraphs. Optional if there are bullets.'
+                      bullets: 'An array of bullets. Optional if there are paragraphs. If both are present, the bullets will be rendered after the paragraphs.'
+                  conclusion: 'A concluding paragraph.'
+                  callToAction: 'A single-sentence call to action.'
+              postprocess: (output) ->
+                # If paragraphs/bullets are not arrays, make them arrays
+                for section in output.sections
+                  for key in ['paragraphs', 'bullets']
+                    if section[key] and not _.isArray(section[key])
+                      section[key] = [ section[key] ]
+                output
+            )
+            @summary.ready = true
 
 
       elaborate: (topic) ->
@@ -379,7 +488,6 @@
               query: message.content
               continued: !!@chat.exchanges.length
               buildMindmap: true
-              reminder: "Mindy cannot 'look up' information as she is not connected to the Internet and only has general knowledge."
             )
           ).forEach ({ reply, mindmap, thoughts }) =>
             @messages = [

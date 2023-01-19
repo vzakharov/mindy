@@ -30,7 +30,7 @@
           @click="$emit('summarize')"
         )
         b-icon-file-earmark-text.mr-2
-        | Summarize
+        | {{ summary.ready ? 'Summarize' : 'View summary' }}
       //- Download
       button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
         b-icon-download.mr-2
@@ -71,7 +71,7 @@
 
   export default
 
-    props: ['context', 'chat']
+    props: ['context', 'chat', 'summary' ]
 
     mixins: [
       updatePropsMixin
