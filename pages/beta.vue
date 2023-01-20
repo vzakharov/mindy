@@ -110,6 +110,7 @@
           'messages'
           'usdSpent'
           'openaiKey'
+          'openAIkey' # for backwards compatibility
         ]
         format: 'yaml'
         prefix: 'mindy'
@@ -134,6 +135,7 @@
       messages: []
       routedMessage: null
       openaiKey: null
+      openAIkey: null # for backwards compatibility
       usdSpent: 0
       idsOfChatsBeingNamed: []
 
@@ -323,6 +325,10 @@
       }
       
     watch:
+
+      openAIkey: (key) ->
+        if key
+          @openaiKey = key
 
       chat: -> @layout.resetLayout = true
 
