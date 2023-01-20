@@ -134,7 +134,7 @@
 
                 template(v-if="message === routedMessage")
 
-                  div.p-2(v-if="generatingReply", class="text-muted")
+                  div.p-2(v-if="busy.generatingReply", class="text-muted")
                     em mindy is thinking{{ '.'.repeat(typingCount + 1) }}
 
                 //- Buttons with various messagem shown either if this is the routed message, if it has bookmarks, or if the user hovers over it
@@ -147,7 +147,7 @@
                     //- Try again
                     b-button(
                       v-if="message.user.isBot"
-                      variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="sending || generatingReply"
+                      variant="outline-secondary", @click="sendMessage(tree.parent(message).content, tree.parent(message), true)", :disabled="busy.sending || busy.generatingReply"
                       size="sm"
                       style="font-size: 0.8em;"
                     )
@@ -228,8 +228,8 @@
                     ref="input"
                     v-model="input"
                     placeholder="Enter to send, Shift+Enter for new line"
-                    :disabled="!user || sending || generatingReply"
-                    @keydown.enter.exact.prevent="if ( user && !!input && !sending && !generatingReply ) sendMessage()"
+                    :disabled="!user || busy.sending || busy.generatingReply"
+                    @keydown.enter.exact.prevent="if ( user && !!input && !busy.sending && !busy.generatingReply ) sendMessage()"
                     style="font-size: 1em;"
                   )
 
@@ -237,12 +237,12 @@
                 b-button(
                   id="sendButton"
                   type="submit"
-                  :variant="sending ? 'outline-secondary' : 'primary'"
-                  :disabled="!input || sending || generatingReply"
+                  :variant="busy.sending ? 'outline-secondary' : 'primary'"
+                  :disabled="!input || busy.sending || busy.generatingReply"
                   size="sm"
                 )
-                  | {{ sending ? 'Sending...' : 'Send' }}
-                  b-spinner(v-if="sending", small)
+                  | {{ busy.sending ? 'Sending...' : 'Send' }}
+                  b-spinner(v-if="busy.sending", small)
               
 
         //- Context column
@@ -273,11 +273,11 @@
               b-button.mx-1(
                 v-if="routedMessage && !routedMessage.context && routedMessage.user.isBot",
                 @click="generateContext(routedMessage)"
-                :disabled="sending || generating"
+                :disabled="busy.sending || generating"
                 :variant="generating ? 'light' : 'outline-primary'"
               )
                 //- | 丫 Generate context
-                | 丫 {{ generatingContext ? 'Building mindmap...' : generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
+                | 丫 {{ busy.generatingContext ? 'Building mindmap...' : busy.generatingReply && settings.autoBuildContext ? 'A little patience...' : 'Build mindmap' }}
               //- Jump to the message with context or add more suggestions
               b-button.mx-1(
                 v-if="messageForContext && messageForContext.id && routedMessage !== messageForContext && !generating",
@@ -456,9 +456,6 @@
       settings: defaultSettings
       input: ''
       lastMessageTime: null
-      sending: false
-      generatingContext: false
-      generatingReply: false
       enteredName: ''
       checkingName: false
       editing: {
@@ -483,7 +480,7 @@
 
     computed:
 
-      generating: -> @generatingContext or @generatingReply
+      generating: -> @busy.generatingContext or @busy.generatingReply
 
       suggestionsContext: ->
         # Create the suggestion context by using 'Hey Mindy!' as the root node and the others (indented by a tab) as children
@@ -872,7 +869,7 @@
             total: usdSpent
             delta: usdSpent - oldUsdSpent
       
-      generatingReply: (generatingReply) ->
+      'busy.generatingReply': (generatingReply) ->
 
         clearInterval @typingInterval
         if generatingReply

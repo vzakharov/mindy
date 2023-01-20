@@ -52,6 +52,11 @@
   import log from '~/plugins/log'
   import mountedMixin from '~/plugins/mixins/mounted'
   import mixpanelMixin from '~/plugins/mixins/mixpanel'
+  import mermaid from 'mermaid'
+  import mindmap from '@mermaid-js/mermaid-mindmap'
+
+  mermaid.initialize { startOnLoad: false }
+  mermaid.registerExternalDiagrams [ mindmap ]
 
   class MermaidValidationError extends Error
 
@@ -109,38 +114,38 @@
       
       
 
-    mounted: ->
+    # mounted: ->
 
-      console.log 'MindyContext mounted'
-      # Check if there's a script with id "mermaid-init" and if not, create one
-      if document.getElementById 'mermaid-init'
-        console.log 'mermaid-init script already exists'
-      else
-        console.log 'creating mermaid-init script'
-        script = document.createElement 'script'
-        script.id = 'mermaid-init'
-        script.type = 'module'
-        window.mermaidLoaded = {
-          state: false,
-          resolve: null
-        }
-        window.mermaidLoaded.promise = new Promise ( resolve ) ->
-          Object.assign window.mermaidLoaded, { resolve }
-        script.innerHTML = """
-          let resolve = null
-          import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.mjs';
-          console.log({mermaid})
-          import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.mjs';
-          console.log({mindmap})
-          await mermaid.registerExternalDiagrams([mindmap]);
-          mermaid.startOnLoad = false;
-          Object.assign(window, {mermaid, mindmap});
-          console.log('mermaid loaded')
-          window.mermaidLoaded.state = true
-          window.mermaidLoaded.resolve()
-        """
-        document.head.appendChild script
-        console.log script
+    #   console.log 'MindyContext mounted'
+    #   # Check if there's a script with id "mermaid-init" and if not, create one
+    #   if document.getElementById 'mermaid-init'
+    #     console.log 'mermaid-init script already exists'
+    #   else
+    #     console.log 'creating mermaid-init script'
+    #     script = document.createElement 'script'
+    #     script.id = 'mermaid-init'
+    #     script.type = 'module'
+    #     window.mermaidLoaded = {
+    #       state: false,
+    #       resolve: null
+    #     }
+    #     window.mermaidLoaded.promise = new Promise ( resolve ) ->
+    #       Object.assign window.mermaidLoaded, { resolve }
+    #     script.innerHTML = """
+    #       let resolve = null
+    #       import mermaid from 'https://unpkg.com/mermaid@9/dist/mermaid.esm.mjs';
+    #       console.log({mermaid})
+    #       import mindmap from 'https://unpkg.com/@mermaid-js/mermaid-mindmap@9/dist/mermaid-mindmap.esm.mjs';
+    #       console.log({mindmap})
+    #       await mermaid.registerExternalDiagrams([mindmap]);
+    #       mermaid.startOnLoad = false;
+    #       Object.assign(window, {mermaid, mindmap});
+    #       console.log('mermaid loaded')
+    #       window.mermaidLoaded.state = true
+    #       window.mermaidLoaded.resolve()
+    #     """
+    #     document.head.appendChild script
+    #     console.log script
     
     watch:
       
@@ -153,10 +158,10 @@
             console.log 'Waiting for the component to be mounted'
             await @mounted.promise
             console.log 'Component mounted'
-          if not window.mermaidLoaded.state
-            console.log 'Waiting for mermaid to be loaded'
-            await window.mermaidLoaded.promise
-            console.log 'Mermaid loaded'
+          # if not window.mermaidLoaded.state
+          #   console.log 'Waiting for mermaid to be loaded'
+          #   await window.mermaidLoaded.promise
+          #   console.log 'Mermaid loaded'
           element = document.getElementById 'mermaid-container'
           @$nextTick =>
             console.log 'Updating mermaid chart'
