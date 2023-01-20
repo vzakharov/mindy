@@ -443,7 +443,7 @@
           @query = ''
 
           log 'Generated random query',
-          { @query } = await @magic.generate randomSeed(),
+          @query = await @magic.generate 'query', randomSeed(),
             parameters:
               temperature: 1
             specs:
