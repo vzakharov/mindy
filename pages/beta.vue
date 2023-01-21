@@ -179,17 +179,16 @@
 
       mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems. Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited.'
 
-      mindy: -> window.mindy = new Magic {
-        ...@magic.config
+      mindy: -> window.mindy = @magic.fork {
         parameters:
           n: 3
         specs:
           description: @mindyDescription
           returns:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
-            reply: 'A succinct, useful reply to the user’s question or topic. Required.'
-            # mindmapYaml: "A YAML-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
             markmap: "A markmap-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
+            reply: 'A humorous, witty, succinct, useful reply to the user’s question or topic. Required.'
+            # mindmapYaml: "A YAML-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples:
           [
             # If the last mindmap doesn't have 3x nested levels, use the default examples (as the model might get the formatting for nested levels wrong)
@@ -269,61 +268,36 @@
               }
           ]
         postprocess: (output) ->
-          # log 'Postprocessing output', output
-          # Make sure all outputs are present and not strings
           for key, value of output
             throw new Error "Ouput #{key} is missing" if not value
             throw new Error "Output #{key} is not a string" if not _.isString value
-          # # Convert mindmap from YAML to an array
-
-          # { mindmapYaml } = output
-
-          # # Sometimes the model will incorrectly format YAML, omitting a dash where it should be.
-          # # That's why we need to go through every line and add a dash if it's missing, which means
-          # # a) take the index of the dash in the previous line
-          # # b) if it is NOT a dash two characters after that index, skip this line
-          # # c) see if this line has a whitespace at that index
-          # # d) if yes, replace the whitespace with a dash
-
-          # # log "Fixing YAML formatting",
-          # mindmapYaml = mindmapYaml.split('\n').map((line, index, lines) ->
-          #   if index > 0
-          #     previousLine = lines[index - 1]
-          #     dashIndex = previousLine.indexOf '-'
-          #     if dashIndex > -1 and previousLine[dashIndex + 2] isnt '-'
-          #       if line[dashIndex] is ' '
-          #         line = line.slice(0, dashIndex) + '-' + line.slice(dashIndex + 1)
-          #   line
-          # ).join('\n')
-
-          # # log "Converted mindmap from YAML",
-          # output.mindmap = yaml.load mindmapYaml
-
-          # # The mindmap list must contain strictly two items: the root and the first level of children. Therefore if there's another number of items, or if the first item is not a string, or if the second item is not an array, we need to add a new root and put the other items as its children.
-          # if output.mindmap.length isnt 2 or not _.isString(output.mindmap[0]) or not _.isArray(output.mindmap[1])
-          #   debugger
-          #   output.mindmap = [ '💬', output.mindmap ]
-
-          # # The mindmap can only contain arrays or strings. For objects, we need to convert them to arrays, each item being a string in the `key: value` format.
-          # # log "Cleaned up mindmap",
-          # output.mindmap = do walk = (node = output.mindmap) ->
-          #   if _.isArray node
-          #     node.map walk
-          #   else if _.isObject node
-          #     for key, value of node
-          #       "#{key}: #{value}"
-          #   else
-          #     node
-          # # log "Postprocessed output",
-          # output
-
-          # Convert mindmap from Markmap to an array
           Object.assign output, {
             mindmap: markmap.load(output.markmap)
           }
 
       }
       
+      replyCombiner: -> @magic.fork {
+        parameters:
+          temperature: 0
+          # frequency_penalty: 1
+          presence_penalty: 1
+        specs:
+          description: "Combines several Mindy (AI assistant) replies and generated mindmaps into a single reply and mindmap."
+          accepts:
+            query: 'The user’s query that triggered the replies, for context.'
+            replies: [
+              'Array of reply objects, each containing:'
+              reply: 'The reply text.'
+              markmap: 'The mindmap in markmap format.'
+            ]
+          returns:
+            # thoughts: 'Mindy’s internal monologue to help it come up with a good answer.'
+            reply: 'A reply that sums up, without repeating verbatim, the non-conflicting ideas from the replies, split into paragraphs and highlight the most important parts in **bold** for easier reading.'
+            markmap: 'Combined mindmap in markmap format.'
+        postprocess: @mindy.config.postprocess
+      }
+
     watch:
 
       openAIkey: (key) ->
@@ -395,18 +369,16 @@
           conversation = @chat.exchangeContents
           { context: { mindmap }} = @chat.lastMessageWith('context.mindmap')
           @summary.kind = window.prompt 'What kind of content do you want to create (e.g. memo, blog post, email, landing page, etc.)?', @summary.kind || 'memo'
-          if @summary.kind
+          { kind } = @summary
+          if kind
 
             Object.assign @summary, await @magic.generate([
               'headline', 'intro', 'sections', 'conclusion', 'callToAction'
             ], {
-              what: @summary.kind,
-              basedOn: { conversation, mindmap }
-              # mindmap
+              conversation, mindmap
             },
               specs:
-                description: "Generates a piece of content of the given kind based on a given conversation and mindmap."
-                # description: "Generates a piece of content of the given kind based on a given mindmap."
+                description: "Generates a #{kind} based on a given conversation and mindmap."
                 returns:
                   headline: 'Top-level headline.'
                   intro: 'Introductory paragraph.'
@@ -483,29 +455,40 @@
         @query = ''
 
         @$nextTick => @reply @routedMessage
+
+      addBotReply: ( message, { reply, thoughts, mindmap }) ->
+        @messages = [
+          ...@messages
+          @routedMessage = @tree.createChild message, {
+            content: reply
+            context: {
+              mindmap, thoughts
+            }
+            user: isBot: true
+          }
+        ]
       
       reply: (message) ->
 
         @try 'replying', =>
 
-          (
-            # log "Choices",
-            await @mindy.generate(
-              query: message.content
-              continued: !!@chat.exchanges.length
-              buildMindmap: true
-            )
-          ).forEach ({ reply, mindmap, thoughts }) =>
-            @messages = [
-              ...@messages
-              @routedMessage = @tree.createChild message, {
-                content: reply
-                context: {
-                  mindmap, thoughts
-                }
-                user: isBot: true
-              }
-            ]
+          query = message.content
+          replies = await @mindy.generate(
+            query
+            continued: !!@chat.exchanges.length
+            buildMindmap: true
+          )
+
+          replies.forEach (reply) =>
+            @addBotReply message, reply
+          
+          { reply, mindmap } = await @replyCombiner.generate({
+            query,
+            replies: replies.map ({ reply, markmap }) => ({ reply, markmap })
+          })
+          @addBotReply message, { reply, mindmap }
+
+
 
 
 
