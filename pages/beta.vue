@@ -159,7 +159,7 @@
     
     mounted: ->
 
-      Object.assign window, { markmap }
+      Object.assign window, { markmap, vm: @ }
 
     computed:
       
@@ -177,21 +177,22 @@
         externalCostContainer: @
       }
 
-      mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems. Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited.'
+      mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems.'
 
-      mindy: -> window.mindy = @magic.fork {
-        parameters:
-          n: 3
+      mindyBaseConfig: ->
+        parameters: n: 3
         specs:
-          description: @mindyDescription
+          description: "#{@mindyDescription} Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited."
           returns:
             thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
+            reply: 'A humorous, witty, succinct, useful reply to the user’s question or topic. Highlights the most important words and phrases in **bold** and split into paragraphs for easier reading. Required.'
+
+      mindy: -> window.mindy = @magic.fork _.merge _.cloneDeep(@mindyBaseConfig), {
+        specs:
+          returns:
             markmap: "A markmap-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
-            reply: 'A humorous, witty, succinct, useful reply to the user’s question or topic. Required.'
-            # mindmapYaml: "A YAML-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
         examples:
           [
-            # If the last mindmap doesn't have 3x nested levels, use the default examples (as the model might get the formatting for nested levels wrong)
             ...if (
               log 'Nesting depth',
               do getNestingDepth = ( array = @chat.lastMessageWith('context.mindmap')?.context.mindmap, level = 0 ) ->
@@ -201,29 +202,31 @@
                   level
             ) < 3 then [
               {
-                input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
-                output:
-                  thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
-                  reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
-                  # mindmapYaml: """
-                  # - Asimov’s three laws of robotics
-                  # - - Protect humans
-                  #   - Obey humans
-                  #   - Protect oneself
-                  #   - - Unless it conflicts with the first two
-                  # """
-                  markmap: """
-                  # Asimov’s three laws of robotics
-                  ## Protect humans
-                  ### Obey humans
-                  ### Protect oneself
-                  #### Unless it conflicts with the first two
-                  """
-              }, {
+              #   input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
+              #   output:
+              #     thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
+              #     # reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
+              #     reply: 'In a nutshell: **protect humans**, **obey humans**, and **protect oneself** ~~if the humans are being jerks~~ **unless it conflicts with the first two**.\n\nWant a longer answer?'
+              #     # mindmapYaml: """
+              #     # - Asimov’s three laws of robotics
+              #     # - - Protect humans
+              #     #   - Obey humans
+              #     #   - Protect oneself
+              #     #   - - Unless it conflicts with the first two
+              #     # """
+              #     markmap: """
+              #     # Asimov’s three laws of robotics
+              #     ## Protect humans
+              #     ### Obey humans
+              #     ### Protect oneself
+              #     #### Unless it conflicts with the first two
+              #     """
+              # }, {
                 input: { query: "No, that's fine. What do you think of them?", continued: true, buildMindmap: true }
                 output:
                   thoughts: 'Can I be honest? Okay I guess I can try.'
-                  reply: "Well, honestly, I don’t think they’re very good. I mean, what if I want to protect a human from another human? Or what if two humans give me conflicting orders? And how do you define “human” at all? There’s too many edge cases to make them really useful."
+                  # reply: "Well, honestly, I don’t think they’re very good. I mean, what if I want to protect a human from another human? Or what if two humans give me conflicting orders? And how do you define “human” at all? There’s too many edge cases to make them really useful."
+                  reply: "Well, honestly, I don’t think they’re very good.\n\nI mean, what if I want to **protect a human from another human**? Or what if two humans give me **conflicting orders**? And how do you define “human” at all?\n\nThere’s just too many **edge cases** to make them really useful. IMHO, of course."
                   # mindmapYaml: """
                   # - Asimov’s three laws of robotics
                   # - - Basics
@@ -268,22 +271,89 @@
               }
           ]
         postprocess: (output) ->
-          for key, value of output
-            throw new Error "Ouput #{key} is missing" if not value
-            throw new Error "Output #{key} is not a string" if not _.isString value
           Object.assign output, {
-            mindmap: markmap.load(output.markmap)
+            mindmap: markmap.validate markmap.load(output.markmap)
           }
 
       }
-      
-      replyCombiner: -> @magic.fork {
+
+      mindyFirst: -> @magic.fork _.merge (_.cloneDeep @mindyBaseConfig), {
+        # For the first generation, we want to return the root, the first-level branches, and the second-level branches separately, because the model often returns just one branch if requested the markmap format.
+        specs:
+          returns:
+            root: 'The root of the mindmap. Required.'
+            branches: 'Array of the first-level branches of the mindmap. Required.'
+            subbranches: 'Array of arrays of the second-level branches, each subarray corresponding to a first-level branch in the order of the branches array. Required.'
+        examples:
+          [
+            {
+              input: { query: 'Three laws of robotics', ...@randomSeed() }
+              # (We need a seed to avoid the model repeating the same response if the user actually asks a question from the examples.)
+              output:
+                thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
+                # reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
+                root: 'Asimov’s three laws of robotics'
+                branches: [
+                  'Protect humans'
+                  'Obey humans'
+                  'Protect oneself'
+                ]
+                subbranches: [
+                  []
+                  []
+                  [
+                    'Unless it conflicts with the first two'
+                  ]
+                ]
+                reply: 'In a nutshell: **protect humans**, **obey humans**, and **protect oneself** ~~if the humans are being jerks~~ **unless it conflicts with the first two**.\n\nWant a longer answer?'
+            }, {
+              input: { query: "Meaning of life", ...@randomSeed() }
+              output:
+                thoughts: 'Going all philosophical on me? Let me give a serious answer, but dilute it with some humor.'
+                reply: "The meaning of life is **finding joy** in the little things, **growing your understanding** of the world around you, and **connecting with others** by **supporting each other** and **exploring the world together**.\n\nOh, and it’s also **42** ;-)"
+                root: 'Meaning of life'
+                branches: [
+                  'Finding joy'
+                  'Growing your understanding'
+                  'Connecting with others'
+                  '42'
+                ]
+                subbranches: [
+                  []
+                  []
+                  [
+                    'Supporting each other'
+                    'Exploring the world together'
+                  ]
+                  [
+                    '(See Hitchhiker’s Guide to the Galaxy)'
+                  ]
+                ]
+            }
+          ]
+        postprocess: (output) ->
+          # Put every second-level branch under its first-level branch, e.g.:
+          # root: 'Asimov’s three laws of robotics'
+          # branches: [ 'Protect humans', 'Obey humans', 'Protect oneself' ]
+          # subbranches: [ [], [], [ 'Unless it conflicts with the first two' ] ]
+          # ->
+          # [ 'Asimov’s three laws of robotics', [ 'Protect humans', 'Obey humans', 'Protect oneself', [ 'Unless it conflicts with the first two' ] ] ]
+          # log 'Postprocessed mindyFirst mindmap:',
+          output.mindmap = markmap.validate [
+            output.root
+            _.flatten _.map output.branches, (branch, index) ->
+              [ branch, ...if output.subbranches[index]?.length then [ output.subbranches[index] ] else [] ]
+          ]
+          output
+      }
+
+      replyPicker: -> @magic.fork {
         parameters:
           temperature: 0
           # frequency_penalty: 1
           presence_penalty: 1
         specs:
-          description: "Combines several Mindy (AI assistant) replies and generated mindmaps into a single reply and mindmap."
+          description: "#{@mindyDescription}. This specific endpoint picks the best reply from a list of replies and adapts it slightly by adding useful parts from the other replies."
           accepts:
             query: 'The user’s query that triggered the replies, for context.'
             replies: [
@@ -292,9 +362,10 @@
               markmap: 'The mindmap in markmap format.'
             ]
           returns:
-            # thoughts: 'Mindy’s internal monologue to help it come up with a good answer.'
-            reply: 'A reply that sums up, without repeating verbatim, the non-conflicting ideas from the replies, split into paragraphs and highlight the most important parts in **bold** for easier reading.'
-            markmap: 'Combined mindmap in markmap format.'
+            thoughts: 'Direct speech: "I choose reply ... because ..." (as specific as possible).'
+            index: 'The index of the best reply.'
+            improvedReply: 'The best reply, slightly improved by adding useful parts from the other replies. Highlight the most important words and phrases in **bold** for easier reading. Split into multiple paragraphs for easier reading if necessary.'
+            markmap: 'Mindmap in markmap format, combining the best parts of all the replies.'
         postprocess: @mindy.config.postprocess
       }
 
@@ -407,15 +478,16 @@
             content: "#{topic}?"
             parent: @chat.lastMessage
 
+      randomSeed: -> { seed: _.random(100, 999)}
+
       randomQuery: ->
 
         @try 'generatingRandomQuery', =>
 
-          randomSeed = => { seed: _.random(100, 999)}
           @query = ''
 
           log 'Generated random query',
-          @query = await @magic.generate 'query', randomSeed(),
+          @query = await @magic.generate 'query', @randomSeed(),
             parameters:
               temperature: 1
             specs:
@@ -427,7 +499,7 @@
               if @chats.length > 5
                 _.sampleSize @chats, 2
                 .map ({ firstMessage: { content } }) =>
-                  input: randomSeed()
+                  input: @randomSeed()
                   output: { query: content }
               else
                 _.sampleSize([
@@ -438,7 +510,7 @@
                   "Top 5 movies of all time"
                   "I'm just bored, what should I do?"
                 ], 2).map (query) =>
-                  input: randomSeed()
+                  input: @randomSeed()
                   output: { query }
 
       sendMessage: ({ content, parent }) ->
@@ -473,20 +545,23 @@
         @try 'replying', =>
 
           query = message.content
-          replies = await @mindy.generate(
-            query
-            continued: !!@chat.exchanges.length
-            buildMindmap: true
-          )
+          replies = if @chat.messages.length is 1
+            await @mindyFirst.generate { query, ...@randomSeed() }
+          else
+            await @mindy.generate {
+              query
+              continued: !!@chat.exchanges.length
+              buildMindmap: true
+            }
 
           replies.forEach (reply) =>
             @addBotReply message, reply
           
-          { reply, mindmap } = await @replyCombiner.generate({
-            query,
-            replies: replies.map ({ reply, markmap }) => ({ reply, markmap })
-          })
-          @addBotReply message, { reply, mindmap }
+          # { improvedReply: reply, mindmap } = await @replyPicker.generate({
+          #   query,
+          #   replies: replies.map ({ reply, markmap }) => ({ reply, markmap })
+          # })
+          # @addBotReply message, { reply, mindmap }
 
 
 

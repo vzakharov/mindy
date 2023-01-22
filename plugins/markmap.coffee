@@ -24,6 +24,7 @@ export default
         else
           convert item, level + 1
       .join '\n'
+  # 
 
   load: ( string ) ->
 
@@ -53,3 +54,28 @@ export default
       console.debug 'Converted\n', array, level
 
       array
+  # 
+
+  validate: (mindmap) ->
+
+    # Recursively remove any empty arrays/strings
+    mindmap = do compactDeep = (array = mindmap) ->
+      array.map (item) ->
+        if _.isArray item
+          compactDeep item
+        else
+          item
+
+    # One root
+    if mindmap.length isnt 2
+      throw new Error 'Mindmap must have exactly one root.'
+
+  
+    # At least a couple of branches, i.e. at least two string elements in the second item of the root
+    if ( stringCount = _.filter( mindmap[1], _.isString ).length ) < 2
+      throw new Error 'Mindmap must have at least two branches.'
+    # At least one subbranch, i.e. at least one array element in the second item of the root
+    if ( arrayCount = _.filter( mindmap[1], _.isArray ).length ) < 1
+      throw new Error 'Mindmap must have at least one subbranch.'
+    console.debug 'Mindmap validated:', { mindmap, stringCount, arrayCount }
+    mindmap
