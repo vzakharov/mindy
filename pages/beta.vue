@@ -109,6 +109,8 @@
   import TreeLike from '~/plugins/treeLike'
   import tryActionMixin from '~/plugins/mixins/tryAction'
 
+  import mindyMagic from '~/plugins/magics/mindy'
+
   export default
 
     head: ->
@@ -181,7 +183,11 @@
 
       Object.assign window, { markmap, vm: @ }
 
-    computed:
+    computed: {
+
+      mindyMagic
+
+      firstReply: -> @chat.thread?.length < 2 || true 
       
       tree: -> new TreeLike @messages, vm: @
 
@@ -388,8 +394,14 @@
             markmap: 'Mindmap in markmap format, combining the best parts of all the replies.'
         postprocess: @mindy.config.postprocess
       }
-
+    
+    }
+    
     watch:
+      
+      mindyMagic:
+        handler: (mindyMagic) -> Object.assign window, { mindyMagic }
+        immediate: true
 
       openAIkey: (key) ->
         if key
