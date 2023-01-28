@@ -11,7 +11,7 @@
       div.d-flex.justify-content-between
         //- Edit
         button.btn.btn-light.btn-sm(
-          @click="updated.editing = true"
+          @click="propped.editing = true"
         )
           b-icon-pencil
         //- Expand
@@ -78,7 +78,7 @@
 
         @$emit('commit', [ @editedText, method ])
 
-        @updated.editing = false
+        @propped.editing = false
 
     watch:
       editing:

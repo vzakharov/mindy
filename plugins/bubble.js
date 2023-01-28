@@ -11,9 +11,9 @@ function Bubble({$auth, token } = {}) {
     token = $auth.strategy.token.get()
 
   let axios = Axios.create({ 
-    baseURL: process.env.NUXT_ENV_BUBBLE_URL,
+    baseURL: process.env.BUBBLE_URL,
     ...token ? {
-      headers: {Authorization: token }
+      headers: {Authorization: `Bearer ${token}` }
     } : {}
   })
 
@@ -120,7 +120,7 @@ function Bubble({$auth, token } = {}) {
     },
 
     // Call any workflow API
-    async go( workflow, body ) {
+    async run( workflow, body ) {
       body = omit(body, v => typeof v === 'undefined') 
       // console.log(this, workflow, body)
       try {
@@ -161,9 +161,6 @@ Bubble.asyncData = ( type, query, options ) =>  {
     return {...result, loaded: true}
   }
 }
-
-// For calls that don't require authentication
-Bubble.anon = new Bubble()
 
 Bubble.reservedProperties = ['Slug', '_id', 'Modified Date', 'Created Date', 'Created By']
 Bubble.camelcasedReservedProperties = map(Bubble.reservedProperties, camelCase)
@@ -228,5 +225,8 @@ function unparse(object) {
   )
 
 }
+
+// For calls that don't require authentication
+export const anon = new Bubble()
 
 export default Bubble

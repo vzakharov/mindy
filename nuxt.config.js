@@ -1,7 +1,7 @@
 const baseUrl = process.env.BASE_URL ||
-  'https://ideality.app/api/'
+  // 'https://ideality.app/api/'
   // uncomment ^^ for production
-  // 'http://localhost:3700/api/'
+  'http://localhost:3700/api/'
   // uncomment ^^ for development
 
 export default {
@@ -13,6 +13,10 @@ export default {
   },
 
   env: {
+
+    APP_SLUG: process.env.APP_SLUG ||
+      'mindy',
+
     NOTION_API_URL: process.env.NOTION_API_URL || 
       baseUrl + 'notion/',
   
@@ -21,6 +25,9 @@ export default {
 
     NOTION_MESSAGES_DB_ID: process.env.NOTION_MESSAGES_DB_ID ||
       'dec1a3932d774d97a1e549295b0dc302',
+
+    BUBBLE_URL: process.env.BUBBLE_URL ||
+      "https://b.ideality.app/api/1.1/",
 
     POLYGON_TEMPLATES_DB_ID: process.env.POLYGON_TEMPLATES_DB_ID ||
       '485b3bd6b4524c1dbd9ef2acc5bccfbf',

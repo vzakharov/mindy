@@ -1,50 +1,68 @@
 <template lang="pug">
   
   div(v-if="syncLocal.loaded")
-    TwoPanesAndSidebar(
-        v-bind.sync="layout"
-        brand="Mindy"
-        tagline="Brainstorm with AI"
-        secondaryPaneIcon="layout-sidebar"
-      )
-      template(v-slot:sidebar)
-        //- New chat button
-        b-button.btn-lg.btn-block(
-          variant="outline-primary"
-          :to="{ query: { id: undefined } }"
-        )
-          b-icon.pr-2(icon="chat")
-          | New chat
-        div.pt-3
-          MindyChatList(v-bind="{ chats, routedMessage }")
-      template(v-slot:sidebar-footer)
-        MindySidebarFooter
-      template(v-slot:primary-pane)
-        MindyChat(
-          v-bind.sync="chat"
-          :query="query"
-          :busy="busy"
-          @query="sendMessage"
-          @editMessage="({ message, content }) => $set(message, 'content', content)"
-          @deleteChat="deleteChat"
-        )
-      template(v-slot:secondary-pane)
-        MindyWorkspace(
-          v-bind.sync="workspace"
-          v-on="{ randomQuery, elaborate, summarize }"
-        )
-    //- 
-    
-    //- Sumary modal
-    b-modal#summary-modal(
-      ref="summaryModal"
-      :title="`Summary ${summary.kind}`"
-      size="lg"
-      centered
-      v-model="summary.show"
+    b-modal(
+      v-if="!auth.token"
+      :visible="true"
+      size="sm"
       hide-footer
+      centered
+      hide-header
+      no-close-on-backdrop
+      no-close-on-esc
     )
-      div.d-flex.flex-column.flex-grow-1
+      Auth(
+        v-bind.sync="auth.form"
+        :busy="busy"
+        v-on="{ login }"
+      )
+    template
+      TwoPanesAndSidebar(
+          v-bind.sync="layout"
+          brand="Mindy"
+          tagline="Brainstorm with AI"
+          secondaryPaneIcon="layout-sidebar"
+        )
+        template(#sidebar)
+          //- New chat button
+          b-button.btn-lg.btn-block(
+            variant="outline-primary"
+            :to="{ query: { id: undefined } }"
+          )
+            b-icon.pr-2(icon="chat")
+            | New chat
+          div.pt-3
+            MindyChatList(v-bind="{ chats, routedMessage, loggedIn }")
+        template(#sidebar-footer)
+          MindySidebarFooter(
+            v-bind="{ user, busy }"
+          )
+        template(#primary-pane)
+          MindyChat(
+            v-bind.sync="chat"
+            :query="query"
+            :busy="busy"
+            @query="sendMessage"
+            @editMessage="({ message, content }) => $set(message, 'content', content)"
+            @deleteChat="deleteChat"
+          )
+        template(#secondary-pane)
+          MindyWorkspace(
+            v-bind.sync="workspace"
+            v-on="{ randomQuery, elaborate, summarize }"
+          )
+      //- 
+      
+      //- Sumary modal
+      b-modal#summary-modal(
+        ref="summaryModal"
+        :title="`Summary ${summary.kind}`"
+        size="lg"
+        centered
+        v-model="summary.show"
+        hide-footer
+      )
+        div.d-flex.flex-column.flex-grow-1
         div.flex-grow-1(v-if="busy.summarizing")
           div.text-center
             b-spinner
@@ -81,6 +99,7 @@
 
   import yaml from 'js-yaml'
 
+  import authMixin from '~/plugins/mixins/bubbleAuth'
   import computedData from '~/plugins/mixins/computedData'
   import Chat from '~/plugins/chat'
   import log from '~/plugins/log'
@@ -104,6 +123,7 @@
     ]
 
     mixins: [
+      authMixin
       tryActionMixin
       syncLocal
         keys: [

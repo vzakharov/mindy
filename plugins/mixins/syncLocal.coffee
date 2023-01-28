@@ -2,7 +2,7 @@ import yaml from 'js-yaml'
 import log from '~/plugins/log'
 import _ from 'lodash'
 
-export default ({ prefix, keys, format = 'json' } = {}) ->
+export default ({ prefix, dataPrefix, exclude, keys, format = 'json' } = {}) ->
 
   # log "Exporting syncLocal mixin with arguments: #{JSON.stringify(arguments[0])}"
 
@@ -30,14 +30,27 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
       value or null
   
   pathify = ( ...args ) -> args.filter(_.identity).join('.')
+  
+  if dataPrefix
+    keys = keys.map ( key ) -> [ key, { dataPrefix } ]
+
+  log 'Excluding properties for keys:',
+  excludesByKey = _.reduce keys,
+    ( excludesByKey, key ) ->
+      Object.assign excludesByKey,
+        if _.isArray(key) and { exclude } = key[1]
+          { [key[0]]: exclude || [] }
+        else
+          { [key]: [] }
+    , {}
 
   # log 'Using data paths:',
   dataPaths = keys.reduce ( paths, key ) ->
 
       if _.isArray(key)
-        [ key, { dataPath } ] = key
+        [ key, { dataPrefix } ] = key
       
-      Object.assign paths, { [key]: pathify(dataPath, key) }
+      Object.assign paths, { [key]: pathify(dataPrefix, key) }
 
     , {}
   # (we'll be using this to understand where to put the data synced from local storage, and what to watch)
@@ -100,7 +113,13 @@ export default ({ prefix, keys, format = 'json' } = {}) ->
               @syncLocal.ignoreWatchers.push key
             else
               localKey = localKeys[key]
-              window.localStorage.setItem(localKey, if typeof value is 'object' then dump(value) else value)
+              window.localStorage.setItem localKey,
+                if _.isObject(value)
+                  dump if _.isArray(value)
+                    value
+                  else
+                    _.omit value, excludesByKey[key]
+                else value
               # log "Saved #{key} to local storage as #{localKey}"
               @syncLocal.ignoreWatchers = _.without @syncLocal.ignoreWatchers, key
 

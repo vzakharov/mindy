@@ -5,7 +5,7 @@ export default ( vm, routedMessage ) ->
 
   # console.debug "Creating Chat for vm", vm, "with routedMessage", routedMessage
 
-  { @tree, @bot } = vm
+  { @tree } = vm
 
   @routedMessage = routedMessage
 

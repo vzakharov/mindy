@@ -1,23 +1,23 @@
-# A mixin that creates an `updated` property whose properties are setters that emit an `update:<property>` event for each prop of the component
+# A mixin that creates an `propped` property whose properties are setters that emit an `update:<property>` event for each prop of the component
 
 export default
 
   created: ->
 
-    @updated = {}
+    @propped = {}
     @update = {}
 
-    Object.keys(@$options.propsData).forEach (prop) =>
+    Object.keys(@$props).forEach (prop) =>
 
-      # Define property @updated to set the value of the prop and emit an `update:<property>` event
-      Object.defineProperty @updated, prop, {
+      # Define property @propped to set the value of the prop and emit an `update:<property>` event
+      Object.defineProperty @propped, prop, {
         get: => @[prop]
         set: (value) =>
           @$emit "update:#{prop}", value
           console.debug "Emitted `update:#{prop}` event with value", value
       }
-      # console.debug "Created `updated.#{prop}=...` setter"
+      # console.debug "Created `propped.#{prop}=...` setter"
       
       # Define property @update to Object.assign the value of the prop and emit an `update:<property>` event with the new value
       @update[prop] = (value) =>
-        @updated[prop] = Object.assign({}, @updated[prop], value)
+        @propped[prop] = Object.assign({}, @propped[prop], value)

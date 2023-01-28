@@ -60,7 +60,7 @@
       mermaidString: ->
         # log "Mermaid string computed:",
         if @code
-          'mindmap\n' + @code.replace /[~@\-~"()]/g, (match) -> "##{match.charCodeAt(0)};"
+          'mindmap\n' + @code.replace /[~@\-~"(){}]/g, (match) -> "##{match.charCodeAt(0)};"
         else
           """
           mindmap
