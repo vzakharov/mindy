@@ -22,6 +22,6 @@ export default ( computees ) ->
     ..._.mapValues computees, (value, key) =>
       immediate: true
       handler: (newValue) ->
-        _.set @, key.replace(/_/g, '.').slice(0, -1), log "#{key} changed to", newValue
+        _.set @, key.replace(/_/g, '.').slice(0, -1), newValue
 
   }

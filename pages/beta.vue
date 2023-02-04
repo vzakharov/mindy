@@ -108,8 +108,7 @@
   import syncLocal from '~/plugins/mixins/syncLocal'
   import TreeLike from '~/plugins/treeLike'
   import tryActionMixin from '~/plugins/mixins/tryAction'
-
-  import mindyFirst from '~/plugins/magics/mindy/first'
+  import magic from '~/plugins/magic'
 
   export default
 
@@ -195,11 +194,20 @@
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
 
-      magic: -> window.magic = new Magic {
-        apiUrl: process.env.MAGIC_API_URL
-        @openaiKey
-        externalCostContainer: @
-      }
+      # magic: -> window.magic = new Magic {
+      #   apiUrl: process.env.MAGIC_API_URL
+      #   @openaiKey
+      #   externalCostContainer: @
+      # }
+
+      magicConfig: ->
+        {
+          apiUrl: process.env.MAGIC_API_URL
+          @openaiKey
+          externalCostContainer: @
+        }
+      
+      magic
 
       mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems.'
 
@@ -302,8 +310,6 @@
 
       }
 
-      mindyFirst
-
       replyPicker: -> @magic.fork {
         parameters:
           temperature: 0
@@ -347,13 +353,7 @@
             # log 'Naming chat',
             { title, content, id } = chat.firstMessage || {}
             if content and not title
-              { title, isGibberish } = await @magic.generate(['title', 'isGibberish'], { content },
-                descriptor: 'chatName'
-                specs:
-                  returns:
-                    title: 'Succint (max 4 words) title summarizing the content. Required.'
-                    isGibberish: 'Whether the content is gibberish. Required.'
-              )
+              { title, isGibberish } = await @magic.chatTitle.generate({ content })
               if isGibberish
                 title = chat.title # I.e. "Chat #..."
               _.assign chat.firstMessage, { title }
@@ -512,7 +512,7 @@
           query = message.content
           log 'Mindy response',
           replies = if @chat.messages.length is 1
-            await @mindyFirst.generate { query, ...@randomSeed() }
+            await @magic.firstReply.generate { query, ...@randomSeed() }
           else
             await @mindy.generate {
               query
