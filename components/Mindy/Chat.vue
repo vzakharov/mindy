@@ -57,7 +57,7 @@
         strong {{ message.user.name || message.user.isBot ? 'mindy' : 'you' }}
         | :
         div(
-          v-html="$md.render(message.content)"
+          v-html="$md.render(message.content || '*No content*')",
           :title="message.thoughts || message.context && message.context.thoughts ? `💭 ${message.thoughts || message.context.thoughts}` : ''"
           @dblclick="editMessage(message)"
         )

@@ -66,7 +66,7 @@
           //- Text (markdown, rendered)
           div.overflow-auto.p-4.border.shadow-lg.rounded-lg(
             style="max-width: 600px"
-            v-html="$md.render(context.text)"
+            v-html="$md.render(context.text || '')"
           )
         template(v-else-if="pickedContext==='code' && context.code")
           //- Code (monospace font)
