@@ -42,6 +42,7 @@
             v-bind.sync="chat"
             :query="query"
             :busy="busy"
+            :associations="associations"
             @query="sendMessage"
             @editMessage="({ message, content }) => $set(message, 'content', content)"
             @deleteChat="deleteChat"
@@ -159,6 +160,7 @@
       openAIkey: null # for backwards compatibility
       usdSpent: 0
       idsOfChatsBeingNamed: []
+      associations: []
 
       summary:
         ready: false
@@ -348,7 +350,8 @@
 
       chats: (chats) ->
         # For all untitled chats, derive the title using magic
-        @try 'namingChats', =>
+        await @try 'namingChats', =>
+          @associations = []
           await Promise.all chats.map (chat) =>
             # log 'Naming chat',
             { title, content, id } = chat.firstMessage || {}
@@ -358,6 +361,8 @@
                 title = chat.title # I.e. "Chat #..."
               _.assign chat.firstMessage, { title }
               @messages = [ ...@messages ]
+              @$nextTick ->
+                { @associations } = await @magic.freeAssociations.generate( concept: title || content.slice(0, 20) )
         , oneAtATime: true
 
       '$route.query.id':

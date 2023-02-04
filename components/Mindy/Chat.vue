@@ -64,7 +64,11 @@
       //- 
 
       div.p-2(v-if="busy.replying", class="text-muted")
-        em mindy is thinking{{ movingDots }}
+        em
+          | mindy is thinking
+          span(v-for="association in timedAssociations")
+            | ... {{ association.toLowerCase() }}
+          | {{ movingDots }}
 
     //- 
 
@@ -117,7 +121,7 @@
 
   export default
 
-    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'busy', 'query' ]
+    props: [ 'id', 'messages', 'routedMessage', 'title', 'tree', 'thread', 'rootMessage', 'lastMessage', 'busy', 'query', 'associations']
 
     mixins: [
       updatePropsMixin
@@ -130,13 +134,13 @@
     data: ->
       previousThread: null
       dots: ''
+      timedAssociations: []
 
     computed:
 
       isMultiline: ->
         @query.includes('\n')
       
-    
     methods:
     
       editMessage: (message) ->
@@ -148,19 +152,26 @@
             # Send a new message with the same parent
             @$emit 'query', { content, parent: @tree.parent(message) }
 
-    
-    # watch:
+    watch:
 
-    #   query: ->
-    #     log 'query', @query
-    #     { input } = @$refs
-    #     { scrollHeight } = input
-    #     height = parseInt window.getComputedStyle(input).height.replace 'px', ''
-    #     log 'scrollHeight', scrollHeight, 'height', height
-    #     if scrollHeight > height
-    #       @inputHeight = "#{scrollHeight}px"
-    #     else
-    #       @inputHeight = '2.5em'
+      'busy.replying':
+        immediate: true
+        handler: (replying)  ->
+          @timedAssociations = []
+          clearInterval window.associationsInterval
+          phraseCount = 0
+          characterCount = 0
+          if replying
+            window.associationsInterval = setInterval =>
+              phrase = @associations[phraseCount]
+              characterCount++
+              if characterCount > phrase.length
+                characterCount = 0
+                phraseCount++
+              if phraseCount > @associations.length
+                return @timedAssociations = @associations
+              @timedAssociations = @associations.slice(0, phraseCount).concat(phrase.slice(0, characterCount))
+            , 200
 
 </script>
 

@@ -4,12 +4,7 @@
 import Magic from 'almostmagic'
 
 import firstReply from './configs/reply/first'
-import { chatTitle } from './configs/misc'
-
-console.log {
-  firstReply
-  chatTitle
-}
+import { chatTitle, freeAssociations } from './configs/misc'
 
 export default ->
 
@@ -18,4 +13,8 @@ export default ->
   ), _.mapValues {
     firstReply
     chatTitle
-  }, ( config ) -> magic.fork config
+    freeAssociations
+  }, ( config, descriptor ) -> magic.fork {
+    descriptor
+    ...config
+  }

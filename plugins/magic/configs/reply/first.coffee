@@ -3,7 +3,6 @@ import markmap from '~~/plugins/markmap'
 seed = -> { seed: _.random(100, 999)}
 
 export default {
-  descriptor: 'firstReply'
   parameters: n: 3
   optionalReturns: true
   specs: {
@@ -189,7 +188,7 @@ export default {
             [...]
           """
         }
-        reply: "Oh, about to start something amazing are we?\n\nSure, here’s some intro and outline to get you started — click the Expand button if you want me to go into more detail.\n\nOh, and I also made a mindmap to help you organize your thoughts."
+        reply: "Oh, about to start **something amazing** are we?\n\nSure, here’s some intro and outline to get you started — click the **Expand button** if you want me to go into more detail.\n\nOh, and I also made a **mindmap** to help you organize your thoughts."
     }
   ]
   postprocess: (output) ->
