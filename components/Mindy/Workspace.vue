@@ -1,5 +1,5 @@
 <template lang="pug">
-  div.d-flex.flex-column.vh-minus-navbar.justify-content-between
+  div.h-100
     //- Header: buttons to edit in plain text, pick colors, settings, ideas, etc.
     div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-end
       //- Ideas
@@ -41,26 +41,41 @@
     //- 
 
     //- Mindmap
-    div.d-flex.justify-content-center(ref="mindmap")
-      MermaidMindmap.overflow-auto(
-        :code="mindmapCode"
-        v-on="$listeners"
+    div.d-flex.flex-column.justify-content-center.align-items-center#workspace(
+        ref="workspace"
+        style="overflow: auto; height: 100%;"
       )
-
-    //- Footer: ideas, if enabled
-    div.pt-2.p-2.p-md-4(ref="footer")
-      div.border.p-3.d-flex.justify-content-between.align-items-center(
-        v-if="show.ideas"
-        style="font-size: 1.5em;"
+      div(v-if="!context")
+        h2.display-6 This is your workspace
+        ul.lead
+          li Start by asking questions in the chat.
+          li Mindy will automatically fill the workspace for you.
+          li Unsure what to ask? 
+            span.text-primary(@click="$emit('randomQuery')" style="cursor: pointer;") Click here
+            | .
+      template(v-else)
+        //- Mindmap
+        MermaidMindmap.overflow-auto(
+          v-show="show.mindmap"
+          :code="mindmapCode"
+          v-on="$listeners"
+          v-bind="{ show }"
+        )
+    
+    //- Footer(
+    div#footer.bg-light.border-top.px-3.py-2.py-md-4.d-flex.justify-content-end(
+        v-show="context"
+        ref="footer"
       )
-        div
-        div
-          b-icon-lightbulb.text-primary.mr-2
-          | Click on a box to expand it further
-        div
-          //- Next idea
-          button.btn.btn-light.btn-sm.lightgray
-            b-icon-arrow-right
+      //- Context switch: mindmap/text/code
+      button.btn.btn-sm.rounded-pill.mx-2(
+        v-for="type in ['mindmap', 'text', 'code']"
+        :class="type === pickedContext ? 'btn-primary' : 'btn-light'"
+        @click="pickedContext = type"
+      )
+        b-icon(
+          :icon="{ mindmap: 'diagram-3', text: 'file-earmark-text', code: 'code' }[type]"
+        )
     
 </template>
 
@@ -68,6 +83,7 @@
 
   import updatePropsMixin from '~/plugins/mixins/updateProps'
   import autoHeightMixin from '~/plugins/mixins/autoHeight'
+  import computedDataMixin from '~/plugins/mixins/computedData'
 
   export default
 
@@ -75,13 +91,17 @@
 
     mixins: [
       updatePropsMixin
-      autoHeightMixin "mindmap", footerRef: "footer"
+      autoHeightMixin "workspace"
+      computedDataMixin
+        'show.mindmap': -> @mindmap && @pickedContext is 'mindmap'
     ]
 
     data: ->
 
       show:
         ideas: false
+        mindmap: true
+      pickedContext: 'mindmap'
     
     computed:
 

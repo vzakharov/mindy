@@ -42,25 +42,25 @@
         }`
         :to="{ query: { id: message.id } }"
       )
-          //- If the message has siblings, and unless it is the first message of the thread, display a switcher looking like "< n / N >"
-          //- where n is the current sibling index and N is the total number of siblings
-          template( v-if="tree.numSiblings(message) > 1 && message !== thread[0]" )
-            div(style="font-size: 0.8em; color: #aaa; float: right;")
-              //- Switching is done by changing 'id' in the URL query string
-              nuxt-link(:to="{ query: { id: tree.sibling(message, -1).id } }", class="mr-1", style="color: inherit",
-                v-text="`< ${tree.siblingIndex(message) + 1}`"
-              )
-              | /
-              nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
-                v-text="`${tree.numSiblings(message)} >`"
-              )
-          strong {{ message.user.name || message.user.isBot ? 'mindy' : 'you' }}
-          | :
-          div(
-            v-html="$md.render(message.content)"
-            :title="message.context && message.context.thoughts ? `💭 ${message.context.thoughts}` : ''"
-            @dblclick="editMessage(message)"
-          )
+        //- If the message has siblings, and unless it is the first message of the thread, display a switcher looking like "< n / N >"
+        //- where n is the current sibling index and N is the total number of siblings
+        template( v-if="tree.numSiblings(message) > 1 && message !== thread[0]" )
+          div(style="font-size: 0.8em; color: #aaa; float: right;")
+            //- Switching is done by changing 'id' in the URL query string
+            nuxt-link(:to="{ query: { id: tree.sibling(message, -1).id } }", class="mr-1", style="color: inherit",
+              v-text="`< ${tree.siblingIndex(message) + 1}`"
+            )
+            | /
+            nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
+              v-text="`${tree.numSiblings(message)} >`"
+            )
+        strong {{ message.user.name || message.user.isBot ? 'mindy' : 'you' }}
+        | :
+        div(
+          v-html="$md.render(message.content)"
+          :title="message.context && message.context.thoughts ? `💭 ${message.context.thoughts}` : ''"
+          @dblclick="editMessage(message)"
+        )
       //- 
 
       div.p-2(v-if="busy.replying", class="text-muted")

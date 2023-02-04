@@ -8,14 +8,22 @@
     )
     //- Spinner taking up all the parent container and making the background semi-transparent if loading
     b-spinner(v-show="busy.rendering")
-    div(v-show="!code")
-      h2.display-6 This is your workspace
-      ul.lead
-        li Start by asking questions in the chat
-        li Mindy will automatically create a mindmap for you
-        li Unsure what to ask? 
-          span.text-primary(@click="$emit('randomQuery')" style="cursor: pointer;") Click here
-          | .
+        
+    //- Footer: ideas, if enabled
+    div.pt-2.p-2.p-md-4(ref="footer")
+      div.border.p-3.d-flex.justify-content-between.align-items-center(
+        v-if="show.ideas"
+        style="font-size: 1.5em;"
+      )
+        div
+        div
+          b-icon-lightbulb.text-primary.mr-2
+          | Click on a box to expand it further
+        div
+          //- Next idea
+          button.btn.btn-light.btn-sm.lightgray
+            b-icon-arrow-right
+    
     NodeManipulation(
       v-for="box, index in boxes"
       :key="box.id"
@@ -44,7 +52,7 @@
 
   export default
 
-    props: ['code']
+    props: ['code', 'show']
 
     mixins: [ tryActionMixin ]
 
@@ -180,6 +188,8 @@
             # On click, emit a "request to elaborate"
             element.onclick = => @$emit 'elaborate', box.text
     
+      #
+
       code:
         immediate: true
         handler: (code) ->
@@ -189,5 +199,12 @@
           else
             console.log "Clearing mermaid chart"
             @svg = ''
+      # 
+
+      'show.mindmap':
+        immediate: true
+        handler: (show) ->
+          log "Mindmap display:",
+          document.getElementById('mermaid-svg')?.style.display = if show then 'block' else 'none'
 
 </script>

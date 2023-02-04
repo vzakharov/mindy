@@ -5,7 +5,7 @@ import log from '~/plugins/log'
 
 # log.disable()
 
-export default ( ref, { footerRef } = {} ) ->
+export default ( ref, { footerRef = "footer" } = {} ) ->
 
   fit = ( element, footer ) ->
 

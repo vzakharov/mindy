@@ -19,7 +19,9 @@ export default ( computees ) ->
 
   watch: {
     # Then, we have to watch the computees for changes and update the actual data paths
-    ..._.mapValues computees, (value, key) => (newValue) ->
-      _.set @, key.replace(/_/g, '.').slice(0, -1), newValue
+    ..._.mapValues computees, (value, key) =>
+      immediate: true
+      handler: (newValue) ->
+        _.set @, key.replace(/_/g, '.').slice(0, -1), log "#{key} changed to", newValue
 
   }
