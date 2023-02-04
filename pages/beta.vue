@@ -206,6 +206,7 @@
       mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems.'
 
       mindyBaseConfig: ->
+        descriptor: 'mindyResponse'
         parameters: n: 3
         specs:
           description: "#{@mindyDescription} Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited."
@@ -417,9 +418,11 @@
             { title, content, id } = chat.firstMessage || {}
             if content and not title
               { title, isGibberish } = await @magic.generate(['title', 'isGibberish'], { content },
+                descriptor: 'chatName'
                 specs:
-                  title: 'Succint (max 4 words) title summarizing the content. Required.'
-                  isGibberish: 'Whether the content is gibberish. Required.'
+                  returns:
+                    title: 'Succint (max 4 words) title summarizing the content. Required.'
+                    isGibberish: 'Whether the content is gibberish. Required.'
               )
               if isGibberish
                 title = chat.title # I.e. "Chat #..."
@@ -520,6 +523,7 @@
 
           log 'Generated random query',
           @query = await @magic.generate 'query', @randomSeed(),
+            descriptor: 'randomQuery'
             parameters:
               temperature: 1
             specs:
@@ -577,6 +581,7 @@
         @try 'replying', =>
 
           query = message.content
+          log 'Mindy response',
           replies = if @chat.messages.length is 1
             await @mindyFirst.generate { query, ...@randomSeed() }
           else
