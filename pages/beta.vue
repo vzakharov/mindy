@@ -109,7 +109,7 @@
   import TreeLike from '~/plugins/treeLike'
   import tryActionMixin from '~/plugins/mixins/tryAction'
 
-  import mindyMagic from '~/plugins/magics/mindy'
+  import mindyFirst from '~/plugins/magics/mindy/first'
 
   export default
 
@@ -184,8 +184,6 @@
       Object.assign window, { markmap, vm: @ }
 
     computed: {
-
-      mindyMagic
 
       firstReply: -> @chat.thread?.length < 2 || true 
       
@@ -304,75 +302,7 @@
 
       }
 
-      mindyFirst: -> @magic.fork _.merge (_.cloneDeep @mindyBaseConfig), {
-        # For the first generation, we want to return the root, the first-level branches, and the second-level branches separately, because the model often returns just one branch if requested the markmap format.
-        specs:
-          returns:
-            root: 'The root of the mindmap. Required.'
-            branches: 'Array of the first-level branches of the mindmap. Required.'
-            subbranches: 'Array of arrays of the second-level branches, each subarray corresponding to a first-level branch in the order of the branches array. Required.'
-        examples:
-          [
-            {
-              input: { query: 'Three laws of robotics', ...@randomSeed() }
-              # (We need a seed to avoid the model repeating the same response if the user actually asks a question from the examples.)
-              output:
-                thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
-                # reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
-                root: 'Asimov’s three laws of robotics'
-                branches: [
-                  'Protect humans'
-                  'Obey humans'
-                  'Protect oneself'
-                ]
-                subbranches: [
-                  []
-                  []
-                  [
-                    'Unless it conflicts with the first two'
-                  ]
-                ]
-                reply: 'In a nutshell: **protect humans**, **obey humans**, and **protect oneself** ~~if the humans are being jerks~~ **unless it conflicts with the first two**.\n\nWant a longer answer?'
-            }, {
-              input: { query: "Meaning of life", ...@randomSeed() }
-              output:
-                thoughts: 'Going all philosophical on me? Let me give a serious answer, but dilute it with some humor.'
-                reply: "The meaning of life is **finding joy** in the little things, **growing your understanding** of the world around you, and **connecting with others** by **supporting each other** and **exploring the world together**.\n\nOh, and it’s also **42** ;-)"
-                root: 'Meaning of life'
-                branches: [
-                  'Finding joy'
-                  'Growing your understanding'
-                  'Connecting with others'
-                  '42'
-                ]
-                subbranches: [
-                  []
-                  []
-                  [
-                    'Supporting each other'
-                    'Exploring the world together'
-                  ]
-                  [
-                    '(See Hitchhiker’s Guide to the Galaxy)'
-                  ]
-                ]
-            }
-          ]
-        postprocess: (output) ->
-          # Put every second-level branch under its first-level branch, e.g.:
-          # root: 'Asimov’s three laws of robotics'
-          # branches: [ 'Protect humans', 'Obey humans', 'Protect oneself' ]
-          # subbranches: [ [], [], [ 'Unless it conflicts with the first two' ] ]
-          # ->
-          # [ 'Asimov’s three laws of robotics', [ 'Protect humans', 'Obey humans', 'Protect oneself', [ 'Unless it conflicts with the first two' ] ] ]
-          # log 'Postprocessed mindyFirst mindmap:',
-          output.mindmap = markmap.validate [
-            output.root
-            _.flatten _.map output.branches, (branch, index) ->
-              [ branch, ...if output.subbranches[index]?.length then [ output.subbranches[index] ] else [] ]
-          ]
-          output
-      }
+      mindyFirst
 
       replyPicker: -> @magic.fork {
         parameters:
@@ -564,14 +494,13 @@
 
         @$nextTick => @reply @routedMessage
 
-      addBotReply: ( message, { reply, thoughts, mindmap }) ->
+      addBotReply: ( message, { reply, thoughts, context }) ->
         @messages = [
           ...@messages
           @routedMessage = @tree.createChild message, {
             content: reply
-            context: {
-              mindmap, thoughts
-            }
+            thoughts
+            context
             user: isBot: true
           }
         ]

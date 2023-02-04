@@ -1,9 +1,12 @@
 # Computed prop for the mindy magic
+import markmap from '~~/plugins/markmap'
+
 export default ->
 
   seed = -> { seed: _.random(100, 999)}
 
   @magic.fork {
+    descriptor: 'firstReply'
     parameters: n: 3
     optionalReturns: true
     specs: {
@@ -51,9 +54,9 @@ export default ->
         reply: '(Required) A humorous, witty, succinct, useful reply. Highlights the most important words and phrases in **bold** and split into paragraphs for easier reading. Required.'
       }
       clarification: "The generated reply shouldn't repeat itself, i.e. if `code` contains some code, this code shouldn't be repeated in either `text` or `reply`."
-    }
-    ...( if @firstReply
-      examples: [{
+    },
+    examples: [
+      {
         input: {
           ...seed()
           query: 'Meaning of life'
@@ -87,7 +90,7 @@ export default ->
           query: 'Write a binary search algorithm'
         }
         output:
-          thoughts: 'Binary search? Pff, easy. I’ll generate a code snippet and a mindmap to help memorize the basic concepts.'
+          thoughts: 'Binary search? Pff, easy. I’ll generate a code snippet and a mindmap to help memorize the basic concepts. I’ll use vanilla JavaScript so that it can be run right in the browser.'
           context: {
             mindmap: {
               root: 'Binary search'
@@ -111,20 +114,44 @@ export default ->
                 ]
               ]
             }
+            # code: """
+            #   # A function that searches for a target value in a sorted array
+            #   def binary_search(arr, target):
+            #   \tleft = 0
+            #   \tright = len(arr) - 1
+            #   \twhile left <= right:
+            #   \t\tmid = (left + right) // 2
+            #   \t\tif arr[mid] == target:
+            #   \t\t\treturn mid
+            #   \t\telif arr[mid] < target:
+            #   \t\t\tleft = mid + 1
+            #   \t\telse:
+            #   \t\t\tright = mid - 1
+            #   \treturn -1
+            # """
             code: """
-              # A function that searches for a target value in a sorted array
-              def binary_search(arr, target):
-              \tleft = 0
-              \tright = len(arr) - 1
-              \twhile left <= right:
-              \t\tmid = (left + right) // 2
-              \t\tif arr[mid] == target:
-              \t\t\treturn mid
-              \t\telif arr[mid] < target:
-              \t\t\tleft = mid + 1
-              \t\telse:
-              \t\t\tright = mid - 1
-              \treturn -1
+              // A function that searches for a target value in a sorted array
+              function binarySearch(arr, target) {
+              \tlet left = 0;
+              \tlet right = arr.length - 1;
+              \twhile (left <= right) {
+              \t\tconst mid = Math.floor((left + right) / 2);
+              \t\tif (arr[mid] === target) {
+              \t\t\treturn mid;
+              \t\t} else if (arr[mid] < target) {
+              \t\t\tleft = mid + 1;
+              \t\t} else {
+              \t\t\tright = mid - 1;
+              \t\t}
+              \t}
+              \treturn -1;
+              }
+
+              // Example usage
+              const arr = ['a', 'big', 'clumsy', 'dog', 'eats', 'fried', 'grapes', 'happily'];
+              const target = 'dog';
+              const index = binarySearch(arr, target);
+              console.log(index); // 3
             """
             codeLanguage: 'python'
           }
@@ -185,6 +212,14 @@ export default ->
             """
           }
           reply: "Oh, about to start something amazing are we?\n\nSure, here’s some intro and outline to get you started — click the Expand button if you want me to go into more detail.\n\nOh, and I also made a mindmap to help you organize your thoughts."
-      }]
-    )
+      }
+    ]
+    postprocess: (output) ->
+      { mindmap: { root, branches, subbranches } } = output.context
+      output.context.mindmap = markmap.validate [
+        root
+        _.flatten _.map branches, (branch, index) ->
+          [ branch, ...if subbranches[index]?.length then [ subbranches[index] ] else [] ]
+      ]
+      output
   }

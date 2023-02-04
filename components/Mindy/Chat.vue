@@ -58,7 +58,7 @@
         | :
         div(
           v-html="$md.render(message.content)"
-          :title="message.context && message.context.thoughts ? `💭 ${message.context.thoughts}` : ''"
+          :title="message.thoughts || message.context && message.context.thoughts ? `💭 ${message.thoughts || message.context.thoughts}` : ''"
           @dblclick="editMessage(message)"
         )
       //- 

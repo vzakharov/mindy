@@ -54,13 +54,26 @@
             span.text-primary(@click="$emit('randomQuery')" style="cursor: pointer;") Click here
             | .
       template(v-else)
-        //- Mindmap
-        MermaidMindmap.overflow-auto(
-          v-show="show.mindmap"
-          :code="mindmapCode"
-          v-on="$listeners"
-          v-bind="{ show }"
-        )
+        template(v-if="pickedContext==='mindmap'")
+          //- Mindmap
+          MermaidMindmap.overflow-auto(
+            v-show="show.mindmap"
+            :code="mindmapCode"
+            v-on="$listeners"
+            v-bind="{ show }"
+          )
+        template(v-else-if="pickedContext==='text' && context.text")
+          //- Text (markdown, rendered)
+          div.overflow-auto.p-4.border.shadow-lg.rounded-lg(
+            style="max-width: 600px"
+            v-html="$md.render(context.text)"
+          )
+        template(v-else-if="pickedContext==='code' && context.code")
+          //- Code (monospace font)
+          div.overflow-auto.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
+            style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
+            v-html="context.code"
+          )
     
     //- Footer(
     div#footer.bg-light.border-top.px-3.py-2.py-md-4.d-flex.justify-content-end(
