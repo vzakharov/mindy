@@ -361,8 +361,9 @@
                 title = chat.title # I.e. "Chat #..."
               _.assign chat.firstMessage, { title }
               @messages = [ ...@messages ]
-              @$nextTick ->
-                { @associations } = await @magic.freeAssociations.generate( concept: title || content.slice(0, 20) )
+              @$nextTick =>
+                await @try 'fetchingAssociations', =>
+                  { @associations } = await @magic.freeAssociations.generate( concept: title || content.slice(0, 20) )
         , oneAtATime: true
 
       '$route.query.id':

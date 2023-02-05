@@ -66,8 +66,9 @@
       div.p-2(v-if="busy.replying", class="text-muted")
         em
           | mindy is thinking
-          span(v-for="association in timedAssociations")
-            | ... {{ association.toLowerCase() }}
+          template(v-if="showAssociations")
+            span(v-for="association in timedAssociations")
+              | ... {{ association.toLowerCase() }}
           | {{ movingDots }}
 
     //- 
@@ -141,6 +142,8 @@
       isMultiline: ->
         @query.includes('\n')
       
+      showAssociations: -> @busy.replying and not @busy.fetchingAssociations
+      
     methods:
     
       editMessage: (message) ->
@@ -154,15 +157,17 @@
 
     watch:
 
-      'busy.replying':
+      'showAssociations':
         immediate: true
-        handler: (replying)  ->
+        handler: (show)  ->
           @timedAssociations = []
           clearInterval window.associationsInterval
           phraseCount = 0
           characterCount = 0
-          if replying
+          if show
             window.associationsInterval = setInterval =>
+              # if @busy.fetchingAssociations then return
+              # # (means the associations are being generated and not ready yet)
               phrase = @associations[phraseCount]
               characterCount++
               if characterCount > phrase.length
@@ -170,8 +175,9 @@
                 phraseCount++
               if phraseCount > @associations.length
                 return @timedAssociations = @associations
+              log 'timedAssociations',
               @timedAssociations = @associations.slice(0, phraseCount).concat(phrase.slice(0, characterCount))
-            , 200
+            , 150
 
 </script>
 
