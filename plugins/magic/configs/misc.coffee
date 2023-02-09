@@ -1,11 +1,11 @@
-export chatTitle = {
+export chatTitle = -> {
   specs:
     returns:
       title: 'Succint (max 4 words) title summarizing the content. Required.'
       isGibberish: 'Whether the content is gibberish. Required.'
 }
 
-export freeAssociations = {
+export freeAssociations = -> {
   parameters:
     temperature: 1
   specs:

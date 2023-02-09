@@ -518,9 +518,9 @@
           query = message.content
           log 'Mindy response',
           replies = if @chat.messages.length is 1
-            await @magic.firstReply.generate { query, ...@randomSeed() }
+            await @magic.reply.first.generate { query, ...@randomSeed() }
           else
-            await @mindy.generate {
+            await @mindy.reply.next.plain.generate {
               query
               continued: !!@chat.exchanges.length
               buildMindmap: true

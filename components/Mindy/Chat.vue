@@ -175,7 +175,7 @@
                 phraseCount++
               if phraseCount > @associations.length
                 return @timedAssociations = @associations
-              log 'timedAssociations',
+              # log 'timedAssociations',
               @timedAssociations = @associations.slice(0, phraseCount).concat(phrase.slice(0, characterCount))
             , 150
 
