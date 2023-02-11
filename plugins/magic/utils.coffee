@@ -1,1 +1,0 @@
-export seed = -> { seed: _.random(100, 999)}

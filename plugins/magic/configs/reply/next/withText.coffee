@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { plainWithoutExamples } from './plain'
-import { seed } from '~/plugins/magic/utils'
+import { seed } from '~/plugins/magic/snippets'
 import { markmap as codeMarkmap } from './withCode'
 
 export default -> _.merge plainWithoutExamples(),

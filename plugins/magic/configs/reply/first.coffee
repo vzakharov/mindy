@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { validate } from '~/plugins/mindmapAsNestedArray'
-import { seed } from '~/plugins/magic/utils'
+import { seed } from '~/plugins/magic/snippets'
 import base from '.' # The base config
 
 export default -> _.merge base(), {

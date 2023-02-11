@@ -2,7 +2,7 @@
 
 import _ from 'lodash'
 import { plainWithoutExamples } from './plain'
-import { seed } from '~/plugins/magic/utils'
+import { seed } from '~/plugins/magic/snippets'
 
 previousExchange = [{
   query: 'Write a binary search algorithm'
