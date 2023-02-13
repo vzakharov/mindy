@@ -105,7 +105,7 @@ configs.reply.continued.examples.push plainToCodeReplyExample =
         Sure! Imagine you have a **sorted list** of words, say, the Oxford English Dictionary. You can find a word you need by **opening the middle page** first. If the word you see is before the one you’re looking for, you can throw away the first half of the book and **open the middle page of the second half**. You can repeat this process until you find the word you’re looking for.
       """
     ]
-    markmap: """
+    markmap: inputMarkmap = """
       # Binary search
       ## ELI5
       ### Look in the middle
@@ -119,7 +119,7 @@ configs.reply.continued.examples.push plainToCodeReplyExample =
   output:
     thoughts: "Let me come up with a really simple JavaScript code snippet that can be run in any js sandbox."
     markmap: """
-      #{plainToCodeReplyExample.input.markmap}
+      #{inputMarkmap}
       ## Code
     """
     content: firstCodeExample.output.content

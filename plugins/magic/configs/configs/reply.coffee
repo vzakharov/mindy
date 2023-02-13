@@ -32,4 +32,4 @@ getConfig = ( modifier ) ->
   }
   examples: []
 
-deepMap configs.reply, -> getConfig ...arguments
+configs.reply = deepMap configs.reply, -> getConfig ...arguments[1]

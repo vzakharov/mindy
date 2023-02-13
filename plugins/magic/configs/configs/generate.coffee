@@ -11,7 +11,8 @@ getConfig = ( kind, modifier ) ->
         if kindFrom then ", existing #{kindFrom} content," else ''
       } and requested content type/title.
     """
-  returns: kind
+    returns: kind
   examples: []
 
-deepMap configs.generate, -> getConfig ...arguments
+configs.generate = deepMap configs.generate, ->
+  getConfig ...arguments[1]

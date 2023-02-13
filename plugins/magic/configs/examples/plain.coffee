@@ -47,7 +47,7 @@ configs.reply.continued.examples.push plainToPlainReplyExample =
       query: firstPlainReplyExample.input.query
       reply: firstPlainReplyExample.output.reply
     }]
-    markmap: markmap rbsToMindmap firstPlainReplyExample.output.mindmap
+    markmap: markmap.dump rbsToMindmap firstPlainReplyExample.output.mindmap
     currentContent: null
     query: '42?'
   }

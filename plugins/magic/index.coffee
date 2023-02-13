@@ -10,7 +10,7 @@ export default ->
 
   Object.assign (
     window.magic = magic = new Magic @magicConfig
-  ), deepMap skeleton, (path) ->
+  ), deepMap skeleton, ( $, path ) ->
     magic.fork {
       descriptor: _.camelCase path.join ' '
       ..._.get configs, path
