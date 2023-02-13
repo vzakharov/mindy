@@ -14,14 +14,14 @@ export default ( vm, routedMessage ) ->
   # Like thread, but has an "input" from the user and an "output" from the bot
   # Do not include "bare" messages, i.e. ones without a response yet
   @exchanges = @thread?.filter ({ user: { isBot }, id }) => not isBot and @tree.hasChildren({ id })
-    .map (query) => {
-      query
-      response: @thread?.find (m) => @tree.parent(m) is query
+    .map (request) => {
+      request
+      response: @thread?.find (m) => @tree.parent(m) is request
     }
   
-  @exchangeContents = @exchanges?.map ({ query, response }) => {
-    query: query?.content
-    response: response?.content
+  @conversation = @exchanges?.map ({ request, response }) => {
+    query: request?.content
+    reply: response?.content
   }
   
   @exchanges ?= []

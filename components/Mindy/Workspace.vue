@@ -25,12 +25,12 @@
       //- Settings
       button.btn.btn-light.btn-sm.mx-1.lightgray
         b-icon-gear
-      //- Summarize
-      button.btn.btn-outline-primary.btn-sm.mx-1.px-2(
-          @click="$emit('summarize')"
-        )
-        b-icon-file-earmark-text.mr-2
-        | {{ summary.ready ? 'Summarize' : 'View summary' }}
+      //- //- Summarize
+      //- button.btn.btn-outline-primary.btn-sm.mx-1.px-2(
+      //-     @click="$emit('summarize')"
+      //-   )
+      //-   b-icon-file-earmark-text.mr-2
+      //-   | {{ summary.ready ? 'Summarize' : 'View summary' }}
       //- Download
       button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
         b-icon-download.mr-2
@@ -62,19 +62,27 @@
             v-on="$listeners"
             v-bind="{ show }"
           )
-        template(v-else-if="pickedContext==='text' && context.text")
-          //- Text (markdown, rendered)
-          div.overflow-auto.p-4.border.shadow-lg.rounded-lg(
-            style="max-width: 600px"
-            v-html="$md.render(context.text || '')"
-          )
-        template(v-else-if="pickedContext==='code' && context.code")
-          //- Code (monospace font)
-          div.overflow-auto.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
-            style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
-            v-html="context.code"
-          )
-    
+        template(v-else)
+          template(v-if="pickedContext==='text' && context.text")
+            //- Text (markdown, rendered)
+            div.overflow-auto.p-4.border.shadow-lg.rounded-lg(
+              style="max-width: 600px"
+              v-html="$md.render(context.text || '')"
+            )
+          template(v-else-if="pickedContext==='code' && context.code")
+            //- Code (monospace font)
+            div.overflow-auto.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
+              style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
+              v-html="context.code"
+            )
+          template(v-else)
+            //- No text/code
+            div.text-muted(style="width: 200px;")
+              template(v-if="busy.generatingContent")
+                | Generating <strong>{{ context.content.title }}</strong>{{ movingDots }}
+              template(v-else)
+                | No <strong>{{ context.content.title }}</strong> yet. Click the button below to generate one.
+                  
     //- Footer(
     div#footer.bg-light.border-top.px-3.py-2.py-md-4.d-flex.justify-content-end(
         v-show="context"
@@ -97,16 +105,18 @@
   import updatePropsMixin from '~/plugins/mixins/updateProps'
   import autoHeightMixin from '~/plugins/mixins/autoHeight'
   import computedDataMixin from '~/plugins/mixins/computedData'
+  import movingDotsMixin from '~/plugins/mixins/movingDots'
 
   export default
 
-    props: ['context', 'chat', 'summary' ]
+    props: [ 'context', 'chat', 'message', 'busy' ]
 
     mixins: [
       updatePropsMixin
       autoHeightMixin "workspace"
       computedDataMixin
         'show.mindmap': -> @mindmap && @pickedContext is 'mindmap'
+      movingDotsMixin
     ]
 
     data: ->
@@ -116,6 +126,12 @@
         mindmap: true
       pickedContext: 'mindmap'
     
+    watch:
+      context: (context) ->
+        # If no content, emit a request to generate one
+        if context?.content and not context[ context.content.type ]
+          @$emit 'generateContent', @message
+
     computed:
 
       mindmap: ->

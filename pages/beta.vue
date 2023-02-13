@@ -50,7 +50,8 @@
         template(#secondary-pane)
           MindyWorkspace(
             v-bind.sync="workspace"
-            v-on="{ randomQuery, elaborate }"
+            :busy="busy"
+            v-on="{ randomQuery, elaborate, generateContent }"
           )
       //- 
       
@@ -148,7 +149,7 @@
             (message) -> message.context?.mindmap
           )?.context
         'workspace.chat': -> @chat
-        'workspace.summary': -> @summary
+        'workspace.message': -> @routedMessage
 
     ]
 
@@ -272,6 +273,14 @@
           @sendMessage
             content: "#{topic}?"
             parent: @chat.lastMessage
+
+      generateContent: (message) ->
+        @try 'generatingContent', =>
+          { context, context: { content, mindmap, content: { type } } } = message
+          @$set context, type, await @magic.generate[type].firstTime.generate
+            conversation: @chat.conversation
+            markmap: markmap.dump mindmap
+            requestedContent: content
 
       randomSeed: -> { seed: _.random(100, 999)}
 
