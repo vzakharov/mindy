@@ -1,5 +1,5 @@
 # Converts markmap to/from a nested array of strings
-import { validate } from '~/plugins/mindmapAsNestedArray'
+import { validate } from '~/plugins/mindmapUtils'
 
 export default
 

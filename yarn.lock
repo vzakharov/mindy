@@ -1785,6 +1785,11 @@ ajv@^6.1.0, ajv@^6.10.2, ajv@^6.12.4, ajv@^6.12.5:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
+almostmagic@^0.0.21:
+  version "0.0.21"
+  resolved "https://registry.yarnpkg.com/almostmagic/-/almostmagic-0.0.21.tgz#f00fdaeabf3eac1dc974bea2f2c2f0bfabc781c1"
+  integrity sha512-FeNN0Ok6z2BsZ79HRSHj/FGSQmws3WUBhNrv2/5vJpBJ/IiaN+3BJrEGlI0d18vvjT72kKISzzlVySx4eHuZuQ==
+
 alphanum-sort@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/alphanum-sort/-/alphanum-sort-1.0.2.tgz#97a1119649b211ad33691d9f9f486a8ec9fbe0a3"

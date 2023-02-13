@@ -30,3 +30,10 @@ export validate = (mindmap) ->
   if not isValid mindmap, output
     throw new Error output.error
   mindmap
+
+export rbsToMindmap = ({ root, branches, subbranches }) ->
+  validate [
+    root
+    _.flatten _.map branches, (branch, index) ->
+      [ branch, ...if subbranches[index]?.length then [ subbranches[index] ] else [] ]
+  ]
