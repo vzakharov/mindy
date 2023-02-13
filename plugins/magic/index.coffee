@@ -15,7 +15,7 @@ export default magic = ->
     descriptor = _.camelCase path.join ' '
     if !_.isFunction config
       magic.fork {
-        descriptor: _.camelCase path.join ' '
+        descriptor
         ...config
       }
     else

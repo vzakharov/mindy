@@ -296,7 +296,7 @@
 
         @$nextTick => @reply @routedMessage
 
-      addBotReply: ( message, { reply, mindmap, thoughts }) ->
+      addBotReply: ( message, { reply, mindmap, thoughts, content }) ->
         @messages = [
           ...@messages
           @routedMessage = @tree.createChild message, {
@@ -304,6 +304,7 @@
             thoughts
             context: {
               mindmap
+              content
             }
             user: isBot: true
           }
