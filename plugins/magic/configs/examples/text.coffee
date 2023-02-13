@@ -10,9 +10,10 @@ import configs from '../skeleton'
 # # examples.reply.text.firstTime = firstTextReplyExample =
 # _.set configs, 'reply.text.firstTime.examples', [ firstTextReplyExample =
 configs.reply.firstTime.examples.push firstTextReplyExample =
-  input:
+  input: {
     ...seed()
     query: 'Write a blog post about bootstrapping a startup'
+  }
   output:
     thoughts: 'A blog post, huh? Let me generate a text and a mindmap to help the user get started.'
     mindmap:
@@ -83,7 +84,7 @@ configs.generate.text.firstTime.examples.push firstTextExample =
 # # examples.reply.text.continued= plainToTextReplyExample =
 # _.set configs, 'reply.text.continued.examples', [ plainToTextReplyExample = 
 configs.reply.continued.examples.push plainToTextReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: [{
       query: 'Bootstrapping a startup'
@@ -106,6 +107,7 @@ configs.reply.continued.examples.push plainToTextReplyExample =
     markmap: firstTextExample.input.markmap
     currentContent: null
     query: 'Can you turn this into a blog post?'
+  }
   output:
     thoughts: 'With the mindmap at hand, I can easily turn this into a blog post. No need to update the mindmap itself.'
     markmap: null
@@ -136,13 +138,14 @@ configs.generate.text.continued.examples.push plainToTextExample =
 # # examples.reply.text.fromText = textToTextReplyExample =
 # _.set configs, 'reply.text.fromText.examples', [ textToTextReplyExample =
 configs.reply.fromText.examples.push textToTextReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: firstTextExample.input.conversation
     markmap: firstTextExample.input.markmap
     currentContent: firstTextExample.input.requestedContent
     text: firstTextExample.output.text
     query: 'Expand advantages'
+  }
   output:
     thoughts: 'Okay, so being your own boss, having no stress from investors and learning a lot; let’s fill in the blanks.'
     markmap: """

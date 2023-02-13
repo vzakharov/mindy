@@ -1,4 +1,4 @@
-import _ from 'lodash'ß
+import _ from 'lodash'
 
 import { seed } from '~/plugins/magic/utils'
 
@@ -9,9 +9,10 @@ import configs from '../skeleton'
 # examples.reply.code.firstTime = firstCodeReplyExample =
 # _.set configs, 'reply.code.firstTime.examples', [ firstCodeReplyExample =
 configs.reply.firstTime.examples.push firstCodeReplyExample =
-  input:
+  input: {
     ...seed()
     query: "Write a binary search algorithm"
+  }
   output:
     thoughts: "Binary search? Pff, easy. I’ll generate a code snippet and a mindmap to help memorize the basic concepts. I’ll use vanilla JavaScript so that it can be run right in the browser."
     mindmap: {
@@ -96,7 +97,7 @@ configs.generate.code.firstTime.examples.push firstCodeExample =
 # examples.reply.code.continued = plainToCodeReplyExample =
 # _.set configs, 'reply.code.continued.examples', [ plainToCodeReplyExample =
 configs.reply.continued.examples.push plainToCodeReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: [
       query: "ELI5 binary search"
@@ -114,6 +115,7 @@ configs.reply.continued.examples.push plainToCodeReplyExample =
     """
     currentContent: null
     query: "Convert to code"
+  }
   output:
     thoughts: "Let me come up with a really simple JavaScript code snippet that can be run in any js sandbox."
     markmap: """
@@ -145,13 +147,14 @@ configs.generate.code.continued.examples.push plainToCodeExample =
 # examples.reply.code.fromCode = codeToCodeReplyExample =
 # _.set configs, 'reply.code.fromCode.examples', [ codeToCodeReplyExample =
 configs.reply.fromCode.examples.push codeToCodeReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: firstCodeExample.input.conversation
     markmap: firstCodeExample.input.markmap
     currentContent: firstCodeExample.input.requestedContent
     code: firstCodeExample.output.code
     query: "Convert to Python"
+  }
   output:
     thoughts: "Easy-peasy. I’ll convert the code to Python and add a funny remark."
     markmap: """
@@ -201,7 +204,7 @@ configs.generate.code.fromCode.examples.push codeToCodeExample =
 # examples.reply.code.fromText = textToCodeReplyExample =
 # _.set configs, 'reply.code.fromText.examples', [ textToCodeReplyExample =
 configs.reply.fromText.examples.push textToCodeReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: [{
       query: 'Cheatsheet on binary search'
@@ -230,6 +233,7 @@ configs.reply.fromText.examples.push textToCodeReplyExample =
       [...see also]
     """ 
     query: 'Can you write this in JavaScript?'
+  }
   output:
     thoughts: "Let me keep it short and simple and add comments afterwards if requested."
     markmap: """
@@ -262,12 +266,13 @@ configs.generate.code.fromText.examples.push textToCodeExample =
 # examples.reply.text.fromCode = codeToTextReplyExample =
 # _.set configs, 'reply.text.fromCode.examples', [ codeToTextReplyExample =
 configs.reply.fromCode.examples.push codeToTextReplyExample =
-  input:
+  input: {
     ...seed()
     precedingConversation: firstCodeExample.input.conversation
     markmap: firstCodeExample.input.markmap
     currentContent: firstCodeExample.output.content
     query: "Can you make a cheatsheet out of this?"
+  }
   output:
     thoughts: "Sure, I’ll convert the code to a cheatsheet."
     markmap: """

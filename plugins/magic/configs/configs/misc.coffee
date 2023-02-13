@@ -1,4 +1,4 @@
-import configs from './skeleton'
+import configs from '../skeleton'
 
 configs.chatTitle = -> {
   specs:

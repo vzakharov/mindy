@@ -1,5 +1,5 @@
-import { deepMap } from '../utils'
-import configs from './skeleton'
+import { deepMap } from '../../utils'
+import configs from '../skeleton'
 
 getConfig = ( kind, modifier ) ->
 
