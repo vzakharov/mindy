@@ -311,30 +311,6 @@
           }
 
       }
-
-      replyPicker: -> @magic.fork {
-        parameters:
-          temperature: 0
-          # frequency_penalty: 1
-          presence_penalty: 1
-        specs:
-          description: "#{@mindyDescription}. This specific endpoint picks the best reply from a list of replies and adapts it slightly by adding useful parts from the other replies."
-          accepts:
-            query: 'The user’s query that triggered the replies, for context.'
-            replies: [
-              'Array of reply objects, each containing:'
-              reply: 'The reply text.'
-              markmap: 'The mindmap in markmap format.'
-            ]
-          returns:
-            thoughts: 'Direct speech: "I choose reply ... because ..." (as specific as possible).'
-            index: 'The index of the best reply.'
-            improvedReply: 'The best reply, slightly improved by adding useful parts from the other replies. Highlight the most important words and phrases in **bold** for easier reading. Split into multiple paragraphs for easier reading if necessary.'
-            markmap: 'Mindmap in markmap format, combining the best parts of all the replies.'
-        postprocess: @mindy.config.postprocess
-      }
-    
-    }
     
     watch:
       
