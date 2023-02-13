@@ -375,50 +375,6 @@
           # @chat = @chats[chatIndex] ? @chats[chatIndex - 1] ? null
           @routedMessage = null
 
-      summarize: (force) ->
-
-        @summary.show = true
-
-        if @summary.ready and not force
-          return
-
-        @try 'summarizing', =>
-
-          conversation = @chat.exchangeContents
-          { context: { mindmap }} = @chat.lastMessageWith('context.mindmap')
-          @summary.kind = window.prompt 'What kind of content do you want to create (e.g. memo, blog post, email, landing page, etc.)?', @summary.kind || 'memo'
-          { kind } = @summary
-          if kind
-
-            Object.assign @summary, await @magic.generate([
-              'headline', 'intro', 'sections', 'conclusion', 'callToAction'
-            ], {
-              conversation, mindmap
-            },
-              specs:
-                description: "Generates a #{kind} based on a given conversation and mindmap."
-                returns:
-                  headline: 'Top-level headline.'
-                  intro: 'Introductory paragraph.'
-                  sections:
-                    description: 'An array of sections, each containing the following properties:'
-                    properties:
-                      headline: 'Section title.'
-                      paragraphs: 'An array of paragraphs. Optional if there are bullets.'
-                      bullets: 'An array of bullets. Optional if there are paragraphs. If both are present, the bullets will be rendered after the paragraphs.'
-                  conclusion: 'A concluding paragraph.'
-                  callToAction: 'A single-sentence call to action.'
-              postprocess: (output) ->
-                # If paragraphs/bullets are not arrays, make them arrays
-                for section in output.sections
-                  for key in ['paragraphs', 'bullets']
-                    if section[key] and not _.isArray(section[key])
-                      section[key] = [ section[key] ]
-                output
-            )
-            @summary.ready = true
-
-
       elaborate: (topic) ->
         @$nextTick =>
           @sendMessage
