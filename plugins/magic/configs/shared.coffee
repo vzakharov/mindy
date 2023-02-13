@@ -9,5 +9,6 @@ export Skeleton = ->
     text: { ...modifiers }
   chatTitle: null
   freeAssociations: null
+  randomQuery: null
 
-export default new Skeleton()
+export default configs = new Skeleton()

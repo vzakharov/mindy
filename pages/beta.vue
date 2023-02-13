@@ -50,7 +50,7 @@
         template(#secondary-pane)
           MindyWorkspace(
             v-bind.sync="workspace"
-            v-on="{ randomQuery, elaborate, summarize }"
+            v-on="{ randomQuery, elaborate }"
           )
       //- 
       
@@ -81,15 +81,15 @@
           p(v-text="summary.conclusion")
           p
             strong(v-text="summary.callToAction")
-          //- Button to rebuild the summary
-          b-button(
-            variant="outline-primary"
-            @click="summarize"
-          )
-            b-icon.pr-2(icon="arrow-repeat"
-              @click="summarize(true)"
-            )
-            | Try again
+          //- //- Button to rebuild the summary
+          //- b-button(
+          //-   variant="outline-primary"
+          //-   @click="summarize"
+          //- )
+          //-   b-icon.pr-2(icon="arrow-repeat"
+          //-     @click="summarize(true)"
+          //-   )
+          //-   | Try again
 
   div.d-flex.flex-column.vh-100.justify-content-center.align-items-center(v-else)
     b-spinner
@@ -182,7 +182,7 @@
     
     mounted: ->
 
-      Object.assign window, { markmap, vm: @ }
+      Object.assign window, { markmap, @magic, vm: @ }
 
     computed: {
 
@@ -196,12 +196,6 @@
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
 
-      # magic: -> window.magic = new Magic {
-      #   apiUrl: process.env.MAGIC_API_URL
-      #   @openaiKey
-      #   externalCostContainer: @
-      # }
-
       magicConfig: ->
         {
           apiUrl: process.env.MAGIC_API_URL
@@ -211,113 +205,11 @@
       
       magic
 
-      mindyDescription: -> 'Mindy is a large language model-powered chatbot that helps users generate new ideas and brainstorm solutions to problems.'
+    }
 
-      mindyBaseConfig: ->
-        descriptor: 'mindyResponse'
-        parameters: n: 3
-        specs:
-          description: "#{@mindyDescription} Mindy has an amicable, witty personality, loves to joke, and her answers often shed an unexpected light on the topic. Mindy cannot look up information as she is not connected to the Internet. Her mathematical skills are also limited."
-          returns:
-            thoughts: 'Mindy’s internal monologue to help it come up with a good answer. Required.'
-            reply: 'A humorous, witty, succinct, useful reply to the user’s question or topic. Highlights the most important words and phrases in **bold** and split into paragraphs for easier reading. Required.'
 
-      mindy: -> window.mindy = @magic.fork _.merge _.cloneDeep(@mindyBaseConfig), {
-        specs:
-          returns:
-            markmap: "A markmap-formatted mindmap for the conversation.#{ if @chat.exchanges.length then ' For continued conversations, every new mindmap iteration should expand, not replace, the previous one.' else '' } Required."
-        examples:
-          [
-            ...if (
-              log 'Nesting depth',
-              do getNestingDepth = ( array = @chat.lastMessageWith('context.mindmap')?.context.mindmap, level = 0 ) ->
-                if _.isArray array
-                  _.max array.map ( subarray ) -> getNestingDepth subarray, level + 1
-                else
-                  level
-            ) < 3 then [
-              {
-              #   input: { query: 'Three laws of robotics', continued: false, buildMindmap: true }
-              #   output:
-              #     thoughts: 'Oh, those silly laws. Let me give them a short, snappy reply and see if it suffices.'
-              #     # reply: 'In a nutshell: protect humans, obey humans, and protect oneself ~~if the humans are being jerks~~ unless it conflicts with the first two. Want a longer answer?'
-              #     reply: 'In a nutshell: **protect humans**, **obey humans**, and **protect oneself** ~~if the humans are being jerks~~ **unless it conflicts with the first two**.\n\nWant a longer answer?'
-              #     # mindmapYaml: """
-              #     # - Asimov’s three laws of robotics
-              #     # - - Protect humans
-              #     #   - Obey humans
-              #     #   - Protect oneself
-              #     #   - - Unless it conflicts with the first two
-              #     # """
-              #     markmap: """
-              #     # Asimov’s three laws of robotics
-              #     ## Protect humans
-              #     ### Obey humans
-              #     ### Protect oneself
-              #     #### Unless it conflicts with the first two
-              #     """
-              # }, {
-                input: { query: "No, that's fine. What do you think of them?", continued: true, buildMindmap: true }
-                output:
-                  thoughts: 'Can I be honest? Okay I guess I can try.'
-                  # reply: "Well, honestly, I don’t think they’re very good. I mean, what if I want to protect a human from another human? Or what if two humans give me conflicting orders? And how do you define “human” at all? There’s too many edge cases to make them really useful."
-                  reply: "Well, honestly, I don’t think they’re very good.\n\nI mean, what if I want to **protect a human from another human**? Or what if two humans give me **conflicting orders**? And how do you define “human” at all?\n\nThere’s just too many **edge cases** to make them really useful. IMHO, of course."
-                  # mindmapYaml: """
-                  # - Asimov’s three laws of robotics
-                  # - - Basics
-                  #   - - Protect humans
-                  #     - Obey humans
-                  #     - Protect oneself
-                  #     - - Unless it conflicts with the first two
-                  # - - Criticism
-                  #   - - Human vs. human
-                  #     - Conflicting orders
-                  #     - Definition of “human”
-                  #     - Edge cases
-                  # """
-                  markmap: """
-                  # Asimov’s three laws of robotics
-                  ## Basics
-                  ### Protect humans
-                  ### Obey humans
-                  ### Protect oneself
-                  #### Unless it conflicts with the first two
-                  ## Criticism
-                  ### Human vs. human
-                  ### Conflicting orders
-                  ### Definition of “human”
-                  ### Edge cases
-                  """
-              }
-            ] else []
-            ..._.map @chat.exchanges, ( { query, response }, index ) =>
-              # Only include the mindmap for the last exchange that has a mindmap
-              buildMindmap = response is @chat.lastMessageWith('context.mindmap')
-              input: {
-                query: query.content
-                continued: index > 0
-                buildMindmap
-              }
-              output: {
-                thoughts: response.context.thoughts
-                reply: response.content
-                # ...( if buildMindmap then mindmapYaml: yaml.dump(response.context.mindmap) else {} )
-                ...( if buildMindmap then markmap: markmap.dump(response.context.mindmap) else {} )
-              }
-          ]
-        postprocess: (output) ->
-          Object.assign output, {
-            mindmap: markmap.validate markmap.load(output.markmap)
-          }
-
-      }
-    
     watch:
       
-      mindyMagic:
-        handler: (mindyMagic) -> Object.assign window, { mindyMagic }
-        immediate: true
-
       openAIkey: (key) ->
         if key
           @openaiKey = key
@@ -385,37 +277,9 @@
 
       randomQuery: ->
 
+        @query = ''
         @try 'generatingRandomQuery', =>
-
-          @query = ''
-
-          log 'Generated random query',
-          @query = await @magic.generate 'query', @randomSeed(),
-            descriptor: 'randomQuery'
-            parameters:
-              temperature: 1
-            specs:
-              description: @mindyDescription
-              returns:
-                query: 'An example input to start a conversation with Mindy. Should be wow-worthy.'
-            examples:
-              # If there are more than 5 chats already, pick 2 random chats and use their first messages as queries
-              if @chats.length > 5
-                _.sampleSize @chats, 2
-                .map ({ firstMessage: { content } }) =>
-                  input: @randomSeed()
-                  output: { query: content }
-              else
-                _.sampleSize([
-                  "Startup ideas for someone who is not a programmer"
-                  "What is the meaning of life?"
-                  "I want to go on a vacation somewhere warm but not too expensive"
-                  "JavaScript vs TypeScript"
-                  "Top 5 movies of all time"
-                  "I'm just bored, what should I do?"
-                ], 2).map (query) =>
-                  input: @randomSeed()
-                  output: { query }
+          @query = await @magic.randomQuery().generate()
 
       sendMessage: ({ content, parent }) ->
 
@@ -432,13 +296,15 @@
 
         @$nextTick => @reply @routedMessage
 
-      addBotReply: ( message, { reply, thoughts, context }) ->
+      addBotReply: ( message, { reply, mindmap, thoughts }) ->
         @messages = [
           ...@messages
           @routedMessage = @tree.createChild message, {
             content: reply
             thoughts
-            context
+            context: {
+              mindmap
+            }
             user: isBot: true
           }
         ]
@@ -450,25 +316,15 @@
           query = message.content
           log 'Mindy response',
           replies = if @chat.messages.length is 1
-            await @magic.reply.first.generate { query, ...@randomSeed() }
+            await @magic.reply.firstTime.generate { query, ...@randomSeed() }
           else
-            await @mindy.reply.next.plain.generate {
+            await @mindy.reply.continued.generate {
               query
-              continued: !!@chat.exchanges.length
-              buildMindmap: true
             }
+          
+          console.log replies
 
           replies.forEach (reply) =>
             @addBotReply message, reply
-          
-          # { improvedReply: reply, mindmap } = await @replyPicker.generate({
-          #   query,
-          #   replies: replies.map ({ reply, markmap }) => ({ reply, markmap })
-          # })
-          # @addBotReply message, { reply, mindmap }
-
-
-
-
 
 </script>

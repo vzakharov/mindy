@@ -1,5 +1,8 @@
+import markmap from '~/plugins/markmap'
+import { rbsToMindmap, validate } from '~/plugins/mindmapUtils'
+
 import { deepMap } from '../../utils'
-import configs from '../skeleton'
+import configs from '../shared'
 
 getConfig = ( modifier ) ->
 
@@ -31,5 +34,9 @@ getConfig = ( modifier ) ->
     }
   }
   examples: []
+  postprocess: ( output ) ->
+    Object.assign output,
+      mindmap: ( firstTime && rbsToMindmap || markmap.load ) output.mindmap 
 
-configs.reply = deepMap configs.reply, -> getConfig ...arguments[1]
+configs.reply = deepMap configs.reply, ->
+  getConfig ...arguments[1]

@@ -1,4 +1,6 @@
-import configs, { Skeleton } from './skeleton'
+import configs, { reset, Skeleton } from './shared'
+
+console.log(configs)
 
 import './configs/generate'
 import './configs/reply'

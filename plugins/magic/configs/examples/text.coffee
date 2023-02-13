@@ -4,7 +4,7 @@ import { rbsToMindmap } from '~/plugins/mindmapUtils'
 import _ from 'lodash'
 
 # import examples from './backbone'
-import configs from '../skeleton'
+import configs from '../shared'
 
 # # # export firstTextReplyExample =
 # # examples.reply.text.firstTime = firstTextReplyExample =

@@ -3,7 +3,7 @@ import markmap from '~/plugins/markmap'
 import { rbsToMindmap } from '~/plugins/mindmapUtils'
 
 # import examples from './backbone'
-import configs from '../skeleton'
+import configs from '../shared'
 
 # # export firstPlainReplyExample = {
 # examples.reply.plain.firstTime = firstPlainReplyExample = {

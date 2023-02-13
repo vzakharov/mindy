@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { seed } from '~/plugins/magic/utils'
 
 # import examples from './backbone'
-import configs from '../skeleton'
+import configs from '../shared'
 
 # # export firstCodeReplyExample =
 # examples.reply.code.firstTime = firstCodeReplyExample =
