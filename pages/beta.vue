@@ -276,11 +276,71 @@
 
       generateContent: (message) ->
         @try 'generatingContent', =>
+          
+          log 'Generating content for message',
           { context, context: { content, mindmap, content: { type } } } = message
-          @$set context, type, await @magic.generate[type].firstTime.generate
-            conversation: @chat.conversation
+          log 'Grandparent:',
+          grandParent = @tree.grandParent message
+          currentContent = grandParent?.context?.content
+          modifier = @getModifier grandParent
+          @$set context, type, await @magic.generate[type][modifier].generate {
+            conversation: @chat.conversationAbove
             markmap: markmap.dump mindmap
+            currentContent
             requestedContent: content
+            ...( 
+              if currentContent?
+                [currentContent.type]: grandParent.context[currentContent.type]
+              else
+                {}
+            )
+          }
+      
+      reply: (message) ->
+        @try 'replying', =>
+
+          log 'Replying to message', message, 'parent:',
+          parent = @tree.parent message
+          { context, context: { content, mindmap, content: { type } } } = parent
+          modifier = @getModifier parent
+          firstTime = modifier is 'firstTime'
+          replies = await @magic.reply[modifier].generate log 'Generate request:', {
+            ...@randomSeed()
+            ...(
+              if firstTime
+                {}
+              else {
+                precedingConversation: @chat.conversationAbove
+                markmap: markmap.dump mindmap
+                currentContent: content
+                ...(
+                  if content?
+                    [type]: context[type]
+                  else
+                    {}
+                )
+              }
+            )
+            query: message.content
+          }
+          
+          console.log replies
+
+          replies.forEach (reply) =>
+            @addBotReply message, reply
+
+      
+      getModifier: (message, type) ->
+        if @chat.conversationAbove.length is 0
+          'firstTime'
+        else
+          # If there is context.text/code, 'fromText/fromCode' respectively, otherwise 'continued'
+          { type } = message.context.content
+          if message.context[type]
+            "from#{_.capitalize type}"
+          else
+            'continued'
+            
 
       randomSeed: -> { seed: _.random(100, 999)}
 
@@ -318,23 +378,5 @@
             user: isBot: true
           }
         ]
-      
-      reply: (message) ->
-
-        @try 'replying', =>
-
-          query = message.content
-          log 'Mindy response',
-          replies = if @chat.messages.length is 1
-            await @magic.reply.firstTime.generate { query, ...@randomSeed() }
-          else
-            await @mindy.reply.continued.generate {
-              query
-            }
-          
-          console.log replies
-
-          replies.forEach (reply) =>
-            @addBotReply message, reply
-
+    
 </script>

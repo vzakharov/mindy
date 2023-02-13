@@ -21,6 +21,9 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
 
       parent: (item) ->
         ( items.find (i) -> i.id is item.parentId ) or @root
+      
+      grandParent: (item) ->
+        @parent @parent item 
 
       children: (item) ->
         _(items)
@@ -93,7 +96,7 @@ TreeLike = ( items, { childOrder = [[ 'createdAt', 'desc' ]], vm } = {} ) ->
         else
           item
                 
-      thread: (item, includeDescendants = true) ->
+      thread: (item, { includeDescendants = true } = {}) ->
         if item
           # i.e. lineage of the ultimate heir
           # log 'thread',

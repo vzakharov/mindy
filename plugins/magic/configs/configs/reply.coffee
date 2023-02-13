@@ -36,7 +36,10 @@ getConfig = ( modifier ) ->
   examples: []
   postprocess: ( output ) ->
     Object.assign output,
-      mindmap: ( firstTime && rbsToMindmap || markmap.load ) output.mindmap 
+      mindmap: if firstTime
+        rbsToMindmap output.mindmap
+      else
+        markmap.load output.markmap
 
 configs.reply = deepMap configs.reply, ->
   getConfig ...arguments[1]

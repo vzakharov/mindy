@@ -10,19 +10,22 @@ export default ( vm, routedMessage ) ->
   @routedMessage = routedMessage
 
   @thread = @tree.thread?( @routedMessage )
+  @threadAbove = @tree.thread?( @routedMessage, { includeDescendants: false } )
 
-  # Like thread, but has an "input" from the user and an "output" from the bot
-  # Do not include "bare" messages, i.e. ones without a response yet
-  @exchanges = @thread?.filter ({ user: { isBot }, id }) => not isBot and @tree.hasChildren({ id })
+  getExchanges = (thread) =>
+    thread?.filter ({ user: { isBot }, id }) => not isBot and @tree.hasChildren({ id })
     .map (request) => {
       request
-      response: @thread?.find (m) => @tree.parent(m) is request
+      response: thread.find (m) => @tree.parent(m) is request
     }
   
-  @conversation = @exchanges?.map ({ request, response }) => {
+  getConversation = (exchanges) => exchanges?.map ({ request, response }) => {
     query: request?.content
     reply: response?.content
   }
+
+  @conversation = getConversation getExchanges @thread
+  @conversationAbove = getConversation getExchanges @threadAbove
   
   @exchanges ?= []
 
