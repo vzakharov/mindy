@@ -278,7 +278,8 @@
         @try 'generatingContent', =>
           
           log 'Generating content for message',
-          { context, context: { content, mindmap, content: { type } } } = message
+          try { context, context: { content, mindmap, content: { type } } } = message
+
           log 'Grandparent:',
           grandParent = @tree.grandParent message
           currentContent = grandParent?.context?.content
@@ -301,7 +302,6 @@
 
           log 'Replying to message', message, 'parent:',
           parent = @tree.parent message
-          { context, context: { content, mindmap, content: { type } } } = parent
           modifier = @getModifier parent
           firstTime = modifier is 'firstTime'
           replies = await @magic.reply[modifier].generate log 'Generate request:', {
@@ -309,17 +309,19 @@
             ...(
               if firstTime
                 {}
-              else {
-                precedingConversation: @chat.conversationAbove
-                markmap: markmap.dump mindmap
-                currentContent: content
-                ...(
-                  if content?
-                    [type]: context[type]
-                  else
-                    {}
-                )
-              }
+              else
+                try { context, context: { content, mindmap, content: { type } } } = parent 
+                {
+                  precedingConversation: @chat.conversationAbove
+                  markmap: markmap.dump mindmap
+                  currentContent: content
+                  ...(
+                    if content?
+                      [type]: context[type]
+                    else
+                      {}
+                  )
+                }
             )
             query: message.content
           }
@@ -335,8 +337,8 @@
           'firstTime'
         else
           # If there is context.text/code, 'fromText/fromCode' respectively, otherwise 'continued'
-          { type } = message.context.content
-          if message.context[type]
+          { type } = message.context.content ? {}
+          if type and message.context[type]
             "from#{_.capitalize type}"
           else
             'continued'

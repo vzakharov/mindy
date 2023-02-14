@@ -240,7 +240,7 @@ configs.reply.fromText.examples.push textToCodeReplyExample =
       #{firstCodeExample.input.markmap}
       ## JavaScript code
     """
-    content: firstCodeExample.output.content
+    content: firstCodeReplyExample.output.content
     reply: "Sure, here’s the code in JavaScript. Let me know if you need help understanding it."
 
 # # export textToCodeExample =

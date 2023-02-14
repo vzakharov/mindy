@@ -110,7 +110,7 @@ configs.reply.continued.examples.push plainToTextReplyExample =
   }
   output:
     thoughts: 'With the mindmap at hand, I can easily turn this into a blog post. No need to update the mindmap itself.'
-    markmap: null
+    markmap: firstTextExample.input.markmap
     content: firstTextExample.input.requestedContent
     reply: """
       Sure, I can turn this into a blog post based on the mindmap. Give me a second.

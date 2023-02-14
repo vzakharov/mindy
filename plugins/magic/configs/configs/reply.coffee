@@ -22,7 +22,7 @@ getConfig = ( modifier ) ->
             subbranches: 'An array of arrays of child nodes of the branches, each reffering to the same index in the branches array, minimum 2 subbranches per branch.'
           ]
         else
-          markmap: 'An updated mindmap, in markmap format. null if no update is needed.'
+          markmap: 'An updated mindmap, in markmap format.'
       )
       content: [
         "If the query requires writing a separate piece of text or code, an object with the following keys, null otherwise. Note that the content itself is NOT included in the reply, but will be generated additionally."
