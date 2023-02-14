@@ -337,7 +337,7 @@
           'firstTime'
         else
           # If there is context.text/code, 'fromText/fromCode' respectively, otherwise 'continued'
-          { type } = message.context.content ? {}
+          { type } = message.context?.content ? {}
           if type and message.context[type]
             "from#{_.capitalize type}"
           else

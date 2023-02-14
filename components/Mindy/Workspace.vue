@@ -1,46 +1,64 @@
 <template lang="pug">
   div.h-100
     //- Header: buttons to edit in plain text, pick colors, settings, ideas, etc.
-    div.bg-light.border-bottom.px-3.py-2.py-md-4.d-flex.justify-content-end
-      //- Ideas
-      button.btn.btn-light.btn-sm.mx-1.lightgray
-        b-icon-lightbulb(
-          @click="show.ideas = !show.ideas"
-          :class="show.ideas ? 'text-primary' : ''"
+    div.bg-light.border-bottom.px-3.pt-2.pt-md-4
+      div.d-flex.justify-content-end
+        //- Ideas
+        button.btn.btn-light.btn-sm.mx-1.lightgray
+          b-icon-lightbulb(
+            @click="show.ideas = !show.ideas"
+            :class="show.ideas ? 'text-primary' : ''"
+          )
+        //- Theme
+        button.btn.btn-light.btn-sm.mx-1.lightgray(
+          v-b-modal.theme-modal
         )
-      //- Theme
-      button.btn.btn-light.btn-sm.mx-1.lightgray(
-        v-b-modal.theme-modal
-      )
-        b-icon-palette
-      b-modal#theme-modal(
-        ref="themeModal"
-        title="Pick a theme"
-        centered
-      )
-        ThemePicker(
-          @input="pickTheme"
+          b-icon-palette
+        b-modal#theme-modal(
+          ref="themeModal"
+          title="Pick a theme"
+          centered
         )
-        b-icon-palette
-      //- Settings
-      button.btn.btn-light.btn-sm.mx-1.lightgray
-        b-icon-gear
-      //- //- Summarize
-      //- button.btn.btn-outline-primary.btn-sm.mx-1.px-2(
-      //-     @click="$emit('summarize')"
-      //-   )
-      //-   b-icon-file-earmark-text.mr-2
-      //-   | {{ summary.ready ? 'Summarize' : 'View summary' }}
-      //- Download
-      button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
-        b-icon-download.mr-2
-        | Download
-      //- Help
-      button.btn.btn-light.btn-sm.mx-1.lightgray
-        b-icon-question-circle
+          ThemePicker(
+            @input="pickTheme"
+          )
+          b-icon-palette
+        //- Settings
+        button.btn.btn-light.btn-sm.mx-1.lightgray
+          b-icon-gear
+        //- //- Summarize
+        //- button.btn.btn-outline-primary.btn-sm.mx-1.px-2(
+        //-     @click="$emit('summarize')"
+        //-   )
+        //-   b-icon-file-earmark-text.mr-2
+        //-   | {{ summary.ready ? 'Summarize' : 'View summary' }}
+        //- Download
+        button.btn.btn-outline-secondary.btn-sm.mx-1.px-2
+          b-icon-download.mr-2
+          | Download
+        //- Help
+        button.btn.btn-light.btn-sm.mx-1.lightgray
+          b-icon-question-circle
+      b-tabs
+        b-tab(
+            :active="show.mindmap"
+            @click="pickedContext = 'mindmap'"
+          )
+          template(#title)
+            b-icon-diagram-3
+        b-tab(
+            v-if="context && context.content"
+            :active="!show.mindmap" 
+            @click="pickedContext = 'content'"
+          )
+          template(#title)
+            b-icon(
+              :icon="{ text: 'file-earmark-text', code: 'code' }[context.content.type]"
+            )
+            span.ml-1 {{ context.content.title }}
     //- 
 
-    //- Mindmap
+    //- Workspace
     div.d-flex.flex-column.justify-content-center.align-items-center#workspace(
         ref="workspace"
         style="overflow: auto; height: 100%;"
@@ -54,49 +72,34 @@
             span.text-primary(@click="$emit('randomQuery')" style="cursor: pointer;") Click here
             | .
       template(v-else)
-        template(v-if="pickedContext==='mindmap'")
+        template(v-if="show.mindmap")
           //- Mindmap
-          MermaidMindmap.overflow-auto(
+          MermaidMindmap(
             v-show="show.mindmap"
             :code="mindmapCode"
             v-on="$listeners"
             v-bind="{ show }"
           )
-        template(v-else)
-          template(v-if="pickedContext==='text' && context.text")
+        template(v-else-if="context.content")
+          template(v-if="context.content.type==='text' && context.text")
             //- Text (markdown, rendered)
-            div.overflow-auto.p-4.border.shadow-lg.rounded-lg(
+            div.p-4.border.shadow-lg.rounded-lg(
               style="max-width: 600px"
               v-html="$md.render(context.text || '')"
             )
-          template(v-else-if="pickedContext==='code' && context.code")
+          template(v-else-if="context.content.type==='code' && context.code")
             //- Code (monospace font)
-            div.overflow-auto.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
+            div.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
               style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
               v-html="context.code"
             )
-          template(v-else)
+          template(v-else-if="context.content")
             //- No text/code
             div.text-muted(style="width: 200px;")
               template(v-if="busy.generatingContent")
                 | Generating <strong>{{ context.content.title }}</strong>{{ movingDots }}
               template(v-else)
-                | No <strong>{{ context.content.title }}</strong> yet. Click the button below to generate one.
-                  
-    //- Footer(
-    div#footer.bg-light.border-top.px-3.py-2.py-md-4.d-flex.justify-content-end(
-        v-show="context"
-        ref="footer"
-      )
-      //- Context switch: mindmap/text/code
-      button.btn.btn-sm.rounded-pill.mx-2(
-        v-for="type in ['mindmap', 'text', 'code']"
-        :class="type === pickedContext ? 'btn-primary' : 'btn-light'"
-        @click="pickedContext = type"
-      )
-        b-icon(
-          :icon="{ mindmap: 'diagram-3', text: 'file-earmark-text', code: 'code' }[type]"
-        )
+                | No <strong>{{ context.content.type }}</strong> yet. Click the button below to generate one.
     
 </template>
 
@@ -115,7 +118,7 @@
       updatePropsMixin
       autoHeightMixin "workspace"
       computedDataMixin
-        'show.mindmap': -> @mindmap && @pickedContext is 'mindmap'
+        'show.mindmap': -> @mindmap && ( @pickedContext is 'mindmap' || !@context.content )
       movingDotsMixin
     ]
 

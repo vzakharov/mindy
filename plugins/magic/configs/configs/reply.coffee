@@ -33,6 +33,7 @@ getConfig = ( modifier ) ->
       reply: '(Required) A humorous, witty, succinct, useful reply. Highlights the most important words and phrases in **bold** and splits the text into paragraphs for easier reading. Mentions that text/code will be generated right away, if applicable. Does NOT include the piece of text/code itself. Required.'
     }
   }
+  optionalReturns: ['content']
   examples: []
   postprocess: ( output ) ->
     Object.assign output,
