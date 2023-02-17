@@ -44,6 +44,7 @@
             :busy="busy"
             :associations="associations"
             @query="sendMessage"
+            @tryAgain="reply(tree.parent($event))"
             @editMessage="({ message, content }) => $set(message, 'content', content)"
             @deleteChat="deleteChat"
           )
@@ -285,7 +286,7 @@
           currentContent = grandParent?.context?.content
           modifier = @getModifier grandParent
           @$set context, type, await @magic.generate[type][modifier].generate {
-            conversation: @chat.conversationAbove
+            conversation: @chat.getConversation(message)
             markmap: markmap.dump mindmap
             currentContent
             requestedContent: content
@@ -302,6 +303,7 @@
 
           log 'Replying to message', message, 'parent:',
           parent = @tree.parent message
+          log 'Modifier',
           modifier = @getModifier parent
           firstTime = modifier is 'firstTime'
           replies = await @magic.reply[modifier].generate log 'Generate request:', {
@@ -312,9 +314,9 @@
               else
                 try { context, context: { content, mindmap, content: { type } } } = parent 
                 {
-                  precedingConversation: @chat.conversationAbove
-                  markmap: markmap.dump mindmap
-                  currentContent: content
+                  precedingConversation: @chat.getConversation(message)
+                  markmap: markmap.dump mindmap if mindmap
+                  currentContent: content if content
                   ...(
                     if content?
                       [type]: context[type]
@@ -333,7 +335,8 @@
 
       
       getModifier: (message, type) ->
-        if @chat.conversationAbove.length is 0
+        # if @chat.conversationAbove.length is 0
+        if @chat.getConversation(message).length is 0
           'firstTime'
         else
           # If there is context.text/code, 'fromText/fromCode' respectively, otherwise 'continued'

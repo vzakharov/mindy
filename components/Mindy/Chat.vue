@@ -31,8 +31,7 @@
       ref="messages"
       style="overflow-y: auto; height: 100%;"
       )
-      nuxt-link.message.px-2(
-        tag="div"
+      div.message.px-2(
         :id="`message-${message.id}`"
         v-for="(message, index) in thread", :key="`${index}-${routedMessage.id}`"
         :style=`{
@@ -40,18 +39,26 @@
           'border': '1px solid ' + (message === routedMessage && routedMessage != thread[thread.length - 1] ? '#007bff' : '#fff'),
           'cursor': 'pointer'
         }`
-        :to="{ query: { id: message.id } }"
+        @click="$router.push({ query: { id: message.id } })"
       )
+        //- A refresh symbol to try generating a reply again
+        div(style="font-size: 0.8em; color: #aaa; float: right;"
+          v-if="message.user.isBot"
+        )
+          a.ml-1(href="#" style="color: inherit;"
+            @click.prevent="$emit('tryAgain', message)"
+          )
+            | ↻
         //- If the message has siblings, and unless it is the first message of the thread, display a switcher looking like "< n / N >"
         //- where n is the current sibling index and N is the total number of siblings
         template( v-if="tree.numSiblings(message) > 1 && message !== thread[0]" )
           div(style="font-size: 0.8em; color: #aaa; float: right;")
             //- Switching is done by changing 'id' in the URL query string
-            nuxt-link(:to="{ query: { id: tree.sibling(message, -1).id } }", class="mr-1", style="color: inherit",
+            nuxt-link.mr-1(:to="{ query: { id: tree.sibling(message, -1).id } }" style="color: inherit",
               v-text="`< ${tree.siblingIndex(message) + 1}`"
             )
             | /
-            nuxt-link(:to="{ query: { id: tree.sibling(message, 1).id } }", class="ml-1", style="color: inherit",
+            nuxt-link.ml-1(:to="{ query: { id: tree.sibling(message, 1).id } }" style="color: inherit",
               v-text="`${tree.numSiblings(message)} >`"
             )
         strong {{ message.user.name || message.user.isBot ? 'mindy' : 'you' }}
