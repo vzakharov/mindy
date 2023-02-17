@@ -39,7 +39,7 @@
           'border': '1px solid ' + (message === routedMessage && routedMessage != thread[thread.length - 1] ? '#007bff' : '#fff'),
           'cursor': 'pointer'
         }`
-        @click="$router.push({ query: { id: message.id } })"
+        @click.self="$router.push({ query: { id: message.id } })"
       )
         //- A refresh symbol to try generating a reply again
         div(style="font-size: 0.8em; color: #aaa; float: right;"
