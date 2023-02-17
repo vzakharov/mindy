@@ -89,7 +89,7 @@
             )
           template(v-else-if="context.content.type==='code' && context.code")
             //- Code (monospace font)
-            div.p-4.border.shadow-lg.rounded-lg.bg-dark.text-light(
+            pre.p-4(
               style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
               v-html="context.code"
             )

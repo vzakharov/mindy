@@ -382,3 +382,22 @@
         ]
     
 </script>
+
+<style>
+
+pre {
+  /* dark background */
+  background-color: #1e1e1e;
+  /* light text */
+  color: #d4d4d4;
+  /* rounded */
+  border-radius: 5px;
+  /* shadow */
+  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+  /* padding */
+  padding: 10px;
+  /* margin */
+  margin: 5px;
+}
+
+</style>
