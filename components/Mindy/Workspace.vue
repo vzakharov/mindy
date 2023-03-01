@@ -82,16 +82,18 @@
           )
         template(v-else-if="context.content")
           template(v-if="context.content.type==='text' && context.text")
-            //- Text (markdown, rendered)
+            //- Text (markdown, rendered), edit via prompt on double click
             div.p-4.border.shadow-lg.rounded-lg(
               style="max-width: 600px"
               v-html="$md.render(context.text || '')"
+              @dblclick="context.text = window.prompt('Edit text', context.text)"
             )
           template(v-else-if="context.content.type==='code' && context.code")
             //- Code (monospace font)
             pre.p-4(
               style="max-width: 600px; font-family: Consolas, Courier, monospace; white-space: pre-wrap;"
               v-html="context.code"
+              @dblclick="context.code = window.prompt('Edit code', context.code)"
             )
           template(v-else-if="context.content")
             //- No text/code
@@ -122,12 +124,15 @@
       movingDotsMixin
     ]
 
-    data: ->
+    data: -> {
 
       show:
         ideas: false
         mindmap: true
       pickedContext: 'mindmap'
+      window
+
+    }
     
     watch:
       context: (context) ->
