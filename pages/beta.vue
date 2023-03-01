@@ -157,6 +157,7 @@
     data: ->
 
       messages: []
+      messageBeingRepliedTo: null
       routedMessage: null
       openaiKey: null
       openAIkey: null # for backwards compatibility
@@ -193,7 +194,10 @@
       tree: -> new TreeLike @messages, vm: @
 
       chat: 
-        get: -> window.chat = new Chat @, @routedMessage
+        get: -> {
+          ...(window.chat = new Chat @, @routedMessage)
+          @messageBeingRepliedTo
+        }
         set: (chat) -> @routedMessage = chat?.lastMessage
 
       chats: -> @tree.orphans().reverse().map?( (message) => new Chat @, message )
@@ -299,11 +303,14 @@
           }
       
       reply: (message) ->
+
         @try 'replying', =>
 
-          log 'Replying to message', message, 'parent:',
+          # log 'Replying to message',
+          @messageBeingRepliedTo = message
+          # log 'parent:',
           parent = @tree.parent message
-          log 'Modifier',
+          # log 'Modifier',
           modifier = @getModifier parent
           firstTime = modifier is 'firstTime'
           replies = await @magic.reply[modifier].generate log 'Generate request:', {
