@@ -28,7 +28,7 @@ export default ({
       axios.post '/run', {
         databaseId: templatesDatabaseId
         slug
-        openAIkey
+        openaiKey: openAIkey
         variables
         parameters: { ...defaultParameters, ...parameters }
       }
